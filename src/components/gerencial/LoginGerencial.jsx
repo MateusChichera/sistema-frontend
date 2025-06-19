@@ -1,157 +1,93 @@
+// frontend/src/components/gerencial/LoginGerencial.jsx
 import React, { useState } from 'react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
 import { useAuth } from '../../contexts/AuthContext';
-import { useEmpresa } from '../../contexts/EmpresaContext';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { LogIn } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom'; // Importe useParams
 
-const LoginGerencial = () => {
-  const { login } = useAuth();
-  const { empresa, loading: empresaLoading } = useEmpresa();
-  const navigate = useNavigate();
-  const { slug } = useParams();
-  
-  const [credentials, setCredentials] = useState({
-    email: '',
-    senha: ''
-  });
-  
-  const [loading, setLoading] = useState(false);
+const LoginGerencial = ({ admin = false }) => {
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const { slug } = useParams(); // <--- OBTEM O SLUG DA URL AQUI
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
-    try {
-      const result = await login(credentials, slug);
-      
-      if (result.success) {
-        navigate(`/gerencial/${slug}/dashboard`);
+    let loginType;
+    let targetSlug = null;
+
+    if (admin) {
+      loginType = 'admin';
+    } else {
+      loginType = 'funcionario';
+      targetSlug = slug; // Usa o slug da URL para login de funcionário
+    }
+
+    const result = await login({ email, senha }, loginType, targetSlug);
+
+    if (result.success) {
+      if (admin) {
+        navigate('/admin/dashboard'); // Redireciona para o dashboard do admin master
       } else {
-        setError(result.error || 'Erro ao fazer login');
+        navigate(`/gerencial/${targetSlug}/dashboard`); // Redireciona para o dashboard do funcionário
       }
-    } catch (error) {
-      setError('Erro ao fazer login. Tente novamente.');
-    } finally {
-      setLoading(false);
+    } else {
+      setError(result.error);
     }
   };
 
-  if (empresaLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!empresa) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Empresa não encontrada</h1>
-          <p className="text-gray-600">Verifique se o endereço está correto.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          {empresa.logo_url && (
-            <img 
-              src={empresa.logo_url} 
-              alt={empresa.nome_fantasia}
-              className="mx-auto h-16 w-16 rounded-full object-cover"
-            />
-          )}
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Acesso Gerencial
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {empresa.nome_fantasia}
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">Fazer Login</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="email">E-mail</Label>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <Card className="w-[380px]">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">
+            {admin ? 'Login Admin Master' : `Login ${slug ? `(${slug})` : 'Gerencial'}`}
+          </CardTitle>
+          <CardDescription>
+            {admin ? 'Acesse o painel de gerenciamento de empresas.' : 'Acesse o painel do seu restaurante.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="grid w-full items-center gap-4">
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  required
-                  value={credentials.email}
-                  onChange={(e) => setCredentials({...credentials, email: e.target.value})}
                   placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
-
-              <div>
+              <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="senha">Senha</Label>
                 <Input
                   id="senha"
                   type="password"
+                  placeholder="********"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
                   required
-                  value={credentials.senha}
-                  onChange={(e) => setCredentials({...credentials, senha: e.target.value})}
-                  placeholder="Sua senha"
                 />
               </div>
-
-              <Button 
-                type="submit" 
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? (
-                  'Entrando...'
-                ) : (
-                  <>
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Entrar
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Para demonstração, use qualquer e-mail e senha.
-              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center">
-          <Button 
-            variant="link" 
-            onClick={() => navigate(`/${slug}`)}
-          >
-            Voltar ao Cardápio
-          </Button>
-        </div>
-      </div>
+            {error && <p className="text-red-500 text-sm mt-3 text-center">{error}</p>}
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <Button type="submit" onClick={handleSubmit} className="w-full">Entrar</Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
 
 export default LoginGerencial;
-

@@ -31,9 +31,9 @@ const LayoutCardapio = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              {empresa.logo_url && (
+              {empresa.logo_full_url && (
                 <img 
-                  src={empresa.logo_url} 
+                  src={empresa.logo_full_url} 
                   alt={empresa.nome_fantasia}
                   className="h-10 w-10 rounded-full object-cover"
                 />

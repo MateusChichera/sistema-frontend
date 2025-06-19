@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// frontend/src/contexts/EmpresaContext.jsx
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
 
 const EmpresaContext = createContext();
 
@@ -13,69 +15,74 @@ export const useEmpresa = () => {
 export const EmpresaProvider = ({ children }) => {
   const [empresa, setEmpresa] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+
+  const loadEmpresa = useCallback(async (empresaSlug) => {
+    console.log("EmpresaContext: loadEmpresa: Tentando carregar com slug:", empresaSlug);
+    setLoading(true);
+    setIsReady(false);
+
+    if (!empresaSlug) {
+      setEmpresa(null);
+      setLoading(false);
+      setIsReady(true);
+      console.log("EmpresaContext: loadEmpresa: Slug nulo ou vazio.");
+      return;
+    }
+
+    try {
+      const response = await api.get(`/${empresaSlug}/config`);
+      const empresaData = response.data;
+
+      if (empresaData.logo_url) {
+        const backendBaseUrl = api.defaults.baseURL.replace('/api/v1', '');
+        empresaData.logo_full_url = `${backendBaseUrl}${empresaData.logo_url}`;
+      } else {
+        empresaData.logo_full_url = null;
+      }
+
+      setEmpresa(empresaData);
+      // LOG MELHORADO:
+      console.log("EmpresaContext: loadEmpresa: Dados da Empresa Carregados:", empresaData, "Slug no Objeto:", empresaData.slug);
+
+    } catch (error) {
+      console.error('EmpresaContext: loadEmpresa: Erro ao carregar empresa:', error.response?.data?.message || error.message);
+      setEmpresa(null);
+    } finally {
+      setLoading(false);
+      setIsReady(true);
+    }
+  }, []);
 
   useEffect(() => {
-    // Função para detectar mudanças na URL
     const handleLocationChange = () => {
       const path = window.location.pathname;
       const segments = path.split('/').filter(Boolean);
-      
+
       let slug = null;
       if (segments.length > 0) {
         if (segments[0] === 'gerencial' && segments.length > 1) {
-          slug = segments[1]; // Para URLs como /gerencial/demo-restaurante
-        } else if (segments[0] !== 'gerencial') {
-          slug = segments[0]; // Para URLs como /demo-restaurante
+          slug = segments[1];
+        } else if (segments[0] !== 'gerencial' && segments[0] !== 'admin') {
+          slug = segments[0];
         }
       }
-      
-      if (slug) {
-        loadEmpresa(slug);
-      } else {
-        setLoading(false);
-      }
+      console.log("EmpresaContext: handleLocationChange: Slug extraído da URL:", slug);
+      loadEmpresa(slug);
     };
 
-    // Executar na montagem
     handleLocationChange();
-
-    // Escutar mudanças na URL
     window.addEventListener('popstate', handleLocationChange);
     
     return () => {
       window.removeEventListener('popstate', handleLocationChange);
     };
-  }, []);
-
-  const loadEmpresa = async (empresaSlug) => {
-    try {
-      setLoading(true);
-      
-      // Simulando dados da empresa
-      const mockEmpresa = {
-        id: 1,
-        nome_fantasia: 'Restaurante Demo',
-        razao_social: 'Demo Restaurante LTDA',
-        cnpj: '12.345.678/0001-90',
-        email_contato: 'contato@demo.com',
-        telefone_contato: '(11) 99999-9999',
-        logo_url: '/logo-demo.png',
-        slug: empresaSlug,
-        status: 'Ativo'
-      };
-      
-      setEmpresa(mockEmpresa);
-    } catch (error) {
-      console.error('Erro ao carregar empresa:', error);
-      setEmpresa(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [loadEmpresa]);
 
   const value = {
     empresa,
     loading,
+    isReady,
     loadEmpresa
   };
 
@@ -85,4 +92,3 @@ export const EmpresaProvider = ({ children }) => {
     </EmpresaContext.Provider>
   );
 };
-

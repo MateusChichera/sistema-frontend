@@ -1,4 +1,6 @@
+// frontend/src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../services/api'; // Importa a instância do axios
 
 const AuthContext = createContext();
 
@@ -16,41 +18,61 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar se há um token válido no localStorage
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    
-    setLoading(false);
+    const loadUserFromStorage = () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (storedToken && storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setToken(storedToken);
+        } catch (error) {
+          console.error("Erro ao parsear usuário do localStorage", error);
+          logout(); // Limpa dados inválidos
+        }
+      }
+      setLoading(false);
+    };
+
+    loadUserFromStorage();
   }, []);
 
-  const login = async (credentials, slug) => {
+  // `credentials` deve conter { email, senha }
+  // `loginType` pode ser 'admin', 'funcionario', 'cliente'
+  // `slug` é opcional, usado para funcionario/cliente
+  const login = async (credentials, loginType, slug = null) => {
     try {
-      // Aqui seria feita a chamada para a API
-      // Por enquanto, vamos simular um login
-      const mockUser = {
-        id: 1,
-        nome: 'Administrador',
-        email: credentials.email,
-        role: 'Proprietario',
-        id_empresa: 1
-      };
-      
-      const mockToken = 'mock-jwt-token';
-      
-      setUser(mockUser);
-      setToken(mockToken);
-      
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      
+      let response;
+      let endpoint;
+
+      if (loginType === 'admin') {
+        endpoint = `/admin/login`;
+      } else if (loginType === 'funcionario') {
+        if (!slug) throw new Error('Slug da empresa é obrigatório para login de funcionário.');
+        endpoint = `/${slug}/funcionario/login`;
+      } else if (loginType === 'cliente') {
+        if (!slug) throw new Error('Slug da empresa é obrigatório para login de cliente.');
+        endpoint = `/${slug}/cliente/login`;
+      } else {
+        throw new Error('Tipo de login inválido.');
+      }
+
+      response = await api.post(endpoint, credentials);
+
+      const { token, user: userData } = response.data;
+
+      setUser(userData);
+      setToken(token);
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.message };
+      const errorMessage = error.response?.data?.message || 'Erro ao realizar login. Verifique suas credenciais.';
+      console.error("Erro no login:", error);
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -59,6 +81,8 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Você pode redirecionar aqui se quiser um logout global
+    // window.location.href = '/'; 
   };
 
   const value = {
@@ -67,7 +91,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    isAuthenticated: !!token
+    isAuthenticated: !!token // Converte token para booleano
   };
 
   return (
@@ -76,4 +100,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
