@@ -6,6 +6,7 @@ import { CarrinhoProvider } from './contexts/CarrinhoContext';
 
 // Páginas do Cardápio Digital
 import CardapioPage from './components/cardapio/CardapioPage';
+import PublicCardapioPage from './components/cardapio/PublicCardapiopage';
 import FinalizarPedido from './components/cardapio/FinalizarPedido';
 
 // Páginas Gerenciais
@@ -48,9 +49,14 @@ function App() {
               {/* Cada rota define seu layout e página */}
               <Route path="/:slug" element={
                 <LayoutCardapio>
+                  <PublicCardapioPage />
+                </LayoutCardapio>
+              }/>
+              <Route path="/:slug/comanda" element={
+                <LayoutCardapio>
                   <CardapioPage />
                 </LayoutCardapio>
-              } />
+              }/>
               
               {/* Finalizar Pedido é um modal dentro de CardapioPage, não uma rota separada */}
               {/* <Route path="/:slug/pedido" element={
@@ -69,6 +75,7 @@ function App() {
                   <Dashboard />
                 </LayoutGerencial>
               } />
+              
               
               {/* Pedidos */}
               <Route path="/gerencial/:slug/pedidos" element={

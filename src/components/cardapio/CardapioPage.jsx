@@ -12,15 +12,13 @@ import { Label } from '../ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog'; 
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '../ui/select'; 
-import { ShoppingCart, Utensils, LogOut } from 'lucide-react'; // Ícones ajustados
+import { ShoppingCart, Utensils, LogOut } from 'lucide-react'; 
+
 
 // Função para remover acentos (para busca)
 const removeAccents = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
-
-// A lógica de isRestaurantOpen não é mais necessária aqui, pois é um painel interno para garçom.
-// isRestaurantOpen = (horarioFuncionamento) => { ... }
 
 
 const CardapioPage = () => {
@@ -43,16 +41,14 @@ const CardapioPage = () => {
 
   // Garçom: Pedido de Mesa (Comanda)
   const [isMesaOrderModalOpen, setIsMesaOrderModalOpen] = useState(false);
-  const [mesas, setMesas] = useState([]); // Todas as mesas ativas
-  const [mesasLivres, setMesasLivres] = useState([]); // Mesas livres (para criar novo pedido)
-  const [mesasComComanda, setMesasComComanda] = useState([]); // Mesas com pedido ativo (para adicionar itens)
+  const [mesas, setMesas] = useState([]);
+  const [mesasLivres, setMesasLivres] = useState([]);
+  const [mesasComComanda, setMesasComComanda] = useState([]);
   const [selectedMesaId, setSelectedMesaId] = useState('');
   const [qtdPessoas, setQtdPessoas] = useState('');
   const [pedidoObservacoesMesa, setPedidoObservacoesMesa] = useState('');
-  const [existingOrderForMesa, setExistingOrderForMesa] = useState(null);
-
-  // Removido: Estados de Cliente: Finalizar Pedido (isPedidoTypeSelectionModalOpen, isFinalizarPedidoModalOpen, selectedPedidoType)
-  // Removido: Estados de Cliente: Login/Cadastro (isLoginRegisterModalOpen)
+  const [nomeClienteMesa, setNomeClienteMesa] = useState(''); // Nome do cliente para pedido de mesa
+  const [existingOrderForMesa, setExistingOrderForMesa] = useState(null); 
 
 
   // Efeito para buscar dados do cardápio (para Garçom)
@@ -71,7 +67,7 @@ const CardapioPage = () => {
       
       // Validação de role para acessar este cardápio de garçom
       if (!user || !['Funcionario', 'Caixa', 'Gerente', 'Proprietario'].includes(user.role)) {
-        setError('Acesso negado. Apenas funcionários podem usar este cardápio de comandas.');
+        setError('Acesso negado. Este cardápio é apenas para uso interno de funcionários.');
         setLoadingContent(false);
         return;
       }
@@ -79,7 +75,6 @@ const CardapioPage = () => {
       setLoadingContent(true);
       setError(null);
       try {
-        // Rotas para garçom: Podem usar as rotas gerenciais autenticadas
         const categoriasResponse = await api.get(`/gerencial/${empresa.slug}/categorias`, {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -93,7 +88,6 @@ const CardapioPage = () => {
         let finalCategorias = [...fetchedCategorias];
         let finalProdutos = [...fetchedProdutos];
 
-        // Lógica de Promoções: Mostra a categoria Promoções, mas não filtra por padrão
         const promoProducts = fetchedProdutos.filter(p => p.promo_ativa && p.ativo);
         if (promoProducts.length > 0) {
             const promoCategory = { id: 'promo', descricao: '🔥 Promoções', ativo: true };
@@ -101,24 +95,23 @@ const CardapioPage = () => {
         }
         setCategorias(finalCategorias);
         setProdutos(finalProdutos);
-        setFilteredProdutos(finalProdutos); // Inicialmente mostra todos
+        setFilteredProdutos(finalProdutos);
 
-        // Fetch Mesas (para Garçom)
+
         const mesasResponse = await api.get(`/gerencial/${empresa.slug}/mesas`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         const allActiveMesas = mesasResponse.data.filter(mesa => mesa.ativo);
         setMesas(allActiveMesas);
         setMesasLivres(allActiveMesas.filter(mesa => mesa.status === 'Livre'));
-        // Mesas com status Pendente, Preparando, Ocupada, Reservada (não Livre)
         setMesasComComanda(allActiveMesas.filter(mesa => mesa.status !== 'Livre')); 
 
-        toast.success("Cardápio de Garçom carregado!");
+        toast.success("Cardápio de Comandas carregado!");
 
       } catch (err) {
-        setError(err.response?.data?.message || 'Erro ao carregar cardápio de garçom.');
-        console.error("Erro ao carregar cardápio de garçom:", err);
-        toast.error(err.response?.data?.message || 'Erro ao carregar cardápio de garçom.');
+        setError(err.response?.data?.message || 'Erro ao carregar cardápio de comandas.');
+        console.error("Erro ao carregar cardápio de comandas:", err);
+        toast.error(err.response?.data?.message || 'Erro ao carregar cardápio de comandas.');
       } finally {
         setLoadingContent(false);
       }
@@ -128,7 +121,6 @@ const CardapioPage = () => {
   }, [empresa, isReady, user, token]);
 
 
-  // Efeito para aplicar filtros (categoria e busca)
   useEffect(() => {
     let currentFiltered = produtos;
 
@@ -151,7 +143,6 @@ const CardapioPage = () => {
   }, [produtos, selectedCategoryId, searchTerm]);
 
 
-  // Lógica do Modal de Detalhes do Produto / Adicionar ao Carrinho
   const openProductModal = (product) => {
     setSelectedProduct(product);
     setProductQuantity(1);
@@ -171,7 +162,6 @@ const CardapioPage = () => {
     }
   };
 
-  // Garçom: Lógica para finalizar ou ADICIONAR a Pedido de Mesa (Comanda)
   const handleFinalizarOuAdicionarPedidoMesa = async (e) => {
     e.preventDefault();
     if (itens.length === 0) {
@@ -195,22 +185,26 @@ const CardapioPage = () => {
         observacoes: item.observacoes
       }));
 
-      // A LÓGICA AGORA VERIFICA existingOrderForMesa?.id (se um pedido existente foi encontrado para a mesa)
+      // A LÓGICA AGORA VERIFICA existingOrderForMesa.id
+      // Se existingOrderForMesa é um objeto de pedido (significa que já existe um pedido ativo para a mesa)
       if (existingOrderForMesa?.id) { 
           // ADICIONA ITENS A UMA COMANDA EXISTENTE
         await api.post(`/gerencial/${empresa.slug}/pedidos/${existingOrderForMesa.id}/adicionar-itens`, {
-            itens: itensParaEnviar
+            itens: itensParaEnviar,
+            id_funcionario: user.id // Envia o ID do funcionário logado
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success(`Itens adicionados à comanda da Mesa ${existingOrderForMesa.numero_mesa}!`);
       } else { 
-          // CRIA UM NOVO PEDIDO PARA MESA LIVRE
+          // CRIA UM NOVO PEDIDO para a mesa selecionada (que foi verificada como LIVRE ou sem pedido ativo)
         const pedidoData = {
           id_mesa: parseInt(selectedMesaId),
           tipo_entrega: 'Mesa',
           observacoes: pedidoObservacoesMesa,
           itens: itensParaEnviar,
+          nome_cliente_mesa: nomeClienteMesa, // Adicionado nome do cliente opcional
+          id_funcionario: user.id // Envia o ID do funcionário logado
         };
         await api.post(`/${empresa.slug}/pedidos`, pedidoData, {
           headers: { Authorization: `Bearer ${token}` }
@@ -220,6 +214,12 @@ const CardapioPage = () => {
 
       setIsMesaOrderModalOpen(false);
       limparCarrinho();
+      // Resetar campos do modal de mesa
+      setSelectedMesaId('');
+      setQtdPessoas('');
+      setPedidoObservacoesMesa('');
+      setNomeClienteMesa('');
+      setExistingOrderForMesa(null); // Limpar pedido existente
 
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao finalizar/adicionar ao pedido de mesa.');
@@ -230,12 +230,11 @@ const CardapioPage = () => {
     }
   };
 
-  // Efeito para carregar pedido existente na mesa selecionada (para Comanda)
   useEffect(() => {
     const fetchExistingOrder = async () => {
         const selectedMesaObj = mesas.find(m => m.id.toString() === selectedMesaId);
-        // Só busca se tem mesa selecionada E se for funcionário
-        if (selectedMesaId && selectedMesaObj && user?.role && ['Funcionario', 'Caixa', 'Gerente', 'Proprietario'].includes(user.role) && token) {
+        // Só busca se tem mesa selecionada E se for funcionário E se a mesa NÃO estiver LIVRE
+        if (selectedMesaId && selectedMesaObj && selectedMesaObj.status !== 'Livre' && user?.role && ['Funcionario', 'Caixa', 'Gerente', 'Proprietario'].includes(user.role) && token) {
             try {
                 // Busca pedidos PENDENTES ou PREPARANDO para a mesa selecionada
                 const response = await api.get(`/gerencial/${empresa.slug}/pedidos?id_mesa=${selectedMesaId}&status=Pendente,Preparando`, {
@@ -245,7 +244,7 @@ const CardapioPage = () => {
                     setExistingOrderForMesa(response.data[0]);
                     toast.info(`Mesa ${response.data[0].numero_mesa} tem uma comanda aberta (Pedido #${response.data[0].numero_pedido}).`);
                 } else {
-                    // Mesa sem pedido ativo para este status (pode estar Livre, ou outro status finalizado)
+                    // Mesa ocupada/reservada mas sem pedido ativo (pode ter sido finalizado fora do sistema ou erro)
                     setExistingOrderForMesa(null); 
                 }
             } catch (err) {
@@ -253,18 +252,13 @@ const CardapioPage = () => {
                 setExistingOrderForMesa(null);
             }
         } else {
-            setExistingOrderForMesa(null); // Nenhuma mesa selecionada ou não é funcionário
+            setExistingOrderForMesa(null); // Mesa está livre ou não é garçom. Setando para null garante novo pedido.
         }
     };
     fetchExistingOrder();
-  }, [selectedMesaId, user, token, empresa, mesas]); // Adicione 'mesas' como dependência
+  }, [selectedMesaId, user, token, empresa, mesas]);
 
 
-  // Removido: handleOpenFinalizarPedidoModal (para cliente)
-  // Removido: handlePedidoTypeSelected (para cliente)
-  // Removido: handleCloseFinalizarPedidoModal (para cliente)
-  
-  // A cor primária do cardápio será usada aqui
   const primaryColor = empresa?.cor_primaria_cardapio || '#FF5733';
 
 
@@ -285,18 +279,16 @@ const CardapioPage = () => {
   }
   
   const hasItemsInCart = itens.length > 0;
-  // A validação de isGarcom aqui é para determinar se o usuário pode ver este cardápio
   const isGarcomAllowed = user?.role && ['Funcionario', 'Caixa', 'Gerente', 'Proprietario'].includes(user.role);
 
-  // Se não for garçom, este CardapioPage não deve ser acessível
-  if (!isGarcomAllowed) {
+  if (!isGarcomAllowed) { // Se não for garçom, este CardapioPage não deve ser acessível
     return <div className="p-4 text-center text-red-600">Acesso negado. Este cardápio é apenas para uso interno de funcionários.</div>;
   }
 
   return (
     <div className="container mx-auto p-4 relative">
       {/* Botão de Logout (Topo Direito, apenas para Garçom) */}
-      {user && ( // Se houver um usuário logado
+      {user && (
         <div className="absolute top-4 right-4 flex space-x-2 items-center z-10">
             <span className="text-sm text-gray-700">Olá, {user.nome}!</span>
             <Button variant="ghost" size="sm" onClick={logout}>
@@ -310,20 +302,6 @@ const CardapioPage = () => {
         Cardápio de Comandas - {empresa?.nome_fantasia || 'Empresa'}
       </h1>
       
-      {empresa?.logo_full_url && (
-        <div className="mb-6 flex justify-center">
-          <img 
-            src={empresa.logo_full_url} 
-            alt={empresa.nome_fantasia || 'Logo'} 
-            className="h-24 w-auto rounded-lg shadow-md object-contain"
-          />
-        </div>
-      )}
-
-      {/* Removido: Opções de Tipo de Pedido (Delivery/Retirada/Mesa para cliente) */}
-      {/* Removido: Mensagem se pedidos online não são permitidos para clientes */}
-      {/* Removido: Exibe valor mínimo de delivery (apenas para cliente) */}
-
 
       {/* Filtros de Categoria e Busca */}
       <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -401,13 +379,12 @@ const CardapioPage = () => {
 
       {/* Botão flutuante do carrinho / finalizar pedido (Sempre para Garçom) */}
       {hasItemsInCart && ( // Garçom sempre pode fazer pedido se tiver itens
-        <div className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 text-primary-foreground rounded-full shadow-lg flex items-center space-x-2 z-50 transform translate-x-0 transition-all duration-300 ease-in-out" 
+        <div className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-2 z-50 transform translate-x-0 transition-all duration-300 ease-in-out" 
              style={{ backgroundColor: primaryColor }}>
-            <ShoppingCart className="h-6 w-6 flex-shrink-0" />
-            <span className="text-lg font-bold whitespace-nowrap">Total: R$ {total.toFixed(2).replace('.', ',')}</span>
+            <ShoppingCart className="h-6 w-6 flex-shrink-0" style={{ color: 'white' }} />
+            <span className="text-lg font-bold whitespace-nowrap" style={{color: 'black'}}>Total: R$ {total.toFixed(2).replace('.', ',')}</span> {/* Texto preto */}
             
-            {/* Garçom SEMPRE CLICA AQUI */}
-            <Button onClick={() => setIsMesaOrderModalOpen(true)} variant="secondary" className="ml-auto flex-shrink-0">
+            <Button onClick={() => setIsMesaOrderModalOpen(true)} variant="secondary" className="ml-auto flex-shrink-0" style={{ backgroundColor: 'white', color: primaryColor }}>
                 <Utensils className="mr-2" /> Pedido Mesa
             </Button>
         </div>
@@ -427,8 +404,8 @@ const CardapioPage = () => {
                   <span style={{ color: '#22C55E' }}>R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
                 </span>
               ) : (
-                <span className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span
-              >)}
+                <span className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -461,7 +438,6 @@ const CardapioPage = () => {
               <Select value={selectedMesaId} onValueChange={setSelectedMesaId} required>
                 <SelectTrigger id="mesa"><SelectValue placeholder="Selecione a mesa" /></SelectTrigger>
                 <SelectContent>
-                  {/* Listar mesas livres e ocupadas para o garçom */}
                   {mesasLivres.length > 0 && (
                       <SelectGroup>
                           <SelectLabel>Mesas Livres</SelectLabel>
@@ -488,6 +464,16 @@ const CardapioPage = () => {
                 <p className="text-sm text-blue-600">Comanda aberta para Pedido #{existingOrderForMesa.numero_pedido}. Itens serão adicionados.</p>
             )}
             <div>
+              <Label htmlFor="nomeClienteMesa">Nome do Cliente na Mesa (opcional)</Label>
+              <Input 
+                id="nomeClienteMesa" 
+                type="text" 
+                value={nomeClienteMesa} 
+                onChange={(e) => setNomeClienteMesa(e.target.value)} 
+                placeholder="Ex: Cliente da Mesa 5" 
+              />
+            </div>
+            <div>
               <Label htmlFor="qtdPessoas">Quantidade de Pessoas (opcional)</Label>
               <Input id="qtdPessoas" type="number" value={qtdPessoas} onChange={(e) => setQtdPessoas(parseInt(e.target.value) || '')} placeholder="Ex: 2" min="1" />
             </div>
@@ -501,10 +487,6 @@ const CardapioPage = () => {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Removido: Modal de Finalizar Pedido (para Cliente - Delivery/Retirada/Mesa) */}
-      {/* Removido: Modal de Login/Cadastro de Cliente */}
-      {/* Removido: Modal de Seleção do Tipo de Pedido (Delivery/Retirada) */}
     </div>
   );
 };

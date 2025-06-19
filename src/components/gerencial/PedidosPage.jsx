@@ -160,7 +160,7 @@ const PedidosPage = () => {
   
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Pedidos - {empresa.nome_fantasia}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">Pedidos Delivery - {empresa.nome_fantasia}</h2>
 
       <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <div>
