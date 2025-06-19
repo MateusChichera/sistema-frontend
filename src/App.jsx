@@ -15,6 +15,7 @@ import Dashboard from './components/gerencial/Dashboard';
 import PedidosPage from './components/gerencial/PedidosPage';
 import CaixaPage from './components/gerencial/CaixaPage';
 import RelatoriosPage from './components/gerencial/RelatoriosPage';
+import OrderStatusPage from './components/cardapio/OrderStatusPage';
 
 // Componentes de Layout
 import LayoutGerencial from './components/layout/LayoutGerencial';
@@ -81,6 +82,12 @@ function App() {
               <Route path="/gerencial/:slug/pedidos" element={
                 <LayoutGerencial>
                   <PedidosPage />
+                </LayoutGerencial>
+              } />
+                {/* Pedidos */}
+              <Route path="/gerencial/:slug/cozinha" element={
+                <LayoutGerencial>
+                  <OrderStatusPage />
                 </LayoutGerencial>
               } />
 

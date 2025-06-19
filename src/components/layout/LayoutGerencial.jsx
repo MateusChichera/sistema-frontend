@@ -20,7 +20,8 @@ import {
   ChevronDown, 
   ChevronUp,
   Utensils,
-  UtensilsCrossed
+  UtensilsCrossed,
+  ChefHat
 } from 'lucide-react';
 import { Button } from '../ui/button';
 
@@ -72,7 +73,8 @@ const LayoutGerencial = ({ children }) => {
     { name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Delivery', icon: UtensilsCrossed, path: `/gerencial/${currentSlug}/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Caixa', icon: CreditCard, path: `/gerencial/${currentSlug}/caixa`, roles: ['Proprietario', 'Gerente', 'Caixa'] },
-    { name: 'Comanda', icon: Utensils, path: `/${currentSlug}/comanda`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] }, // <--- NOVO LINK PARA COMANDA
+    { name: 'Comanda', icon: Utensils, path: `/${currentSlug}/comanda`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+    { name: 'Pedidos', icon: ChefHat , path: `/gerencial/${currentSlug}/cozinha`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] }, 
     { 
         name: 'Cadastros', 
         icon: Users, 
