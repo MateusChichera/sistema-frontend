@@ -1,6 +1,6 @@
 // frontend/src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api'; // Importa a instância do axios
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -15,35 +15,35 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Indica se a verificação inicial de autenticação terminou
 
   useEffect(() => {
     const loadUserFromStorage = () => {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-
+      
       if (storedToken && storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           setToken(storedToken);
+          // Adiciona o token ao header padrão do axios para todas as requisições futuras
+          // (se o interceptor já faz isso, pode ser redundante, mas garante)
+          // api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
         } catch (error) {
           console.error("Erro ao parsear usuário do localStorage", error);
           logout(); // Limpa dados inválidos
         }
       }
-      setLoading(false);
+      setLoading(false); // Marca como carregado após a verificação inicial
     };
 
     loadUserFromStorage();
-  }, []);
+  }, []); // Executa apenas uma vez na montagem
 
-  // `credentials` deve conter { email, senha }
-  // `loginType` pode ser 'admin', 'funcionario', 'cliente'
-  // `slug` é opcional, usado para funcionario/cliente
+
   const login = async (credentials, loginType, slug = null) => {
     try {
-      let response;
       let endpoint;
 
       if (loginType === 'admin') {
@@ -57,18 +57,18 @@ export const AuthProvider = ({ children }) => {
       } else {
         throw new Error('Tipo de login inválido.');
       }
-
-      response = await api.post(endpoint, credentials);
-
-      const { token, user: userData } = response.data;
-
+      
+      const response = await api.post(endpoint, credentials);
+      
+      const { token: receivedToken, user: userData } = response.data;
+      
       setUser(userData);
-      setToken(token);
-
-      localStorage.setItem('token', token);
+      setToken(receivedToken);
+      
+      localStorage.setItem('token', receivedToken);
       localStorage.setItem('user', JSON.stringify(userData));
-
-      return { success: true };
+      
+      return { success: true, user: userData };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Erro ao realizar login. Verifique suas credenciais.';
       console.error("Erro no login:", error);
@@ -81,17 +81,16 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    // Você pode redirecionar aqui se quiser um logout global
-    // window.location.href = '/'; 
+    // api.defaults.headers.common['Authorization'] = undefined; // Remove token do header padrão do axios
   };
 
   const value = {
     user,
     token,
-    loading,
+    loading, // Exporta o estado de carregamento da autenticação
     login,
     logout,
-    isAuthenticated: !!token // Converte token para booleano
+    isAuthenticated: !!token
   };
 
   return (

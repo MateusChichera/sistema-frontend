@@ -1,4 +1,6 @@
+// frontend/src/contexts/CarrinhoContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 const CarrinhoContext = createContext();
 
@@ -12,98 +14,72 @@ export const useCarrinho = () => {
 
 export const CarrinhoProvider = ({ children }) => {
   const [itens, setItens] = useState([]);
-  const [tipoEntrega, setTipoEntrega] = useState('Mesa');
-  const [mesa, setMesa] = useState('');
-  const [observacoes, setObservacoes] = useState('');
+  const [total, setTotal] = useState(0);
 
-  // Carregar carrinho do localStorage
+  // Carregar carrinho do localStorage (se houver)
   useEffect(() => {
-    const carrinhoSalvo = localStorage.getItem('carrinho');
-    if (carrinhoSalvo) {
-      setItens(JSON.parse(carrinhoSalvo));
+    const storedItens = localStorage.getItem('carrinhoItens');
+    if (storedItens) {
+      setItens(JSON.parse(storedItens));
     }
   }, []);
 
-  // Salvar carrinho no localStorage
+  // Atualizar localStorage sempre que o carrinho mudar
   useEffect(() => {
-    localStorage.setItem('carrinho', JSON.stringify(itens));
+    localStorage.setItem('carrinhoItens', JSON.stringify(itens));
+    // Recalcular total
+    const newTotal = itens.reduce((acc, item) => {
+      return acc + (item.quantidade * (item.promocao_ativa ? parseFloat(item.promocao) : parseFloat(item.preco)));
+    }, 0);
+    setTotal(newTotal);
   }, [itens]);
 
-  const adicionarItem = (produto, quantidade = 1, observacoesItem = '') => {
-    setItens(prevItens => {
-      const itemExistente = prevItens.find(item => 
-        item.id === produto.id && item.observacoes === observacoesItem
-      );
 
+  const adicionarItem = (produto, quantidade = 1) => {
+    setItens(prevItens => {
+      const itemExistente = prevItens.find(item => item.id === produto.id);
       if (itemExistente) {
+        toast.info(`Quantidade de ${produto.nome} atualizada.`);
         return prevItens.map(item =>
-          item.id === produto.id && item.observacoes === observacoesItem
-            ? { ...item, quantidade: item.quantidade + quantidade }
-            : item
+          item.id === produto.id ? { ...item, quantidade: item.quantidade + quantidade } : item
         );
       } else {
-        return [...prevItens, {
-          id: produto.id,
-          nome: produto.nome,
-          preco: produto.promo_ativa ? produto.promocao : produto.preco,
-          quantidade,
-          observacoes: observacoesItem,
-          produto
-        }];
+        toast.success(`${produto.nome} adicionado ao carrinho!`);
+        return [...prevItens, { ...produto, quantidade }];
       }
     });
   };
 
-  const removerItem = (id, observacoes = '') => {
-    setItens(prevItens => 
-      prevItens.filter(item => !(item.id === id && item.observacoes === observacoes))
-    );
+  const removerItem = (produtoId) => {
+    setItens(prevItens => {
+      toast.info('Item removido do carrinho.');
+      return prevItens.filter(item => item.id !== produtoId);
+    });
   };
 
-  const atualizarQuantidade = (id, novaQuantidade, observacoes = '') => {
+  const atualizarQuantidade = (produtoId, novaQuantidade) => {
     if (novaQuantidade <= 0) {
-      removerItem(id, observacoes);
-      return;
+      return removerItem(produtoId);
     }
-
     setItens(prevItens =>
       prevItens.map(item =>
-        item.id === id && item.observacoes === observacoes
-          ? { ...item, quantidade: novaQuantidade }
-          : item
+        item.id === produtoId ? { ...item, quantidade: novaQuantidade } : item
       )
     );
   };
 
   const limparCarrinho = () => {
     setItens([]);
-    setTipoEntrega('Mesa');
-    setMesa('');
-    setObservacoes('');
-  };
-
-  const calcularTotal = () => {
-    return itens.reduce((total, item) => total + (item.preco * item.quantidade), 0);
-  };
-
-  const calcularQuantidadeTotal = () => {
-    return itens.reduce((total, item) => total + item.quantidade, 0);
+    toast.info('Carrinho limpo.');
   };
 
   const value = {
     itens,
-    tipoEntrega,
-    mesa,
-    observacoes,
-    setTipoEntrega,
-    setMesa,
-    setObservacoes,
+    total,
     adicionarItem,
     removerItem,
     atualizarQuantidade,
     limparCarrinho,
-    calcularTotal,
-    calcularQuantidadeTotal
   };
 
   return (
@@ -112,4 +88,3 @@ export const CarrinhoProvider = ({ children }) => {
     </CarrinhoContext.Provider>
   );
 };
-

@@ -1,33 +1,74 @@
 // frontend/src/components/layout/LayoutGerencial.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // Importe useState e useEffect
 import { useAuth } from '../../contexts/AuthContext';
 import { useEmpresa } from '../../contexts/EmpresaContext';
 import { useNavigate, useLocation, NavLink, useParams } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  CreditCard,
-  Users,
+import { 
+  LayoutDashboard, 
+  ShoppingBag, 
+  CreditCard, 
+  Users, 
+  Settings, // Importe Settings para a nova opção de Configurações
   BarChart3,
   LogOut,
-  Menu
+  Menu,
+  Tag,        // Icone para Categorias
+  Package,    // Icone para Produtos
+  Wallet,     // Icone para Formas de Pagamento
+  UserCog,    // Icone para Funcionários
+  Table,      // Icone para Mesas
+  ChevronDown, // Icone para expandir sub-menu
+  ChevronUp    // Icone para recolher sub-menu
 } from 'lucide-react';
 import { Button } from '../ui/button';
 
 const LayoutGerencial = ({ children }) => {
   const { user, logout } = useAuth();
-  const { empresa, loading: empresaLoading, isReady } = useEmpresa();
+  const { empresa, loading: empresaLoading, isReady } = useEmpresa(); 
   const navigate = useNavigate();
   const location = useLocation();
-  const { slug: urlSlugFromParams } = useParams(); // Pega o slug da URL usando useParams
+  const { slug: urlSlugFromParams } = useParams(); // Pega o slug da URL
+
+  // Estado para controlar a abertura/fechamento do sub-menu de Cadastros
+  const [isCadastrosOpen, setIsCadastrosOpen] = useState(false);
+
+  // NOVO: Estado local para o slug resolvido que será usado nos menus.
+  // Ele só será definido quando 'empresa.slug' for válido e as condições forem atendidas.
+  const [currentResolvedSlug, setCurrentResolvedSlug] = useState(null);
+
+  // useEffect para ATUALIZAR currentResolvedSlug quando 'empresa' do contexto mudar
+  // Este useEffect é CRUCIAL para garantir que 'currentResolvedSlug' só seja definido
+  // quando 'empresa' está totalmente carregada e válida.
+  useEffect(() => {
+    console.log("LayoutGerencial useEffect: Início da execução para definir currentResolvedSlug.");
+    console.log("  Estado Contexto: isReady:", isReady, "empresaLoading:", empresaLoading);
+    console.log("  Objeto 'empresa':", empresa);
+    console.log("  Slug da URL:", urlSlugFromParams);
+
+    if (
+      isReady &&                       // EmpresaContext terminou de processar
+      !empresaLoading &&               // Não está mais carregando
+      empresa &&                       // Objeto empresa existe
+      empresa.status === 'Ativa' &&    // Empresa está ativa
+      empresa.slug === urlSlugFromParams // Slug da empresa carregada coincide com o da URL
+    ) {
+      setCurrentResolvedSlug(empresa.slug);
+      console.log("LayoutGerencial useEffect: currentResolvedSlug DEFINIDO como:", empresa.slug);
+    } else {
+      setCurrentResolvedSlug(null); // Reseta se as condições não forem atendidas
+      console.log("LayoutGerencial useEffect: currentResolvedSlug RESETADO (empresa inválida ou não pronta).");
+    }
+  }, [empresa, empresaLoading, isReady, urlSlugFromParams]); // Dependências do useEffect
 
   // --- Condições de Carregamento e Erro do Layout ---
 
-  // PRIMEIRA VERIFICAÇÃO: Mostra "Carregando" se o EmpresaContext ainda não terminou.
-  // Isso é crucial para que os dados 'empresa' e 'isReady' estejam estáveis.
-  if (!isReady || empresaLoading) {
-    console.log("LayoutGerencial: Mostrando 'Carregando painel gerencial...' (EmpresaContext não pronto).");
-    console.log("  Estado: isReady:", isReady, "empresaLoading:", empresaLoading);
+  // Mostra "Carregando" se:
+  // 1. O EmpresaContext ainda não terminou sua avaliação inicial (isReady é false).
+  // 2. O EmpresaContext está ativamente buscando a empresa (empresaLoading é true).
+  // 3. OU (e crucial) se 'currentResolvedSlug' AINDA NÃO FOI DEFINIDO/CONFIRMADO.
+  if (!isReady || empresaLoading || !currentResolvedSlug) {
+    console.log("LayoutGerencial: Mostrando 'Carregando painel gerencial...'");
+    console.log("  Estado de Renderização: isReady:", isReady, "empresaLoading:", empresaLoading, "currentResolvedSlug:", currentResolvedSlug);
     return (
       <div className="flex justify-center items-center h-screen bg-gray-100">
         <p className="text-gray-700">Carregando painel gerencial...</p>
@@ -35,45 +76,41 @@ const LayoutGerencial = ({ children }) => {
     );
   }
 
-  // SE CHEGAMOS AQUI: isReady é TRUE e empresaLoading é FALSE.
-  // O EmpresaContext CONCLUIU o carregamento. Agora verificamos a validade da empresa.
+  // SE CHEGAMOS AQUI:
+  // 1. 'isReady' é TRUE.
+  // 2. 'empresaLoading' é FALSE.
+  // 3. 'currentResolvedSlug' ESTÁ DEFINIDO (e, por nossa lógica, 'empresa' é válido e ativo).
 
-  // O slug que usaremos para construir as URLs do menu é o slug que veio da própria URL,
-  // pois ele é o que o usuário digitou e é o que esperamos que seja consistente.
-  const currentSlugForNavigation = urlSlugFromParams;
+  // A partir daqui, 'empresa' e 'currentResolvedSlug' são seguros para usar.
+  // Não precisamos de mais verificações de 'empresa' ou 'status' aqui.
 
-  // VERIFICAÇÃO DE VALIDADE DA EMPRESA:
-  // Se a empresa não foi encontrada no contexto, ou se o status não é 'Ativa',
-  // OU se o slug carregado pelo contexto NÃO corresponde ao slug da URL (segurança extra).
-  // A mensagem de erro final só é mostrada se a empresa não for válida.
-  if (!empresa || empresa.status !== 'Ativa' || empresa.slug !== urlSlugFromParams) {
-    console.log("LayoutGerencial: Empresa inválida/inativa/slug mismatch.");
-    console.log("  Empresa do Contexto:", empresa); // Loga o objeto completo
-    console.log("  URL Slug (from useParams):", urlSlugFromParams);
-    return (
-      <div className="flex justify-center items-center h-screen bg-red-100 text-red-700 font-semibold p-4 rounded-lg shadow-lg m-4 text-center">
-        <p>Acesso negado. Empresa não encontrada, inativa ou URL inválida para gerenciamento.</p>
-        <p className="mt-2 text-sm">Verifique o endereço ou entre em contato com o suporte.</p>
-      </div>
-    );
-  }
+  const currentSlug = currentResolvedSlug; // Usamos o slug que sabemos ser válido
 
-  // A PARTIR DAQUI:
-  // 1. O EmpresaContext terminou de carregar.
-  // 2. A 'empresa' foi carregada, está ativa e seu 'slug' corresponde ao 'urlSlugFromParams'.
-  // 3. 'currentSlugForNavigation' (do useParams) é válido e não é undefined.
-
+  // Definição dos itens de menu (agora garantindo que 'currentSlug' está disponível)
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlugForNavigation}/dashboard` },
-    { name: 'Pedidos', icon: ShoppingBag, path: `/gerencial/${currentSlugForNavigation}/pedidos` },
-    { name: 'Caixa', icon: CreditCard, path: `/gerencial/${currentSlugForNavigation}/caixa` },
-    { name: 'Cadastros', icon: Users, path: `/gerencial/${currentSlugForNavigation}/cadastros` },
-    { name: 'Relatórios', icon: BarChart3, path: `/gerencial/${currentSlugForNavigation}/relatorios` }
+    { name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+    { name: 'Pedidos', icon: ShoppingBag, path: `/gerencial/${currentSlug}/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+    { name: 'Caixa', icon: CreditCard, path: `/gerencial/${currentSlug}/caixa`, roles: ['Proprietario', 'Gerente', 'Caixa'] },
+    { 
+        name: 'Cadastros', 
+        icon: Users, 
+        isParent: true, // Indica que este é um item pai de sub-menu
+        roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'], // Quem pode ver o item pai 'Cadastros'
+        subMenu: [
+            { name: 'Categorias', icon: Tag, path: `/gerencial/${currentSlug}/cadastros/categorias`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+            { name: 'Produtos', icon: Package, path: `/gerencial/${currentSlug}/cadastros/produtos`, roles: ['Proprietario', 'Gerente'] },
+            { name: 'Formas de Pagamento', icon: Wallet, path: `/gerencial/${currentSlug}/cadastros/formas-pagamento`, roles: ['Proprietario', 'Gerente'] },
+            { name: 'Funcionários', icon: UserCog, path: `/gerencial/${currentSlug}/cadastros/funcionarios`, roles: ['Proprietario'] },
+            { name: 'Mesas', icon: Table, path: `/gerencial/${currentSlug}/cadastros/mesas`, roles: ['Proprietario', 'Gerente'] },
+        ]
+    },
+    { name: 'Relatórios', icon: BarChart3, path: `/gerencial/${currentSlug}/relatorios`, roles: ['Proprietario', 'Gerente'] },
+    { name: 'Configurações', icon: Settings, path: `/gerencial/${currentSlug}/configuracoes`, roles: ['Proprietario', 'Gerente'] } // Nova opção top-level
   ];
 
   const handleLogout = () => {
     logout();
-    navigate(`/gerencial/${currentSlugForNavigation}`);
+    navigate(`/gerencial/${currentSlug}`); // currentSlug está garantido aqui
   };
 
   return (
@@ -83,9 +120,9 @@ const LayoutGerencial = ({ children }) => {
         <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r">
           <div className="flex items-center flex-shrink-0 px-4">
             <div className="flex items-center space-x-3">
-              {empresa.logo_full_url && (
-                <img
-                  src={empresa.logo_full_url}
+              {empresa.logo_full_url && ( 
+                <img 
+                  src={empresa.logo_full_url} 
                   alt={empresa.nome_fantasia || 'Logo da Empresa'}
                   className="h-8 w-8 rounded-full object-cover"
                 />
@@ -96,33 +133,86 @@ const LayoutGerencial = ({ children }) => {
               </div>
             </div>
           </div>
-
+          
           <div className="mt-8 flex-grow flex flex-col">
             <nav className="flex-1 px-2 space-y-1">
               {menuItems.map((item) => {
+                // Verifica se o usuário tem a permissão para ver este item de menu (principal ou sub-menu)
+                if (!item.roles.includes(user?.role)) { // Adiciona '?' para user?.role
+                  return null;
+                }
+
                 const Icon = item.icon;
                 const isActive = location.pathname.startsWith(item.path);
-
-                return (
-                  <NavLink
-                    key={item.name}
-                    to={item.path}
-                    className={({ isActive: navIsActive }) =>
-                      `w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`
-                    }
-                  >
-                    <Icon className="mr-3 h-5 w-5" />
-                    {item.name}
-                  </NavLink>
-                );
+                
+                if (item.isParent) {
+                    return (
+                        <div key={item.name}>
+                            <button
+                                onClick={() => setIsCadastrosOpen(!isCadastrosOpen)}
+                                className={`w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                                  isActive || (item.subMenu.some(sub => location.pathname.startsWith(sub.path))) // Ativa se parent path matches OR any sub-path matches
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                }`}
+                            >
+                                <Icon className="mr-3 h-5 w-5" />
+                                {item.name}
+                                {isCadastrosOpen ? <ChevronUp className="ml-auto h-4 w-4" /> : <ChevronDown className="ml-auto h-4 w-4" />}
+                            </button>
+                            {isCadastrosOpen && (
+                                <div className="ml-6 mt-1 space-y-1"> {/* Sub-menu indentado */}
+                                    {item.subMenu.map(subItem => {
+                                        // Verifica permissão para o sub-item
+                                        if (!subItem.roles.includes(user?.role)) { // Adiciona '?'
+                                            return null;
+                                        }
+                                        const SubIcon = subItem.icon;
+                                        const isSubActive = location.pathname.startsWith(subItem.path);
+                                        return (
+                                            <NavLink
+                                                key={subItem.name}
+                                                to={subItem.path}
+                                                className={({ isActive: navIsActive }) =>
+                                                    `w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                                                        isSubActive
+                                                            ? 'bg-secondary text-secondary-foreground' // Estilo diferente para sub-menu ativo
+                                                            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                                                    }`
+                                                }
+                                            >
+                                                <SubIcon className="mr-3 h-4 w-4" />
+                                                {subItem.name}
+                                            </NavLink>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else {
+                    // Item de menu normal
+                    return (
+                        <NavLink 
+                            key={item.name}
+                            to={item.path}
+                            className={({ isActive: navIsActive }) =>
+                                `w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                                    isActive
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                }`
+                            }
+                        >
+                            <Icon className="mr-3 h-5 w-5" />
+                            {item.name}
+                        </NavLink>
+                    );
+                }
               })}
             </nav>
           </div>
-
+          
           <div className="flex-shrink-0 p-4 border-t">
             <div className="flex items-center space-x-3">
               <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">

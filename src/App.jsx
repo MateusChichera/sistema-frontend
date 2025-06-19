@@ -13,14 +13,26 @@ import LoginGerencial from './components/gerencial/LoginGerencial';
 import Dashboard from './components/gerencial/Dashboard';
 import PedidosPage from './components/gerencial/PedidosPage';
 import CaixaPage from './components/gerencial/CaixaPage';
-import CadastrosPage from './components/gerencial/CadastrosPage';
 import RelatoriosPage from './components/gerencial/RelatoriosPage';
 
 // Componentes de Layout
 import LayoutGerencial from './components/layout/LayoutGerencial';
 import LayoutCardapio from './components/layout/LayoutCardapio';
+import LayoutAdmin from './components/layout/LayoutAdmin';
 
 import './App.css';
+
+// IMPORTAR AS PÁGINAS DE CADASTRO
+import CadastrosCategoriasPage from './components/gerencial/CadastrosPage';
+import CadastrosProdutosPage from './components/gerencial/ProdutosPage';
+import CadastrosFormasPagamentoPage from './components/gerencial/FormasPagamentoPage';
+import CadastrosFuncionariosPage from './components/gerencial/FuncionariosPage';
+import CadastrosMesasPage from './components/gerencial/MesasPage';
+import ConfiguracoesPage from './components/gerencial/ConfiguracoesPage';
+
+// IMPORTAR A PÁGINA DO ADMIN MASTER
+import AdminDashboardPage from './components/admin/AdminDashboardPage';
+
 
 function App() {
   return (
@@ -32,51 +44,112 @@ function App() {
               {/* Rota inicial - redireciona para uma empresa de exemplo */}
               <Route path="/" element={<Navigate to="/demo-restaurante" replace />} />
               
-              {/* Rotas do Cardápio Digital */}
+              {/* Rotas do Cardápio Digital (PÚBLICAS) */}
+              {/* Cada rota define seu layout e página */}
               <Route path="/:slug" element={
                 <LayoutCardapio>
                   <CardapioPage />
                 </LayoutCardapio>
               } />
               
-              <Route path="/:slug/pedido" element={
+              {/* Finalizar Pedido é um modal dentro de CardapioPage, não uma rota separada */}
+              {/* <Route path="/:slug/pedido" element={
                 <LayoutCardapio>
                   <FinalizarPedido />
                 </LayoutCardapio>
-              } />
+              } /> */}
               
-              {/* Rotas Gerenciais */}
+              {/* Rota de Login Gerencial (para funcionários do restaurante) */}
               <Route path="/gerencial/:slug" element={<LoginGerencial />} />
               
+              {/* ROTAS GERENCIAIS - Cada rota define seu layout e página */}
+              {/* Dashboard */}
               <Route path="/gerencial/:slug/dashboard" element={
                 <LayoutGerencial>
                   <Dashboard />
                 </LayoutGerencial>
               } />
               
+              {/* Pedidos */}
               <Route path="/gerencial/:slug/pedidos" element={
                 <LayoutGerencial>
                   <PedidosPage />
                 </LayoutGerencial>
               } />
-              
+
+              {/* Caixa */}
               <Route path="/gerencial/:slug/caixa" element={
                 <LayoutGerencial>
                   <CaixaPage />
                 </LayoutGerencial>
               } />
               
-              <Route path="/gerencial/:slug/cadastros" element={
-                <LayoutGerencial>
-                  <CadastrosPage />
-                </LayoutGerencial>
-              } />
-              
+              {/* Relatórios */}
               <Route path="/gerencial/:slug/relatorios" element={
                 <LayoutGerencial>
                   <RelatoriosPage />
                 </LayoutGerencial>
               } />
+
+              {/* ROTAS PARA OS SUB-MENUS DE CADASTROS */}
+              <Route path="/gerencial/:slug/cadastros/categorias" element={
+                <LayoutGerencial>
+                  <CadastrosCategoriasPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/produtos" element={
+                <LayoutGerencial>
+                  <CadastrosProdutosPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/formas-pagamento" element={
+                <LayoutGerencial>
+                  <CadastrosFormasPagamentoPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/funcionarios" element={
+                <LayoutGerencial>
+                  <CadastrosFuncionariosPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/mesas" element={
+                <LayoutGerencial>
+                  <CadastrosMesasPage />
+                </LayoutGerencial>
+              } />
+              
+              {/* Rota para Configurações (top-level) */}
+              <Route path="/gerencial/:slug/configuracoes" element={
+                <LayoutGerencial>
+                  <ConfiguracoesPage />
+                </LayoutGerencial>
+              } />
+
+              {/* Rota pai 'cadastros' - redireciona para categorias por padrão */}
+              <Route path="/gerencial/:slug/cadastros" element={<Navigate to="categorias" replace />} />
+
+
+              {/* ROTAS DO ADMIN MASTER */}
+              {/* Login Admin Master */}
+              <Route path="/admin/login" element={<LoginGerencial admin={true} />} />
+              
+              {/* Painel Admin Master */}
+              {/* O dashboard principal do admin, que lista as empresas */}
+              <Route path="/admin/dashboard" element={
+                <LayoutAdmin>
+                  <AdminDashboardPage />
+                </LayoutAdmin>
+              } />
+              {/* Rota /admin/empresas também vai para o AdminDashboardPage */}
+              <Route path="/admin/empresas" element={
+                <LayoutAdmin>
+                  <AdminDashboardPage />
+                </LayoutAdmin>
+              } />
+
+              {/* Rota para 404 global (captura qualquer outra rota não correspondida) */}
+              <Route path="*" element={<div className="text-center p-8 text-red-500">Página Não Encontrada (404 Global)</div>} />
+
             </Routes>
           </Router>
         </CarrinhoProvider>
@@ -86,4 +159,3 @@ function App() {
 }
 
 export default App;
-
