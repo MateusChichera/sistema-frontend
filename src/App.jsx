@@ -76,7 +76,11 @@ function App() {
                   <Dashboard />
                 </LayoutGerencial>
               } />
-              
+               <Route path="/gerencial/:slug/comanda" element={
+                <LayoutGerencial>
+                  <CardapioPage/>
+                </LayoutGerencial>
+              } />
               
               {/* Pedidos */}
               <Route path="/gerencial/:slug/pedidos" element={

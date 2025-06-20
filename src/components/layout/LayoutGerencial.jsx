@@ -73,7 +73,7 @@ const LayoutGerencial = ({ children }) => {
     { name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Delivery', icon: UtensilsCrossed, path: `/gerencial/${currentSlug}/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Caixa', icon: CreditCard, path: `/gerencial/${currentSlug}/caixa`, roles: ['Proprietario', 'Gerente', 'Caixa'] },
-    { name: 'Comanda', icon: Utensils, path: `/${currentSlug}/comanda`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+    { name: 'Comanda', icon: Utensils, path: `/gerencial/${currentSlug}/comanda`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Pedidos', icon: ChefHat , path: `/gerencial/${currentSlug}/cozinha`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] }, 
     { 
         name: 'Cadastros', 
