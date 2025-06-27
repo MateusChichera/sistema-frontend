@@ -607,16 +607,31 @@ const CardapioPage = () => {
 
           {/* Botão flutuante do carrinho / finalizar pedido */}
           {hasItemsInCart && (
-            <div className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-2 z-50 transform translate-x-0 transition-all duration-300 ease-in-out" 
-                 style={{ backgroundColor: primaryColor }}>
-                <ShoppingCart className="h-6 w-6 flex-shrink-0" style={{ color: 'white' }} />
-                <span className="text-lg font-bold whitespace-nowrap" style={{color: 'white'}}>Total: R$ {total.toFixed(2).replace('.', ',')}</span> 
-                
-                <Button onClick={() => setIsMesaOrderModalOpen(true)} variant="secondary" className="ml-auto flex-shrink-0" style={{ backgroundColor: 'white', color: primaryColor }}>
-                    <Utensils className="mr-2" /> Finalizar Mesa
-                </Button>
+            <div
+              className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-3 z-50 transition-all duration-300 ease-in-out"
+              style={{ backgroundColor: '#d32f2f', color: 'white' }} // fundo vermelho escuro
+            >
+              <ShoppingCart className="h-6 w-6 flex-shrink-0 text-white" />
+              <span className="text-lg font-bold whitespace-nowrap">Total: R$ {total.toFixed(2).replace('.', ',')}</span> 
+
+              <Button
+                onClick={() => setIsMesaOrderModalOpen(true)}
+                variant="ghost"
+                className="ml-auto border border-white text-sm font-semibold"
+                style={{
+                  backgroundColor: 'white',
+                  color: '#d32f2f',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '9999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Utensils className="mr-2 h-4 w-4" /> Finalizar Mesa
+              </Button>
             </div>
           )}
+
         </>
       )}
 

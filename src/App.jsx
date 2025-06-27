@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import { EmpresaProvider } from './contexts/EmpresaContext';
 import { CarrinhoProvider } from './contexts/CarrinhoContext';
-
+import socket from './services/socket';
 // Páginas do Cardápio Digital
 import CardapioPage from './components/cardapio/CardapioPage';
 import PublicCardapioPage from './components/cardapio/PublicCardapiopage';
@@ -76,7 +76,7 @@ function App() {
                   <Dashboard />
                 </LayoutGerencial>
               } />
-               <Route path="/gerencial/:slug/comanda" element={
+               <Route path="/gerencial/:slug/mesas" element={
                 <LayoutGerencial>
                   <CardapioPage/>
                 </LayoutGerencial>

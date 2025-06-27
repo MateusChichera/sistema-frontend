@@ -1,21 +1,22 @@
 // frontend/src/components/cardapio/PublicCardapioPage.jsx
 // ESTE ARQUIVO É O CARDÁPIO EXCLUSIVO PARA PEDIDOS ONLINE (CLIENTES)
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useEmpresa } from '../../contexts/EmpresaContext';
-import { useAuth } from '../../contexts/AuthContext';
+// import { useAuth } from '../../contexts/AuthContext'; // Comentado: user e logout devem ser passados via props do LayoutCardapio
 import { useCarrinho } from '../../contexts/CarrinhoContext';
 import api from '../../services/api';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog'; 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { ShoppingCart, Home, Bike, CheckCircle, User, LogIn, UserPlus, LogOut } from 'lucide-react';
+// Importe apenas os ícones que este componente *realmente* usa
+import { ShoppingCart, Home, Bike, CheckCircle, Utensils, Plus, Minus } from 'lucide-react';
 import FinalizarPedido from './FinalizarPedido';
-import LoginRegisterModal from './LoginRegisterModal';
-import PedidoTypeSelectionModal from './PedidoTypeSelectionModal';
+import LoginRegisterModal from './LoginRegisterModal'; // Importado diretamente aqui pois o modal é acionado por esta página (independente do layout)
+import PedidoTypeSelectionModal from './PedidoTypeSelectionModal'; // Importado diretamente aqui
 
 
 // Função para remover acentos (para busca)
@@ -24,82 +25,131 @@ const removeAccents = (str) => {
 };
 
 // Função para checar se a empresa está aberta
+// Retorna um objeto com 'open' (boolean) e 'message' (string com status e horários)
 const isRestaurantOpen = (horarioFuncionamento) => {
-  if (!horarioFuncionamento) return true;
+  if (!horarioFuncionamento) return { open: false, message: 'Horário de funcionamento não configurado.' };
 
   const now = new Date();
-  const dayOfWeek = now.getDay();
+  const dayOfWeek = now.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
   const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const dayParts = horarioFuncionamento.split(':')[0].trim();
-  const timeParts = horarioFuncionamento.split(':')[1].trim();
+  const [dayPartsStr, timePartsStr] = horarioFuncionamento.split(':', 2).map(s => s.trim());
+  const [openTimeStr, closeTimeStr] = timePartsStr.split('-', 2).map(s => s.trim());
+
+  const parseTime = (timeStr) => {
+    const [h, m] = timeStr.replace('h', ':').split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+
+  const formatTime = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${String(hours).padStart(2, '0')}h${String(mins).padStart(2, '0')}`;
+  };
 
   const daysMap = {
     'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sab': 6, 'Dom': 0,
-    'Seg-Sex': [1,2,3,4,5], 'Sab-Dom': [6,0], 'Todos': [0,1,2,3,4,5,6]
+    'seg': 1, 'ter': 2, 'qua': 3, 'qui': 4, 'sex': 5, 'sab': 6, 'dom': 0
   };
 
   let isTodayIncluded = false;
-  if (dayParts.includes('-')) {
-      const [startDayStr, endDayStr] = dayParts.split('-');
-      const startDay = daysMap[startDayStr];
-      const endDay = daysMap[endDayStr];
-      if (startDay !== undefined && endDay !== undefined) {
-          if (startDay <= endDay) {
-              isTodayIncluded = (dayOfWeek >= startDay && dayOfWeek <= endDay);
-          } else {
-              isTodayIncluded = (dayOfWeek >= startDay || dayOfWeek <= endDay);
-          }
+  // let activeDaysNames = []; // Não é estritamente necessário aqui, só para mensagem de depuração se necessário.
+
+  if (dayPartsStr.includes('-')) {
+    const [startDayName, endDayName] = dayPartsStr.split('-').map(s => s.trim());
+    const startDayIndex = daysMap[startDayName];
+    const endDayIndex = daysMap[endDayName];
+    
+    if (startDayIndex !== undefined && endDayIndex !== undefined) {
+      if (startDayIndex <= endDayIndex) {
+        for (let i = startDayIndex; i <= endDayIndex; i++) {
+          if (i === dayOfWeek) isTodayIncluded = true;
+        }
+      } else { // Ex: Sex-Seg (crossed midnight)
+        for (let i = startDayIndex; i <= 6; i++) {
+          if (i === dayOfWeek) isTodayIncluded = true;
+        }
+        for (let i = 0; i <= endDayIndex; i++) {
+          if (i === dayOfWeek) isTodayIncluded = true;
+        }
       }
-  } else if (dayParts.includes(',')) {
-      isTodayIncluded = dayParts.split(',').some(d => daysMap[d.trim()] === dayOfWeek);
-  } else {
-      isTodayIncluded = (daysMap[dayParts] === dayOfWeek);
+    }
+  } else if (dayPartsStr.includes(',')) {
+    const daysArr = dayPartsStr.split(',').map(s => s.trim());
+    isTodayIncluded = daysArr.some(d => {
+        const dayIdx = daysMap[d];
+        return dayIdx === dayOfWeek;
+    });
+  } else { // Single day
+    const singleDayIndex = daysMap[dayPartsStr];
+    if (singleDayIndex !== undefined) {
+      if (singleDayIndex === dayOfWeek) isTodayIncluded = true;
+    }
   }
 
-  if (!isTodayIncluded) return false;
+  if (!isTodayIncluded) {
+    // Retorna os nomes dos dias de funcionamento para a mensagem
+    return { open: false, message: `Fechado(a) hoje. Horário de funcionamento: ${dayPartsStr} ${timePartsStr}.` };
+  }
 
-  const [openTimeStr, closeTimeStr] = timeParts.split('-');
-  const openTimeMinutes = parseInt(openTimeStr.replace('h', '')) * 60 + (openTimeStr.includes(':') ? parseInt(openTimeStr.split(':')[1]) : 0);
-  const closeTimeMinutes = parseInt(closeTimeStr.replace('h', '')) * 60 + (closeTimeStr.includes(':') ? parseInt(closeTimeStr.split(':')[1]) : 0);
+  const openTimeMinutes = parseTime(openTimeStr);
+  const closeTimeMinutes = parseTime(closeTimeStr);
 
-  if (closeTimeMinutes < openTimeMinutes) {
-      return currentTimeMinutes >= openTimeMinutes || currentTimeMinutes <= closeTimeMinutes;
+  let currentlyOpen = false;
+  if (closeTimeMinutes < openTimeMinutes) { // Vira a noite
+    currentlyOpen = currentTimeMinutes >= openTimeMinutes || currentTimeMinutes <= closeTimeMinutes;
   } else {
-      return currentTimeMinutes >= openTimeMinutes && currentTimeMinutes <= closeTimeMinutes;
+    currentlyOpen = currentTimeMinutes >= openTimeMinutes && currentTimeMinutes <= closeTimeMinutes;
+  }
+
+  if (currentlyOpen) {
+    return { open: true, message: `Aberto(a) agora! Fecha às ${formatTime(closeTimeMinutes)}.` };
+  } else {
+    return { open: false, message: `Fechado(a) no momento. Abre às ${formatTime(openTimeMinutes)}.` };
   }
 };
 
 
-const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
+const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do componente pai (LayoutCardapio/rotas)
   const { empresa, loading: empresaLoading, isReady } = useEmpresa();
-  const { user, logout } = useAuth(); // Apenas para saber se está logado como cliente
-  const { adicionarItem, total, itens, limparCarrinho } = useCarrinho();
+  // user e logout agora podem vir do App.jsx (ou onde LayoutCardapio é renderizado)
+  // Se user.logout for passado como prop, ele pode ser usado. Senão, se PublicCardapioPage precisa de logout,
+  // ele teria que importar useAuth() internamente, mas o ideal é que o Layout trate o user/auth.
+
+  // CORREÇÃO AQUI: Adicionado 'atualizarQuantidadeItem' à desestruturação de useCarrinho
+  const { adicionarItem, total, itens, removerItem, limparCarrinho, atualizarQuantidadeItem } = useCarrinho();
 
   const [loadingContent, setLoadingContent] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // Usado para mensagens de "fechado" ou erro de carregamento
   const [categorias, setCategorias] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [filteredProdutos, setFilteredProdutos] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [productQuantity, setProductQuantity] = useState(1);
-  const [productObservation, setProductObservation] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState(null); // Para o modal de observações
+  const [productQuantity, setProductQuantity] = useState(1); // Quantidade no modal
+  const [productObservation, setProductObservation] = useState(''); // Observação no modal
 
   // Filtros
   const [selectedCategoryId, setSelectedCategoryId] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Cliente: Finalizar Pedido
-  const [selectedPedidoType, setSelectedPedidoType] = useState(null); // Null inicialmente, para abrir modal de escolha
+  const [selectedPedidoType, setSelectedPedidoType] = useState(null);
   const [isFinalizarPedidoModalOpen, setIsFinalizarPedidoModalOpen] = useState(false);
   const [isPedidoTypeSelectionModalOpen, setIsPedidoTypeSelectionModalOpen] = useState(false);
 
-
-  // Cliente: Login/Cadastro
+  // Cliente: Login/Cadastro - Assegura que estes states estão DEFINIDOS
+  // Estes states controlam a abertura dos modais diretamente desta página
   const [isLoginRegisterModalOpen, setIsLoginRegisterModalOpen] = useState(false);
 
 
+  // Definindo essas variáveis aqui, no escopo principal do componente, para que sejam sempre acessíveis no JSX e callbacks.
+  const canMakeOnlineOrder = empresa?.permitir_pedido_online === 1; // Transforma em booleano explícito
+  const restaurantStatus = isRestaurantOpen(empresa?.horario_funcionamento);
+  const isCurrentlyOpenForOrders = canMakeOnlineOrder && restaurantStatus.open;
+
+
   // Efeito para buscar dados do cardápio
+  // As dependências foram revisadas para evitar o erro de "size changed between renders"
   useEffect(() => {
     const fetchCardapioData = async () => {
       if (!isReady) {
@@ -107,66 +157,71 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
         return;
       }
 
+      // Se a empresa não está ativa ou não carregou, exibe erro
       if (!empresa || empresa.status !== 'Ativa') {
         setError(`O cardápio de "${empresa?.nome_fantasia || 'sua empresa'}" não está ativo no momento.`);
         setLoadingContent(false);
         return;
       }
       
-      const isOpen = isRestaurantOpen(empresa.horario_funcionamento);
-      const cutoffTimeStr = empresa.tempo_corte_pedido_online;
-      const now = new Date();
-      let isAfterCutoff = false;
-      if (cutoffTimeStr) {
-          const [cutoffHour, cutoffMinute] = cutoffTimeStr.split(':').map(Number);
-          const cutoffTimeMinutes = cutoffHour * 60 + cutoffMinute;
-          const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
-          isAfterCutoff = currentTimeMinutes > cutoffTimeMinutes;
+      const currentRestaurantStatus = isRestaurantOpen(empresa.horario_funcionamento);
+      const isAfterCutoff = empresa.tempo_corte_pedido_online ? (
+          new Date().getHours() * 60 + new Date().getMinutes() >
+          parseInt(empresa.tempo_corte_pedido_online.split(':')[0]) * 60 +
+          parseInt(empresa.tempo_corte_pedido_online.split(':')[1])
+      ) : false;
+
+      // Lógica para definir a mensagem de erro que será exibida para o cliente se pedidos não forem permitidos
+      let displayErrorMessage = null;
+      if (!currentRestaurantStatus.open) {
+        displayErrorMessage = currentRestaurantStatus.message;
+      } else if (empresa.tempo_corte_pedido_online && isAfterCutoff) {
+        displayErrorMessage = `Pedidos online fora do horário de corte. Último pedido até ${empresa.tempo_corte_pedido_online}.`;
+      } else if (empresa.permitir_pedido_online === 0) {
+        displayErrorMessage = `Os pedidos online para "${empresa.nome_fantasia}" estão temporariamente desativados.`;
       }
 
-      if ((!isOpen || (cutoffTimeStr && isAfterCutoff)) && (!user || !user.role)) { // <--- Verificação de horário de corte aqui
-        setError(`"${empresa.nome_fantasia}" está fechado(a) ou fora do horário de pedidos online (${empresa.horario_funcionamento}).`);
-        setLoadingContent(false);
-        return;
-      }
-      
-      if (empresa.permitir_pedido_online === 0 && (!user || !user.role)) { // <--- Verificação de permitir pedido online aqui
-        setError(`Os pedidos online para "${empresa.nome_fantasia}" estão temporariamente desativados. Apenas a visualização do cardápio está disponível.`);
-        setLoadingContent(false);
-        return;
+      // Seta o erro para ser exibido no componente se houver restrições para pedidos online
+      // Para o cliente, o cardápio ficará "desabilitado" para adicionar itens.
+      if (displayErrorMessage) {
+          setError(displayErrorMessage + " Apenas a visualização do cardápio está disponível.");
+      } else {
+          setError(null); // Limpa erros se a empresa está aberta para pedidos
       }
 
       setLoadingContent(true);
-      setError(null);
       try {
         const categoriasResponse = await api.get(`/${empresa.slug}/cardapio/categorias`);
         const fetchedCategorias = categoriasResponse.data;
 
         const produtosResponse = await api.get(`/${empresa.slug}/cardapio/produtos`);
-        const fetchedProdutos = produtosResponse.data;
-        
+        // Filtra apenas produtos ATIVOS para exibição no cardápio público
+        const fetchedProdutos = produtosResponse.data.filter(p => p.ativo); 
+
         let finalCategorias = [...fetchedCategorias];
         let finalProdutos = [...fetchedProdutos];
 
-        const promoProducts = fetchedProdutos.filter(p => p.promo_ativa && p.ativo);
+        const promoProducts = finalProdutos.filter(p => p.promo_ativa); // Filtra promos de produtos ativos
         if (promoProducts.length > 0 && empresa.mostrar_promocoes_na_home) {
-            const promoCategory = { id: 'promo', descricao: '🔥 Promoções', ativo: true };
-            finalCategorias = [promoCategory, ...fetchedCategorias];
+          const promoCategory = { id: 'promo', descricao: '🔥 Promoções', ativo: true };
+          finalCategorias = [promoCategory, ...fetchedCategorias];
         }
         setCategorias(finalCategorias);
         setProdutos(finalProdutos);
 
+        // Define os produtos filtrados iniciais (pode ser promoções se configurado)
         if (empresa.mostrar_promocoes_na_home) {
-            setFilteredProdutos(finalProdutos.filter(p => p.promo_ativa && p.ativo));
-            setSelectedCategoryId('promo');
+          setFilteredProdutos(finalProdutos.filter(p => p.promo_ativa));
+          setSelectedCategoryId('promo');
         } else {
-            setFilteredProdutos(finalProdutos);
-            setSelectedCategoryId('all');
+          setFilteredProdutos(finalProdutos);
+          setSelectedCategoryId('all');
         }
 
         toast.success("Cardápio carregado!");
 
       } catch (err) {
+        // Se houver erro na API, sobrescreve o erro anterior (se houver)
         setError(err.response?.data?.message || 'Erro ao carregar o cardápio.');
         console.error("Erro ao carregar cardápio:", err);
         toast.error(err.response?.data?.message || 'Erro ao carregar cardápio.');
@@ -176,18 +231,16 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
     };
 
     fetchCardapioData();
-  }, [empresa, isReady, user]);
+  }, [empresa, isReady]); // Dependências ajustadas: não incluem 'user' ou 'canMakeOnlineOrder' diretamente aqui para evitar instabilidade.
 
 
   useEffect(() => {
-    let currentFiltered = produtos;
+    let currentFiltered = produtos.filter(prod => prod.ativo); // Filtra por ativo sempre
 
     if (selectedCategoryId === 'promo') {
-        currentFiltered = produtos.filter(prod => prod.promo_ativa && prod.ativo);
+      currentFiltered = currentFiltered.filter(prod => prod.promo_ativa);
     } else if (selectedCategoryId !== 'all') {
       currentFiltered = currentFiltered.filter(prod => prod.id_categoria.toString() === selectedCategoryId);
-    } else {
-        currentFiltered = produtos; 
     }
 
     if (searchTerm) {
@@ -198,13 +251,18 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
       );
     }
     setFilteredProdutos(currentFiltered);
-  }, [produtos, selectedCategoryId, searchTerm, empresa?.mostrar_promocoes_na_home]);
+  }, [produtos, selectedCategoryId, searchTerm]);
 
 
+  // Abre o modal de observações do produto
   const openProductModal = (product) => {
     setSelectedProduct(product);
-    setProductQuantity(1);
-    setProductObservation('');
+    // Para o modal de observações, o botão '+'/'Atualizar' deve adicionar a quantidade digitada com a observação.
+    // Buscamos o item existente no carrinho (com ou sem observação) para pré-preencher
+    const itemInCartForModal = itens.find(item => item.id_produto === product.id);
+    
+    setProductQuantity(itemInCartForModal ? itemInCartForModal.quantidade : 1);
+    setProductObservation(itemInCartForModal ? itemInCartForModal.observacoes : ''); // Preenche com a obs do item encontrado
   };
 
   const closeProductModal = () => {
@@ -213,35 +271,98 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
     setProductObservation('');
   };
 
+  // Adiciona/Atualiza item no carrinho via MODAL (com observações)
   const handleAddToCart = () => {
     if (selectedProduct) {
-      adicionarItem({ ...selectedProduct, observacoes: productObservation }, productQuantity);
+      // Busca um item existente com a MESMA observação que está sendo passada (ou vazia)
+      const existingItemIndex = itens.findIndex(item => 
+          item.id_produto === selectedProduct.id && item.observacoes === (productObservation || '')
+      );
+      
+      if (existingItemIndex > -1) {
+          // Se já existe um item com a mesma observação, atualiza a quantidade
+          // Chama atualizarQuantidadeItem diretamente
+          atualizarQuantidadeItem(selectedProduct.id, productQuantity, productObservation || '');
+          toast.success(`Quantidade de ${selectedProduct.nome} atualizada.`);
+      } else {
+          // Se não existe um item com essa observação, adiciona como um novo item
+          adicionarItem({
+              id: selectedProduct.id,
+              nome: selectedProduct.nome,
+              preco: selectedProduct.preco,
+              promocao: selectedProduct.promocao,
+              promo_ativa: selectedProduct.promo_ativa,
+              foto_url: selectedProduct.foto_url,
+              observacoes: productObservation // Usa a observação do modal
+          }, productQuantity); // Usa a quantidade do modal
+          toast.success(`${productQuantity}x ${selectedProduct.nome} adicionado(s) ao carrinho!`);
+      }
+      
       closeProductModal();
     }
   };
 
 
-  // Cliente: Lógica para abrir modal Finalizar Pedido (agora abre modal de seleção de tipo)
+  // Funções para adicionar/remover direto do card do produto (sempre alteram o item SEM observações)
+  const handleQuickAddToCart = useCallback((e, product) => {
+    e.stopPropagation(); // Evita que o clique no botão abra o modal do produto
+    if (!isCurrentlyOpenForOrders) { // Desabilitado se a empresa não está aceitando pedidos
+      toast.info("A empresa não está aceitando pedidos online no momento.");
+      return;
+    }
+    // Adiciona ao carrinho o item SEM observações
+    adicionarItem({ ...product, observacoes: '' }, 1);
+    toast.success(`1x ${product.nome} adicionado ao carrinho!`);
+  }, [adicionarItem, isCurrentlyOpenForOrders]);
+
+  // handleQuickRemoveFromCart: decrementa a quantidade do item SEM observações
+  const handleQuickRemoveFromCart = useCallback((e, product) => {
+    e.stopPropagation(); // Evita que o clique no botão abra o modal do produto
+    if (!isCurrentlyOpenForOrders) { // Desabilitado se a empresa não está aceitando pedidos
+      toast.info("A empresa não está aceitando pedidos online no momento.");
+      return;
+    }
+    // Para os botões +/- rápidos, sempre removemos/atualizamos o item SEM observações
+    const itemInCart = itens.find(item => item.id_produto === product.id && (item.observacoes === undefined || item.observacoes === ''));
+    if (itemInCart) {
+      // Usa atualizarQuantidadeItem para decrementar a quantidade ou remover se <= 0
+      atualizarQuantidadeItem(itemInCart.id_produto, itemInCart.quantidade - 1, itemInCart.observacoes);
+      // O toast de remoção/atualização já é dado pelo CarrinhoContext ou pela lógica interna
+    } else {
+      toast.info(`${product.nome} não está no seu carrinho sem observações.`);
+    }
+  }, [itens, atualizarQuantidadeItem, isCurrentlyOpenForOrders]); // Dependências
+
+
+  // Função para obter a contagem de um produto específico no carrinho (considera SÓ ITENS SEM OBSERVAÇÃO)
+  // Essencial para a atualização visual dos botões +/-
+  const getProductCountInCart = useCallback((productId) => {
+    // Soma as quantidades de todos os itens com o mesmo id_produto E SEM observações.
+    return itens.filter(item => item.id_produto === productId && (item.observacoes === undefined || item.observacoes === '')).reduce((sum, item) => sum + item.quantidade, 0);
+  }, [itens]); // Dependência em 'itens' para reatividade
+
+
   const handleOpenFinalizarPedidoModal = () => {
     if (itens.length === 0) {
       toast.error('O carrinho está vazio para finalizar o pedido!');
       return;
     }
-    setIsPedidoTypeSelectionModalOpen(true); // Abre o modal de escolha Delivery/Retirada
+    if (!isCurrentlyOpenForOrders) { // Desabilita o botão se a empresa não está aceitando pedidos
+      toast.error("A empresa não está aceitando pedidos online no momento.");
+      return;
+    }
+    setIsPedidoTypeSelectionModalOpen(true);
   };
 
-  // Callback do PedidoTypeSelectionModal para abrir o FinalizarPedido
   const handlePedidoTypeSelected = (type) => {
     setSelectedPedidoType(type);
-    setIsPedidoTypeSelectionModalOpen(false); // Fecha o modal de seleção
-    setIsFinalizarPedidoModalOpen(true); // Abre o modal de Finalizar Pedido com o tipo selecionado
+    setIsPedidoTypeSelectionModalOpen(false);
+    setIsFinalizarPedidoModalOpen(true);
   };
 
   const handleCloseFinalizarPedidoModal = () => {
     setIsFinalizarPedidoModalOpen(false);
   };
-  
-  const canMakeOnlineOrder = empresa?.permitir_pedido_online;
 
 
   if (empresaLoading || loadingContent || !isReady) {
@@ -252,100 +373,103 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
     );
   }
 
-  if (error) {
+  // Se há um erro e a empresa NÃO está aberta para pedidos online, exibe a mensagem de erro que desabilita a interação.
+  // Isso cobre casos como empresa inativa, horários fechados, pedidos online desativados.
+  // IMPORTANTE: Se o 'error' não for null, e a empresa não está "aberta para pedidos online",
+  // significa que há uma restrição que o cliente deve ver.
+  if (error && !isCurrentlyOpenForOrders) { 
     return (
-      <div className="flex justify-center items-center h-screen text-red-500">
-        {error}
+      <div className="flex flex-col justify-center items-center h-screen text-red-500 text-center p-4">
+        <p className="font-semibold text-lg mb-2">Ops! Algo deu errado ou a loja está fechada.</p>
+        <p>{error}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4">Recarregar Página</Button>
       </div>
     );
   }
   
+  // Condição para mostrar "Carregando" se ainda não terminou de carregar os produtos/categorias
+  if (loadingContent) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Carregando cardápio de {empresa?.nome_fantasia || 'sua empresa'}...
+      </div>
+    );
+  }
+
+
   const hasItemsInCart = itens.length > 0;
   const primaryColor = empresa?.cor_primaria_cardapio || '#FF5733';
 
 
   return (
     <div className="container mx-auto p-4 relative">
-      {/* Botões de Login/Cadastro (Topo Direito) */}
-      {!user ? (
-        <div className="absolute top-4 right-4 flex space-x-2 z-10">
-          <Button variant="outline" size="sm" onClick={() => setIsLoginRegisterModalOpen(true)}>
-            <LogIn className="mr-2 h-4 w-4" /> Entrar
-          </Button>
-          <Button variant="default" size="sm" onClick={() => { setIsLoginRegisterModalOpen(true); /* set default to register tab */ }}>
-            <UserPlus className="mr-2 h-4 w-4" /> Cadastrar
-          </Button>
-        </div>
-      ) : (
-        <div className="absolute top-4 right-4 flex space-x-2 items-center z-10">
-            <span className="text-sm text-gray-700">Olá, {user.nome}!</span>
-            <Button variant="ghost" size="sm" onClick={logout}>
-                <LogOut className="h-4 w-4" /> Sair
-            </Button>
-        </div>
-      )}
+      {/*
+        O TÍTULO, A LOGO E OS BOTÕES DE LOGIN/CADASTRO/LOGOUT
+        SÃO RENDERIZADOS PELO LayoutCardapio (componente pai).
+        Sua rota principal deve ter uma estrutura similar a:
+        <Route path="/:slug/cardapio-publico" element={<LayoutCardapio userActions={<SeusBotoesDeLoginAqui/>}><PublicCardapioPage user={seuUserDoAuth}/></LayoutCardapio>} />
+        A prop 'user' é passada para PublicCardapioPage.
+      */}
 
-      <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center"
-          style={{ color: primaryColor }}>
-        Cardápio Digital de {empresa?.nome_fantasia || 'Empresa'}
-      </h1>
-      
-      {/* Status de Aberto/Fechado */}
-      <p className={`text-center font-semibold text-lg mb-4 ${isRestaurantOpen(empresa.horario_funcionamento) ? 'text-green-600' : 'text-red-600'}`}>
-        {isRestaurantOpen(empresa.horario_funcionamento) ? 'Aberto(a) agora!' : 'Fechado(a) no momento.'}
+      {/* Status de Aberto/Fechado (agora exibe a mensagem detalhada da função isRestaurantOpen) */}
+      <p className={`text-center font-semibold text-lg mb-4 ${restaurantStatus.open ? 'text-green-600' : 'text-red-600'}`}>
+        {restaurantStatus.message}
       </p>
 
-      {empresa?.logo_full_url && (
-        <div className="mb-6 flex justify-center">
-          <img 
-            src={empresa.logo_full_url} 
-            alt={empresa.nome_fantasia || 'Logo'} 
-            className="h-24 w-auto rounded-lg shadow-md object-contain"
-          />
-        </div>
+      {/* Mensagem de alerta/informação sobre o status do pedido online */}
+      {/* Esta mensagem é exibida SE pedidos não são possíveis, para explicar o motivo ao cliente. */}
+      {!isCurrentlyOpenForOrders && ( 
+          <div className="text-center text-orange-600 mb-6 p-4 border border-orange-300 bg-orange-50 rounded-md">
+            <p className="font-semibold">⚠️ Pedidos Online Temporariamente Indisponíveis!</p>
+            <p>{restaurantStatus.message}</p> {/* Usa a mensagem detalhada aqui */}
+            {empresa.permitir_pedido_online === 0 && <p>Os pedidos online estão desativados pela empresa.</p>}
+            {empresa.tempo_corte_pedido_online && (
+              new Date().getHours() * 60 + new Date().getMinutes() >
+              parseInt(empresa.tempo_corte_pedido_online.split(':')[0]) * 60 +
+              parseInt(empresa.tempo_corte_pedido_online.split(':')[1])
+            ) && (
+              <p>Último pedido online até: {empresa.tempo_corte_pedido_online}</p>
+            )}
+            <p className="mt-2">Você pode visualizar o cardápio, mas não poderá adicionar itens ao carrinho ou finalizar o pedido.</p>
+          </div>
       )}
 
+
       {/* Opções de Tipo de Pedido (apenas para clientes públicos) */}
-      {canMakeOnlineOrder && (
+      {canMakeOnlineOrder && ( // Somente mostra os botões se a empresa permite pedidos online no geral
         <div className="mb-6 flex justify-center space-x-4">
-          <Button 
+          <Button
             variant={selectedPedidoType === 'Delivery' ? 'default' : 'outline'}
             onClick={() => setSelectedPedidoType('Delivery')}
-            disabled={empresa.desativar_entrega}
-            className={empresa.desativar_entrega ? 'opacity-50 cursor-not-allowed' : ''}
+            disabled={empresa.desativar_entrega || !isCurrentlyOpenForOrders} // Desabilita se entrega desativada OU loja fechada
+            className={empresa.desativar_entrega || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
           >
             <Bike className="mr-2" /> Delivery
           </Button>
-          <Button 
+          <Button
             variant={selectedPedidoType === 'Retirada' ? 'default' : 'outline'}
             onClick={() => setSelectedPedidoType('Retirada')}
-            disabled={empresa.desativar_retirada}
-            className={empresa.desativar_retirada ? 'opacity-50 cursor-not-allowed' : ''}
+            disabled={empresa.desativar_retirada || !isCurrentlyOpenForOrders} // Desabilita se retirada desativada OU loja fechada
+            className={empresa.desativar_retirada || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
           >
             <Home className="mr-2" /> Retirada
           </Button>
-          <Button 
+          <Button
             variant={selectedPedidoType === 'Mesa' ? 'default' : 'outline'}
             onClick={() => setSelectedPedidoType('Mesa')}
-            disabled={true}
+            disabled={true} // Mesa sempre desabilitada para o cardápio público
             className={'opacity-50 cursor-not-allowed'}
           >
             <Utensils className="mr-2" /> Mesa
           </Button>
         </div>
       )}
-      
-      {/* Mensagem se pedidos online não são permitidos para clientes */}
-      {!canMakeOnlineOrder && (
-          <div className="text-center text-orange-600 mb-6 p-4 border border-orange-300 bg-orange-50 rounded-md">
-              <p>Os pedidos online estão temporariamente desativados. Apenas a visualização do cardápio está disponível.</p>
-          </div>
-      )}
+
       {/* Exibe valor mínimo de delivery se for Delivery e tiver valor configurado */}
       {selectedPedidoType === 'Delivery' && (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 && (
-          <p className="text-center text-gray-700 mb-4">
-              Valor mínimo para delivery: <span className="font-semibold">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
-          </p>
+        <p className="text-center text-gray-700 mb-4">
+          Valor mínimo para delivery: <span className="font-semibold">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
+        </p>
       )}
 
 
@@ -358,7 +482,7 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               {categorias.some(c => c.id === 'promo') && (
-                  <SelectItem value="promo">🔥 Promoções</SelectItem>
+                <SelectItem value="promo">🔥 Promoções</SelectItem>
               )}
               {categorias.filter(c => c.id !== 'promo').map(cat => (
                 <SelectItem key={cat.id} value={cat.id.toString()}>{cat.descricao}</SelectItem>
@@ -368,7 +492,7 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
         </div>
         <div>
           <Label htmlFor="productSearch">Buscar Produto</Label>
-          <Input 
+          <Input
             id="productSearch"
             placeholder="Nome ou descrição..."
             value={searchTerm}
@@ -382,8 +506,11 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
       {/* Lista de Categorias e Produtos */}
       <div className="space-y-8">
         {categorias.map(categoria => {
-          const produtosParaExibir = categoria.id === 'promo' ? filteredProdutos.filter(p => p.promo_ativa && p.ativo) : filteredProdutos.filter(prod => prod.id_categoria === categoria.id && prod.ativo);
-          
+          // Garante que só produtos ATIVOS sejam exibidos e filtrados
+          const produtosParaExibir = categoria.id === 'promo' 
+            ? filteredProdutos.filter(p => p.promo_ativa && p.ativo) 
+            : filteredProdutos.filter(prod => prod.id_categoria === categoria.id && prod.ativo);
+
           if (produtosParaExibir.length === 0) return null;
 
           return (
@@ -391,11 +518,12 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
               <h2 className="text-2xl font-semibold mb-4 text-gray-700 border-b pb-2">{categoria.descricao}</h2>
               <div className={`grid gap-4 ${empresa?.layout_cardapio === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 {produtosParaExibir.map(prod => (
-                  <div 
-                    key={prod.id} 
-                    className="border p-4 rounded-lg flex items-center space-x-4 hover:bg-gray-50 cursor-pointer" 
-                    onClick={() => (canMakeOnlineOrder) ? openProductModal(prod) : toast.info("Pedidos desativados para esta empresa.")}
-                    style={{ opacity: (canMakeOnlineOrder) ? 1 : 0.6 }}
+                  <div
+                    key={prod.id}
+                    className="border p-4 rounded-lg flex items-center space-x-4 hover:bg-gray-50 cursor-pointer"
+                    // Desabilita o clique no card se não for possível fazer pedidos online
+                    onClick={() => (isCurrentlyOpenForOrders) ? openProductModal(prod) : toast.info("A empresa não está aceitando pedidos online no momento.")}
+                    style={{ opacity: (isCurrentlyOpenForOrders) ? 1 : 0.6 }} // Ajuste visual para desabilitado
                   >
                     {prod.foto_url && (
                       <img
@@ -416,6 +544,32 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
                         <p className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
                       )}
                     </div>
+                    {/* Botões +/- e contagem */}
+                    {canMakeOnlineOrder && ( // Apenas mostra os botões se a empresa permite pedidos online no geral
+                      <div className="flex items-center space-x-1 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => handleQuickRemoveFromCart(e, prod)}
+                          disabled={getProductCountInCart(prod.id) === 0 || !isCurrentlyOpenForOrders} // Desabilita se não tem no carrinho OU loja fechada
+                          className="h-8 w-8"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="text-md font-medium w-6 text-center">
+                          {getProductCountInCart(prod.id)}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => handleQuickAddToCart(e, prod)}
+                          disabled={!isCurrentlyOpenForOrders} // Desabilita se loja fechada
+                          className="h-8 w-8"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -424,18 +578,32 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
         })}
       </div>
 
-      {/* Botão flutuante do carrinho / finalizar pedido */}
-      {itens.length > 0 && (canMakeOnlineOrder) && (
-        <div className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 text-primary-foreground rounded-full shadow-lg flex items-center space-x-2 z-50 transform translate-x-0 transition-all duration-300 ease-in-out" 
-             style={{ backgroundColor: primaryColor }}>
-            <ShoppingCart className="h-6 w-6 flex-shrink-0" />
-            <span className="text-lg font-bold whitespace-nowrap" style={{color: 'white'}}>Total: R$ {total.toFixed(2).replace('.', ',')}</span>
-            
-            <Button onClick={handleOpenFinalizarPedidoModal} variant="secondary" className="ml-auto flex-shrink-0">
-              <CheckCircle className="mr-2" /> Finalizar Pedido
-            </Button>
-        </div>
-      )}
+{hasItemsInCart && isCurrentlyOpenForOrders && (
+  <div
+    className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-3 z-50 transition-all duration-300 ease-in-out"
+    style={{ backgroundColor: '#d32f2f', color: '#ffffff' }} // Vermelho delivery
+  >
+    <ShoppingCart className="h-6 w-6 flex-shrink-0 text-white" />
+    <span className="text-lg font-bold whitespace-nowrap">Total: R$ {total.toFixed(2).replace('.', ',')}</span>
+
+    <Button
+      onClick={handleOpenFinalizarPedidoModal}
+      variant="ghost"
+      className="ml-auto border border-white text-sm font-semibold"
+      style={{
+        backgroundColor: 'white',
+        color: '#d32f2f',
+        padding: '0.5rem 1rem',
+        borderRadius: '9999px',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <CheckCircle className="mr-2 h-4 w-4" /> Finalizar Pedido
+    </Button>
+  </div>
+)}
+
 
 
       {/* Modal de Detalhes do Produto / Adicionar ao Carrinho */}
@@ -443,7 +611,7 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedProduct?.nome}</DialogTitle>
-            <DialogDescription> {/* Agora com span para conteúdo interno */}
+            <DialogDescription>
               {selectedProduct?.descricao}
               {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
                 <span className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
@@ -457,27 +625,32 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="flex items-center space-x-2">
-              <Button onClick={() => setProductQuantity(Math.max(1, productQuantity - 1))}>-</Button>
-              <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center" />
-              <Button onClick={() => setProductQuantity(productQuantity + 1)}>+</Button>
+              <Button onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} disabled={!isCurrentlyOpenForOrders}>-</Button>
+              <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center" disabled={!isCurrentlyOpenForOrders} />
+              <Button onClick={() => setProductQuantity(prev => prev + 1)} disabled={!isCurrentlyOpenForOrders}>+</Button>
             </div>
             <div>
               <Label htmlFor="observacao">Observações (opcional)</Label>
-              <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." />
+              <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleAddToCart}>Adicionar ao Carrinho</Button>
+            <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders}>Adicionar ao Carrinho</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* MODAIS DE CLIENTE PÚBLICO - MOVIDOS AQUI */}
+      {/* MODAIS DE CLIENTE PÚBLICO */}
       <Dialog open={isFinalizarPedidoModalOpen} onOpenChange={setIsFinalizarPedidoModalOpen}>
         <DialogContent>
-          <FinalizarPedido 
-            pedidoType={selectedPedidoType} 
+          <FinalizarPedido
+            pedidoType={selectedPedidoType}
             onClose={handleCloseFinalizarPedidoModal}
+            empresa={empresa}
+            // 'user' não precisa ser passado aqui, FinalizarPedido agora pega via useAuth()
+            limparCarrinho={limparCarrinho}
+            total={total}
+            itens={itens}
           />
         </DialogContent>
       </Dialog>
@@ -490,7 +663,7 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
 
       <Dialog open={isPedidoTypeSelectionModalOpen} onOpenChange={setIsPedidoTypeSelectionModalOpen}>
         <DialogContent>
-          <PedidoTypeSelectionModal 
+          <PedidoTypeSelectionModal
             onSelectType={handlePedidoTypeSelected}
             onClose={() => setIsPedidoTypeSelectionModalOpen(false)}
             empresa={empresa}
@@ -501,4 +674,4 @@ const PublicCardapioPage = () => { // Renomeado para PublicCardapioPage
   );
 };
 
-export default PublicCardapioPage; // Renomeado para PublicCardapioPage
+export default PublicCardapioPage;

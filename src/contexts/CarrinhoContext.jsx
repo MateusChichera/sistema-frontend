@@ -14,7 +14,6 @@ export const useCarrinho = () => {
 
 export const CarrinhoProvider = ({ children }) => {
     // Itens no carrinho: { id_produto, nome, preco_unitario, quantidade, observacoes, foto_url }
-    // A chave de identificação única agora será a combinação de id_produto e observacoes
     const [itens, setItens] = useState([]);
 
     // Carregar carrinho do localStorage (se houver)
@@ -26,18 +25,16 @@ export const CarrinhoProvider = ({ children }) => {
     }, []);
 
     // Recalcular total e atualizar localStorage sempre que o carrinho mudar
-    // Usamos useMemo para o total para evitar recálculos desnecessários
     const total = useMemo(() => {
         return itens.reduce((acc, item) => {
             // Garante que preco_unitario é um número válido antes de somar
-            const preco = parseFloat(item.preco_unitario || 0); 
+            const preco = parseFloat(item.preco_unitario || 0);
             return acc + (item.quantidade * preco);
         }, 0);
     }, [itens]);
 
     useEffect(() => {
         localStorage.setItem('carrinhoItens', JSON.stringify(itens));
-        // O total é agora calculado com useMemo, então não precisa de setTotal aqui
     }, [itens]);
 
 
@@ -45,8 +42,10 @@ export const CarrinhoProvider = ({ children }) => {
     // Agora aceita 'produto.observacoes' para diferenciar itens do mesmo produto
     const adicionarItem = useCallback((produto, quantidade = 1) => {
         setItens(prevItens => {
-            // Calcula o preço final do produto no momento da adição
-            const precoFinal = produto.promo_ativa && produto.promocao ? parseFloat(produto.promocao) : parseFloat(produto.preco);
+            // Calcula o preço final do produto no momento da adição, incluindo promoção
+            const precoAplicado = produto.promo_ativa && produto.promocao !== null && produto.promocao !== undefined
+                ? parseFloat(produto.promocao)
+                : parseFloat(produto.preco);
 
             // Tenta encontrar um item existente com o MESMO ID e a MESMA OBSERVAÇÃO
             const itemIndex = prevItens.findIndex(
@@ -60,17 +59,15 @@ export const CarrinhoProvider = ({ children }) => {
                     ...newItens[itemIndex],
                     quantidade: newItens[itemIndex].quantidade + quantidade,
                 };
-                toast.info(`Quantidade de ${produto.nome} atualizada.`);
                 return newItens;
             } else {
                 // Adiciona um novo item ao carrinho
-                toast.success(`${produto.nome} adicionado ao carrinho!`);
                 return [
                     ...prevItens,
                     {
                         id_produto: produto.id, // Armazena o ID do produto original
                         nome: produto.nome,
-                        preco_unitario: precoFinal, // Armazena o preço final já calculado
+                        preco_unitario: precoAplicado, // Armazena o preço final já calculado
                         quantidade: quantidade,
                         observacoes: produto.observacoes || '', // Garante que observacoes exista
                         foto_url: produto.foto_url // Para exibir no carrinho se necessário
@@ -80,27 +77,45 @@ export const CarrinhoProvider = ({ children }) => {
         });
     }, []);
 
-    // Remover um item do carrinho, considerando o ID do produto e a observação
-    const removerItem = useCallback((id_produto, observacoes = '') => {
+    // Remover um item do carrinho
+    // Se `quantidadeToRemove` for especificado, remove apenas essa quantidade.
+    // Se não for especificado ou for `true` (para remover tudo), remove o item completamente.
+    const removerItem = useCallback((id_produto, quantidadeToRemove, observacoes = '') => {
         setItens(prevItens => {
-            const itemToRemove = prevItens.find(item => item.id_produto === id_produto && item.observacoes === observacoes);
-            if (itemToRemove) {
-                toast.info(`"${itemToRemove.nome}" removido do carrinho.`);
-                return prevItens.filter(item => !(item.id_produto === id_produto && item.observacoes === observacoes));
+            if (quantidadeToRemove === true) { // Remover item completamente (comportamento para remover X do carrinho)
+                const itemToRemove = prevItens.find(item => item.id_produto === id_produto && item.observacoes === observacoes);
+                if (itemToRemove) {
+                    toast.info(`"${itemToRemove.nome}" removido do carrinho.`);
+                    return prevItens.filter(item => !(item.id_produto === id_produto && item.observacoes === observacoes));
+                }
+                return prevItens;
+            } else { // Remover uma quantidade específica (comportamento para botões +/-)
+                const itemIndex = prevItens.findIndex(item => item.id_produto === id_produto && item.observacoes === observacoes);
+                if (itemIndex > -1) {
+                    const newItens = [...prevItens];
+                    const currentQuantity = newItens[itemIndex].quantidade;
+                    if (currentQuantity - quantidadeToRemove <= 0) {
+                        toast.info(`"${newItens[itemIndex].nome}" removido do carrinho.`);
+                        return prevItens.filter((_, idx) => idx !== itemIndex); // Remove completamente se a quantidade <= 0
+                    } else {
+                        newItens[itemIndex] = {
+                            ...newItens[itemIndex],
+                            quantidade: currentQuantity - quantidadeToRemove,
+                        };
+                        return newItens;
+                    }
+                }
+                return prevItens;
             }
-            return prevItens; // Retorna o estado anterior se o item não for encontrado
         });
     }, []);
 
     // Atualizar a quantidade de um item no carrinho
-    // Agora aceita 'id_produto' e 'observacoes' para identificar o item
     const atualizarQuantidadeItem = useCallback((id_produto, novaQuantidade, observacoes = '') => {
         setItens(prevItens => {
             if (novaQuantidade <= 0) {
-                // Se a nova quantidade for 0 ou menos, remove o item
                 return prevItens.filter(item => !(item.id_produto === id_produto && item.observacoes === observacoes));
             }
-            // Atualiza a quantidade do item específico
             return prevItens.map(item =>
                 (item.id_produto === id_produto && item.observacoes === observacoes)
                     ? { ...item, quantidade: novaQuantidade }
@@ -110,10 +125,8 @@ export const CarrinhoProvider = ({ children }) => {
     }, []);
 
     // Adicionar/atualizar observação de um item no carrinho
-    // Importante: isso pode "mover" o item se a nova observação já existir com o mesmo produto
     const adicionarObservacaoItem = useCallback((id_produto, novaObservacao, oldObservacao = '') => {
         setItens(prevItens => {
-            // 1. Encontrar o item original que será modificado
             const originalItemIndex = prevItens.findIndex(item => item.id_produto === id_produto && item.observacoes === oldObservacao);
 
             if (originalItemIndex === -1) {
@@ -123,33 +136,31 @@ export const CarrinhoProvider = ({ children }) => {
 
             const originalItem = prevItens[originalItemIndex];
 
-            // Se a observação não mudou, não faz nada
             if (originalItem.observacoes === novaObservacao) {
-                return prevItens;
+                return prevItens; // Nenhuma mudança na observação
             }
 
-            // 2. Verificar se já existe um item com o mesmo produto e a NOVA observação
+            // Se a nova observação já existe para este produto, agrupa. Caso contrário, apenas atualiza.
             const existingWithNewObsIndex = prevItens.findIndex(item => item.id_produto === id_produto && item.observacoes === novaObservacao);
 
             let newItens = [...prevItens];
 
             if (existingWithNewObsIndex > -1) {
-                // Se já existe um item com a nova observação, agrupamos:
-                // Remove o item original
-                newItens.splice(originalItemIndex, 1);
-                // Atualiza a quantidade do item existente com a nova observação
-                newItens[existingWithNewObsIndex > originalItemIndex ? existingWithNewObsIndex -1 : existingWithNewObsIndex] = { // Ajuste de índice se o original foi removido antes
-                    ...newItens[existingWithNewObsIndex > originalItemIndex ? existingWithNewObsIndex -1 : existingWithNewObsIndex],
-                    quantidade: newItens[existingWithNewObsIndex > originalItemIndex ? existingWithNewObsIndex -1 : existingWithNewObsIndex].quantidade + originalItem.quantidade,
+                // Remove o item original e soma sua quantidade ao item existente com a nova observação
+                const itemToMerge = newItens.splice(originalItemIndex, 1)[0];
+                const targetIndex = existingWithNewObsIndex > originalItemIndex ? existingWithNewObsIndex - 1 : existingWithNewObsIndex; // Ajusta o índice se o item original foi removido antes
+                newItens[targetIndex] = {
+                    ...newItens[targetIndex],
+                    quantidade: newItens[targetIndex].quantidade + itemToMerge.quantidade,
                 };
                 toast.success('Observação atualizada e itens agrupados!');
             } else {
-                // Se não existe, apenas atualiza a observação do item original
+                // Apenas atualiza a observação do item original
                 newItens[originalItemIndex] = {
                     ...originalItem,
                     observacoes: novaObservacao,
                 };
-                toast.success('Observação adicionada!');
+                toast.success('Observação adicionada/atualizada!');
             }
             return newItens;
         });
@@ -166,8 +177,8 @@ export const CarrinhoProvider = ({ children }) => {
         total,
         adicionarItem,
         removerItem,
-        atualizarQuantidadeItem, // Renomeado
-        adicionarObservacaoItem, // Nova função
+        atualizarQuantidadeItem,
+        adicionarObservacaoItem,
         limparCarrinho,
     }), [itens, total, adicionarItem, removerItem, atualizarQuantidadeItem, adicionarObservacaoItem, limparCarrinho]);
 

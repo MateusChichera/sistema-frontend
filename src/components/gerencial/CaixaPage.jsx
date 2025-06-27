@@ -16,29 +16,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
-import io from 'socket.io-client';
+import socket from '../../services/socket.js';
+
 
 
 const CaixaPage = () => {
-    const { empresa, loading: empresaLoading } = useEmpresa();
+     const { empresa, loading: empresaLoading } = useEmpresa();
     const { user, token } = useAuth();
 
-    const [pedidos, setPedidos] = useState([]); // Estado principal que guarda todos os pedidos
+    const [pedidos, setPedidos] = useState([]);
     const [loadingPedidos, setLoadingPedidos] = useState(true);
     const [error, setError] = useState(null);
 
-    // Estados para os modais
-    const [isPedidoDetailModalOpen, setIsPedidoDetailModalOpen] = useState(false); // Modal de finalização
-    const [isItemDetailModalOpen, setIsItemDetailModalOpen] = useState(false); // Modal de detalhes dos itens
+    const [isPedidoDetailModalOpen, setIsPedidoDetailModalOpen] = useState(false);
+    const [isItemDetailModalOpen, setIsItemDetailModalOpen] = useState(false);
+    const [isPrintConfirmationModalOpen, setIsPrintConfirmationModalOpen] = useState(false);
 
-    // selectedPedido guarda o pedido COMPLETO que está sendo visualizado/finalizado
     const [selectedPedido, setSelectedPedido] = useState(null);
 
-    // Estados para finalização do pagamento
     const [formasPagamento, setFormasPagamento] = useState([]);
-    // valorCobrancaManual: Valor que o caixa quer cobrar (inicializa com o restante a pagar, mas é editável)
     const [valorCobrancaManual, setValorCobrancaManual] = useState('');
-    // valorRecebidoInput: Valor que o cliente entregou (inicializa com valor de cobrança, editável para dinheiro)
     const [valorRecebidoInput, setValorRecebidoInput] = useState('');
     const [selectedFormaPagamentoId, setSelectedFormaPagamentoId] = useState('');
     const [observacoesPagamento, setObservacoesPagamento] = useState('');
@@ -46,17 +43,29 @@ const CaixaPage = () => {
     const [numPessoasDividir, setNumPessoasDividir] = useState('');
     const [loadingFinalizacao, setLoadingFinalizacao] = useState(false);
 
-    // Ref para o conteúdo a ser impresso
     const printContentRef = useRef(null);
 
-    // Filtros
     const [filterStatus, setFilterStatus] = useState('Pendente,Preparando,Pronto');
     const [filterTipoEntrega, setFilterTipoEntrega] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const debounceTimerRef = useRef(null);
+
+    // Refs para os valores dos filtros para uso no socket sem re-conectar
+    const filterStatusRef = useRef(filterStatus);
+    const filterTipoEntregaRef = useRef(filterTipoEntrega);
+    const debouncedSearchTermRef = useRef(debouncedSearchTerm);
+    const filterDateRef = useRef(filterDate);
+
+    // Atualiza os refs dos filtros sempre que o estado correspondente muda
+    useEffect(() => { filterStatusRef.current = filterStatus; }, [filterStatus]);
+    useEffect(() => { filterTipoEntregaRef.current = filterTipoEntrega; }, [filterTipoEntrega]);
+    useEffect(() => { debouncedSearchTermRef.current = debouncedSearchTerm; }, [debouncedSearchTerm]);
+    useEffect(() => { filterDateRef.current = filterDate; }, [filterDate]);
 
     const statusOptions = ['Pendente', 'Preparando', 'Pronto', 'Entregue', 'Cancelado'];
     const tipoEntregaOptions = ['Mesa', 'Balcao', 'Delivery'];
-
 
     // Processa os dados do pedido (garante itens e observações)
     const processPedidoData = useCallback((pedido) => {
@@ -68,104 +77,177 @@ const CaixaPage = () => {
         };
     }, []);
 
+    // Função auxiliar para aplicar os filtros ATUAIS (do ref) a um pedido
+    const isPedidoRelevantToCurrentFilters = useCallback((pedido) => {
+        console.log('isPedidoRelevantToCurrentFilters: checking pedido', pedido.numero_pedido);
+        console.log('  filterStatusRef.current:', filterStatusRef.current);
+        console.log('  filterTipoEntregaRef.current:', filterTipoEntregaRef.current);
+        console.log('  debouncedSearchTermRef.current:', debouncedSearchTermRef.current);
+        console.log('  filterDateRef.current:', filterDateRef.current);
+
+        const currentFilterStatuses = filterStatusRef.current.split(',');
+        const matchesStatus = currentFilterStatuses.includes('all') || currentFilterStatuses.includes(pedido.status);
+        const matchesTipoEntrega = filterTipoEntregaRef.current === 'all' || pedido.tipo_entrega === filterTipoEntregaRef.current;
+        const matchesSearch = debouncedSearchTermRef.current === '' ||
+                              String(pedido.numero_pedido).includes(debouncedSearchTermRef.current) ||
+                              (pedido.nome_cliente && pedido.nome_cliente.toLowerCase().includes(debouncedSearchTermRef.current.toLowerCase())) ||
+                              (pedido.nome_cliente_convidado && pedido.nome_cliente_convidado.toLowerCase().includes(debouncedSearchTermRef.current.toLowerCase()));
+
+        let matchesDate = true;
+        if (filterDateRef.current) {
+            try {
+                matchesDate = format(parseISO(pedido.data_pedido), 'yyyy-MM-dd') === filterDateRef.current;
+            } catch (e) {
+                console.error('Erro ao formatar data do pedido para filtro:', pedido.data_pedido, e);
+                matchesDate = false;
+            }
+        }
+
+        const isRelevant = matchesStatus && matchesTipoEntrega && matchesSearch && matchesDate;
+        console.log('  isRelevant:', isRelevant);
+        return isRelevant;
+    }, []); // Dependências vazias pois usa refs, que são estáveis
+
     // --- SOCKET.IO INTEGRATION ---
     useEffect(() => {
         if (!empresa?.id || !user?.token) return;
 
-        const socket = io(import.meta.env.VITE_BACKEND_API_URL.replace('/api/v1', ''));
+        // Conecta o socket se ainda não estiver conectado
+        if (!socket.connected) {
+            socket.connect();
+        }
 
-        socket.on('connect', () => {
+        // Emite o evento de junção à sala da empresa
+        socket.emit('join_company_room', empresa.id);
+
+        // Configura os listeners
+        const handleConnect = () => {
             console.log('Socket.IO: Conectado ao servidor.');
-            socket.emit('join_company_room', empresa.id);
-        });
+            // Não é necessário emitir 'join_company_room' novamente aqui, já foi feito acima.
+        };
 
-        socket.on('disconnect', () => {
+        const handleDisconnect = () => {
             console.log('Socket.IO: Desconectado do servidor.');
-        });
+        };
 
-        socket.on('newOrder', (newOrder) => {
+        const handleNewOrder = (newOrder) => {
             console.log('Socket.IO: Novo pedido recebido:', newOrder);
             setPedidos(prevPedidos => {
-                // Adiciona o novo pedido processado se não existir na lista
-                if (prevPedidos.some(p => p.id === newOrder.id)) return prevPedidos;
-                const updatedList = [processPedidoData(newOrder), ...prevPedidos];
-                return updatedList.sort((a, b) => new Date(b.data_pedido).getTime() - new Date(a.data_pedido).getTime()); // Ordena por data (mais recente primeiro)
-            });
-            toast.info(`Novo Pedido: #${newOrder.numero_pedido} (${newOrder.tipo_entrega})`);
-        });
+                if (prevPedidos.some(p => p.id === newOrder.id)) {
+                    console.log(`Socket.IO: Pedido #${newOrder.numero_pedido} já existe na lista, ignorando newOrder.`);
+                    return prevPedidos;
+                }
 
-        socket.on('orderUpdated', (updatedOrder) => {
+                const processedNewOrder = processPedidoData(newOrder);
+
+                if (isPedidoRelevantToCurrentFilters(processedNewOrder)) {
+                    const updatedList = [processedNewOrder, ...prevPedidos];
+                    const sortedList = updatedList.sort((a, b) => new Date(b.data_pedido).getTime() - new Date(a.data_pedido).getTime());
+                    console.log('Socket.IO: Lista de pedidos após newOrder (adicionado):', sortedList.map(p => p.numero_pedido));
+                    toast.info(`Novo Pedido: #${newOrder.numero_pedido} (${newOrder.tipo_entrega})`);
+                    return sortedList;
+                } else {
+                    console.log(`Socket.IO: Pedido #${newOrder.numero_pedido} ignorado devido aos filtros atuais.`);
+                    return prevPedidos;
+                }
+            });
+        };
+
+        const handleOrderUpdated = (updatedOrder) => {
             console.log('Socket.IO: Pedido atualizado:', updatedOrder);
             setPedidos(prevPedidos => {
-                const processed = processPedidoData(updatedOrder); // Processa o pedido atualizado
-
-                // Verifica se o pedido atualizado ainda deve estar visível com os filtros atuais
-                const currentFilterStatuses = filterStatus.split(',');
-                const isRelevantToFilter = currentFilterStatuses.includes('all') || currentFilterStatuses.includes(processed.status);
-                
+                const processed = processPedidoData(updatedOrder);
+                const shouldBeInList = isPedidoRelevantToCurrentFilters(processed);
                 const existsInList = prevPedidos.some(p => p.id === processed.id);
 
                 let updatedList;
-                if (isRelevantToFilter) {
+                if (shouldBeInList) {
                     if (existsInList) {
-                        // Atualiza o pedido existente na lista
                         updatedList = prevPedidos.map(p => p.id === processed.id ? processed : p);
+                        console.log(`Socket.IO: Pedido #${processed.numero_pedido} atualizado na lista.`);
                     } else {
-                        // Adiciona o pedido se ele se tornou relevante para o filtro e não estava na lista
                         updatedList = [processed, ...prevPedidos];
+                        console.log(`Socket.IO: Pedido #${processed.numero_pedido} adicionado à lista (agora relevante).`);
                     }
                 } else {
-                    // Remove o pedido se ele não é mais relevante para o filtro
                     updatedList = prevPedidos.filter(p => p.id !== processed.id);
-                    if (existsInList) { // Notifica apenas se ele de fato foi removido por filtro
-                         toast.info(`Pedido #${processed.numero_pedido} foi removido da visualização por filtro.`);
+                    if (existsInList) {
+                        toast.info(`Pedido #${processed.numero_pedido} foi removido da visualização por filtro.`);
+                        console.log(`Socket.IO: Pedido #${processed.numero_pedido} removido da lista (não mais relevante).`);
+                    } else {
+                        console.log(`Socket.IO: Pedido #${processed.numero_pedido} não era relevante e continua fora da lista.`);
                     }
                 }
-                
-                // Mantém a ordem: mais recente para o mais antigo
-                updatedList.sort((a,b) => new Date(b.data_pedido).getTime() - new Date(a.data_pedido).getTime());
-                
-                return updatedList;
+
+                const sortedList = updatedList.sort((a,b) => new Date(b.data_pedido).getTime() - new Date(a.data_pedido).getTime());
+                console.log('Socket.IO: Lista de pedidos após orderUpdated:', sortedList.map(p => p.numero_pedido));
+                toast.info(`Pedido #${updatedOrder.numero_pedido || updatedOrder.id} atualizado para ${updatedOrder.status || 'novo status'}.`);
+                return sortedList;
             });
 
-            // Se o pedido atualizado for o que está aberto no modal, atualiza-o também
             if (selectedPedido && selectedPedido.id === updatedOrder.id) {
                 setSelectedPedido(processPedidoData(updatedOrder));
             }
-            toast.info(`Pedido #${updatedOrder.numero_pedido || updatedOrder.id} atualizado para ${updatedOrder.status || 'novo status'}.`);
-        });
+        };
 
-        socket.on('orderFinalized', (finalizedOrder) => {
+        const handleOrderFinalized = (finalizedOrder) => {
             console.log('Socket.IO: Pedido finalizado:', finalizedOrder);
-            setPedidos(prevPedidos => prevPedidos.filter(p => p.id !== finalizedOrder.id)); // Remove da lista de pedidos ativos
-            toast.success(`Pedido #${finalizedOrder.numero_pedido || finalizedOrder.id} foi finalizado!`);
-            // Se o pedido finalizado era o que estava aberto, fecha os modais
+            setPedidos(prevPedidos => {
+                const filteredList = prevPedidos.filter(p => p.id !== finalizedOrder.id);
+                console.log('Socket.IO: Lista de pedidos após orderFinalized:', filteredList.map(p => p.numero_pedido));
+                toast.success(`Pedido #${finalizedOrder.numero_pedido || finalizedOrder.id} foi finalizado!`);
+                return filteredList;
+            });
             if (selectedPedido && selectedPedido.id === finalizedOrder.id) {
                 closePedidoDetailModal();
                 closeItemDetailModal();
             }
-        });
+        };
 
-        socket.on('orderDeleted', (deletedOrder) => {
+        const handleOrderDeleted = (deletedOrder) => {
             console.log('Socket.IO: Pedido excluído:', deletedOrder);
-            setPedidos(prevPedidos => prevPedidos.filter(p => p.id !== deletedOrder.id));
-            toast.warning(`Pedido #${deletedOrder.numero_pedido || deletedOrder.id} foi excluído.`);
+            setPedidos(prevPedidos => {
+                const filteredList = prevPedidos.filter(p => p.id !== deletedOrder.id);
+                console.log('Socket.IO: Lista de pedidos após orderDeleted:', filteredList.map(p => p.numero_pedido));
+                toast.warning(`Pedido #${deletedOrder.numero_pedido || deletedOrder.id} foi excluído.`);
+                return filteredList;
+            });
             if (selectedPedido && selectedPedido.id === deletedOrder.id) {
                 closePedidoDetailModal();
                 closeItemDetailModal();
             }
-        });
-
-        socket.on('mesaUpdated', (updatedMesa) => {
-            console.log('Socket.IO: Mesa atualizada:', updatedMesa);
-        });
-
-        return () => {
-            socket.emit('leave_company_room', empresa.id);
-            socket.disconnect();
-            console.log('Socket.IO: Componente CaixaPage desmontado, desconectando.');
         };
-    }, [empresa?.id, user?.token, selectedPedido, filterStatus, processPedidoData]);
+
+        const handleMesaUpdated = (updatedMesa) => {
+            console.log('Socket.IO: Mesa atualizada:', updatedMesa);
+        };
+
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
+        socket.on('newOrder', handleNewOrder);
+        socket.on('orderUpdated', handleOrderUpdated);
+        socket.on('orderFinalized', handleOrderFinalized);
+        socket.on('orderDeleted', handleOrderDeleted);
+        socket.on('mesaUpdated', handleMesaUpdated);
+
+        // Função de limpeza
+        return () => {
+            if (!empresa?.id || !user?.token) return;
+            console.log('Socket.IO: Componente CaixaPage desmontado ou dependências alteradas, desconectando.');
+            socket.emit('leave_company_room', empresa.id);
+            // Remove os listeners específicos para evitar vazamento de memória
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
+            socket.off('newOrder', handleNewOrder);
+            socket.off('orderUpdated', handleOrderUpdated);
+            socket.off('orderFinalized', handleOrderFinalized);
+            socket.off('orderDeleted', handleOrderDeleted);
+            socket.off('mesaUpdated', handleMesaUpdated);
+            // Se você quiser que o socket se desconecte quando este componente for desmontado
+            // e não houver outros componentes usando-o, descomente a linha abaixo.
+            // socket.disconnect();
+        };
+    }, [empresa?.id, user?.token]); // Dependências simplificadas
 
 
     const fetchPedidos = async () => {
@@ -191,8 +273,14 @@ const CaixaPage = () => {
             if (filterTipoEntrega !== 'all') {
                 queryParams.append('tipo_entrega', filterTipoEntrega);
             }
-            if (searchTerm) {
-                queryParams.append('search', searchTerm);
+            // Usa o termo de busca "debounced" para a requisição API
+            if (debouncedSearchTerm) {
+                queryParams.append('search', debouncedSearchTerm);
+            }
+            // Adiciona o filtro de data como data_inicio e data_fim para cobrir o dia todo
+            if (filterDate) {
+                queryParams.append('data_inicio', filterDate);
+                queryParams.append('data_fim', filterDate);
             }
 
             const response = await api.get(`/gerencial/${empresa.slug}/pedidos?${queryParams.toString()}`, {
@@ -203,6 +291,7 @@ const CaixaPage = () => {
             // Ordena os pedidos: mais recente para o mais antigo
             processedInitialPedidos.sort((a,b) => new Date(b.data_pedido).getTime() - new Date(a.data_pedido).getTime());
             setPedidos(processedInitialPedidos);
+            console.log("Pedidos carregados via fetch:", processedInitialPedidos.map(p => p.numero_pedido));
         } catch (err) {
             setError(err.response?.data?.message || 'Erro ao carregar pedidos para o Caixa.');
             console.error("Erro ao carregar pedidos:", err);
@@ -230,9 +319,27 @@ const CaixaPage = () => {
 
 
     useEffect(() => {
+        // fetchPedidos agora depende de debouncedSearchTerm e filterDate
         fetchPedidos();
         fetchFormasPagamento();
-    }, [empresa, empresaLoading, user, filterStatus, filterTipoEntrega, searchTerm]);
+    }, [empresa, empresaLoading, user, filterStatus, filterTipoEntrega, debouncedSearchTerm, filterDate]);
+
+
+    // Efeito para debounce do termo de busca
+    useEffect(() => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        debounceTimerRef.current = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500); // 500ms de atraso após a última digitação
+
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, [searchTerm]);
 
 
     // Funções para o modal de detalhes dos itens
@@ -297,7 +404,7 @@ const CaixaPage = () => {
         setNumPessoasDividir('');
     };
 
-    // FUNÇÃO QUE ATUALIZA O STATUS DO PEDIDO (APENAS CANCELAR A PARTIR DAQUI)
+    // FUNÇÃO QUE ATUALIZA O STATUS DO PEDIDO (APENAS CANCELAR A PARTIR daqui)
     const updatePedidoStatus = async (pedidoId, newStatus) => {
         setLoadingFinalizacao(true);
         try {
@@ -388,30 +495,59 @@ const CaixaPage = () => {
 
     // Lógica para finalizar o pagamento
     const handleFinalizarPagamento = async () => {
+        console.log("-----------------------------------------");
+        console.log("Iniciando handleFinalizarPagamento...");
+        console.log("selectedPedido:", selectedPedido);
+        console.log("selectedFormaPagamentoId:", selectedFormaPagamentoId);
+        console.log("valorCobrancaManual (raw):", valorCobrancaManual);
+        console.log("valorRecebidoInput (raw):", valorRecebidoInput);
+        console.log("valorComDesconto (calculado):", valorComDesconto);
+        console.log("valorAPagarNestaParcelaFinal (calculado):", valorAPagarNestaParcelaFinal);
+        console.log("troco (calculado):", troco);
+
         if (!selectedPedido) {
             toast.error('Nenhum pedido selecionado para finalizar.');
+            console.log("Validação falhou: Nenhum pedido selecionado.");
             return;
         }
         if (!selectedFormaPagamentoId) {
             toast.error('Selecione uma forma de pagamento.');
-            return;
-        }
-        const valorRecebido = parseFloat(valorRecebidoInput) || 0;
-        if (valorRecebido <= 0) {
-            toast.error('Informe o valor recebido.');
+            console.log("Validação falhou: Nenhuma forma de pagamento selecionada.");
             return;
         }
 
-        // Validação adicional: garante que o valor recebido não seja menor que o valor final a cobrar
-        if (valorRecebido < valorAPagarNestaParcelaFinal) {
-            toast.error('O valor recebido é menor que o valor a ser cobrado para esta operação.');
+        const valorRecebido = parseFloat(valorRecebidoInput);
+        console.log("valorRecebido (parsed):", valorRecebido);
+        console.log("isNaN(valorRecebido):", isNaN(valorRecebido)); // Verifica se é NaN
+
+        // A validação de valorRecebido <= 0 agora inclui um check para NaN
+        if (isNaN(valorRecebido) || valorRecebido <= 0) {
+            toast.error('Informe um valor recebido válido e maior que zero.');
+            console.log("Validação falhou: Valor recebido inválido ou <= 0.");
             return;
         }
+
+        // --- CORREÇÃO DO PONTO FLUTUANTE PARA VALIDAÇÃO ---
+        // Compara os valores formatados para evitar problemas de precisão de ponto flutuante
+        const formattedValorRecebido = parseFloat(valorRecebido.toFixed(2));
+        const formattedValorAPagarNestaParcelaFinal = parseFloat(valorAPagarNestaParcelaFinal.toFixed(2));
+
+        console.log("Comparando formatado - Valor Recebido:", formattedValorRecebido);
+        console.log("Comparando formatado - Valor a Pagar:", formattedValorAPagarNestaParcelaFinal);
+
+        // Validação adicional: garante que o valor recebido não seja menor que o valor final a cobrar
+        if (formattedValorRecebido < formattedValorAPagarNestaParcelaFinal) {
+            toast.error('O valor recebido é menor que o valor a ser cobrado para esta operação (considerando centavos).');
+            console.log("Validação falhou: Valor recebido menor que o valor a pagar.");
+            return;
+        }
+        console.log("Todas as validações iniciais passaram.");
 
         setLoadingFinalizacao(true);
         try {
-            await api.post(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}/finalizar`, {
-                valor_pago: parseFloat(valorRecebidoInput), // Valor real recebido (para troco)
+            // Realiza a chamada API para finalizar o pagamento
+            const response = await api.post(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}/finalizar`, {
+                valor_pago: valorRecebido, // Usar o valorRecibido já parseado
                 forma_pagamento_id: parseInt(selectedFormaPagamentoId),
                 itens_cobrados_ids: selectedPedido.itens.map(item => item.id), // Envia todos os IDs dos itens
                 dividir_conta_qtd_pessoas: dividirContaAtivo ? parseInt(numPessoasDividir) || 1 : null,
@@ -420,14 +556,26 @@ const CaixaPage = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            toast.success(`Pagamento de R$ ${parseFloat(valorRecebidoInput).toFixed(2).replace('.', ',')} registrado para o Pedido #${selectedPedido.numero_pedido}!`);
-            closePedidoDetailModal();
-            // A atualização da lista virá via Socket.IO (orderUpdated / orderFinalized)
+            toast.success(`Pagamento de R$ ${valorRecebido.toFixed(2).replace('.', ',')} registrado para o Pedido #${selectedPedido.numero_pedido}!`);
+            
+            // Re-busca o pedido atualizado para garantir que todos os dados (incluindo pagamentos) estejam presentes
+            // antes de abrir o modal de impressão.
+            const updatedPedidoData = await api.get(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSelectedPedido(processPedidoData(updatedPedidoData.data)); // Atualiza o selectedPedido com os dados mais recentes
+
+            // Pergunta se deseja imprimir o cupom após finalizar o pagamento
+            setIsPrintConfirmationModalOpen(true);
+            
+            // A atualização da lista de pedidos na tela principal virá via Socket.IO (orderUpdated / orderFinalized)
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao finalizar pagamento.');
             console.error("Erro ao finalizar pagamento:", err);
         } finally {
             setLoadingFinalizacao(false);
+            console.log("Finalizando handleFinalizarPagamento.");
+            console.log("-----------------------------------------");
         }
     };
 
@@ -438,20 +586,44 @@ const CaixaPage = () => {
             return;
         }
 
-        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        // Abrir janela de impressão com largura inicial próxima de 80mm
+        // Note: 'width' e 'height' aqui são sugestões. O controle final é do navegador/SO.
+        const printWindow = window.open('', '_blank', 'width=300,height=600'); 
         if (!printWindow) {
             toast.error("Não foi possível abrir a janela de impressão. Verifique pop-ups.");
             return;
         }
 
-        const totalGeralPedidoCupom = parseFloat(pedidoToPrint.valor_total || 0) +
+        // Calcula o total geral do pedido (itens + taxa de entrega)
+        const totalBaseItensETaxa = parseFloat(pedidoToPrint.valor_total || 0) +
                                      (pedidoToPrint.tipo_entrega === 'Delivery' ? parseFloat(empresa?.taxa_entrega || 0) : 0);
         
-        const valorRestanteAPagarCupom = Math.max(0, totalGeralPedidoCupom - parseFloat(pedidoToPrint.valor_recebido_parcial || 0));
+        // Pega a última forma de pagamento do array de pagamentos recebidos
+        const lastPayment = (pedidoToPrint.pagamentos_recebidos && pedidoToPrint.pagamentos_recebidos.length > 0)
+            ? pedidoToPrint.pagamentos_recebidos[pedidoToPrint.pagamentos_recebidos.length - 1]
+            : null;
+        
+        let descontoAplicadoNoCupom = null;
+        let valorTotalComDescontoNoCupom = totalBaseItensETaxa; // Inicializa com o total sem desconto
 
-        const lastPaymentFormaDesc = (pedidoToPrint.pagamentos_recebidos && pedidoToPrint.pagamentos_recebidos.length > 0)
-            ? pedidoToPrint.pagamentos_recebidos[pedidoToPrint.pagamentos_recebidos.length - 1].forma_pagamento_descricao
-            : 'N/A';
+        if (lastPayment) {
+            // Encontra a forma de pagamento real com base na descrição (nome) da forma do último pagamento
+            const formaPagamentoDetalhe = formasPagamento.find(fp => fp.descricao === lastPayment.forma_pagamento_descricao);
+            
+            if (formaPagamentoDetalhe && formaPagamentoDetalhe.porcentagem_desconto_geral > 0) {
+                // Calcula o valor do desconto sobre o total base (itens + taxa)
+                const percentualDesconto = parseFloat(formaPagamentoDetalhe.porcentagem_desconto_geral) / 100;
+                descontoAplicadoNoCupom = (totalBaseItensETaxa * percentualDesconto).toFixed(2);
+                valorTotalComDescontoNoCupom = (totalBaseItensETaxa * (1 - percentualDesconto));
+            }
+        }
+        
+        // Arredonda o valor total final (já com desconto, se aplicável)
+        const totalGeralParaExibirNoCupom = valorTotalComDescontoNoCupom.toFixed(2);
+
+        // Recalcula o "Falta Pagar" usando o valorTotalComDescontoNoCupom
+        const valorRestanteAPagarCupom = Math.max(0, parseFloat(totalGeralParaExibirNoCupom) - parseFloat(pedidoToPrint.valor_recebido_parcial || 0));
+
 
         const cupomContent = `
             <!DOCTYPE html>
@@ -459,20 +631,20 @@ const CaixaPage = () => {
             <head>
                 <title>Cupom Pedido #${pedidoToPrint.numero_pedido}</title>
                 <style>
-                    body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    /* Tamanho da fonte geral para 10px para 80mm, ajustável conforme teste */
+                    body { font-family: 'Courier New', monospace; font-size: 10px; margin: 0; padding: 10px; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     .container { width: 80mm; max-width: 80mm; margin: 0 auto; padding: 0; }
                     .header, .footer { text-align: center; margin-bottom: 10px; }
-                    .header h2 { margin: 0; font-size: 14px; color: #000; }
-                    .header p { margin: 1px 0; font-size: 9px; color: #000; }
+                    .header h2 { margin: 0; font-size: 12px; color: #000; } /* Ajustado h2 */
+                    .header p { margin: 1px 0; font-size: 8px; color: #000; } /* Ajustado p do header */
                     .section-title { font-weight: bold; margin-top: 10px; margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 3px; color: #000; }
                     .item { display: flex; justify-content: space-between; margin-bottom: 2px; }
                     .item-name { flex-grow: 1; text-align: left; }
                     .item-qty { width: 25px; text-align: center; }
-                    /* CORRIGIDO: Alinhamento de R$ */
-                    .item-price { display: inline-block; width: 45px; text-align: right; white-space: nowrap; padding-left: 2px; } /* Adicionado padding-left */
+                    .item-price { display: inline-block; width: 45px; text-align: right; white-space: nowrap; padding-left: 2px; }
                     .item-total { display: inline-block; width: 50px; text-align: right; white-space: nowrap; }
-                    .total-row { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 4px; border-top: 1px dashed #000; font-size: 12px; font-weight: bold; color: #000; }
-                    .footer-message { font-size: 9px; margin-top: 10px; color: #000; }
+                    .total-row { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 4px; border-top: 1px dashed #000; font-size: 11px; font-weight: bold; color: #000; } /* Ajustado font-size */
+                    .footer-message { font-size: 8px; margin-top: 10px; color: #000; } /* Ajustado font-size */
                     
                     /* Forçar preto e branco */
                     * { color: #000 !important; background-color: #FFF !important; }
@@ -482,9 +654,14 @@ const CaixaPage = () => {
                     img { filter: grayscale(100%) brightness(0%); } /* Tenta deixar logo preto e branco */
 
                     @media print {
-                        body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                        body { print-color-adjust: exact; -webkit-print-adjust: exact; }
                         .container { width: 80mm; margin: 0; padding: 0; }
                         button { display: none; }
+                        /* Sugestão para impressora térmica: */
+                        @page {
+                            size: 80mm auto; /* Define a largura para 80mm e altura automática */
+                            margin: 0; /* Remove margens padrão da página */
+                        }
                     }
                 </style>
             </head>
@@ -539,9 +716,16 @@ const CaixaPage = () => {
                         <span>TAXA DE ENTREGA:</span>
                         <span>R$ ${parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}</span>
                     </div>` : ''}
+                    
+                    ${descontoAplicadoNoCupom !== null && parseFloat(descontoAplicadoNoCupom) > 0 ? `
+                    <div class="total-row" style="color: green;">
+                        <span>DESCONTO:</span>
+                        <span>-R$ ${descontoAplicadoNoCupom.replace('.', ',')}</span>
+                    </div>` : ''}
+
                     <div class="total-row">
                         <span>TOTAL GERAL DO PEDIDO:</span>
-                        <span>R$ ${totalGeralPedidoCupom.toFixed(2).replace('.', ',')}</span>
+                        <span>R$ ${totalGeralParaExibirNoCupom.replace('.', ',')}</span>
                     </div>
 
                     <div class="section-title">PAGAMENTOS</div>
@@ -559,10 +743,16 @@ const CaixaPage = () => {
                     </div>` : ''}
 
                     <div class="footer">
-                        <p class="footer-message">Última Forma de Pagamento: ${lastPaymentFormaDesc}</p>
+                        ${(pedidoToPrint.pagamentos_recebidos && pedidoToPrint.pagamentos_recebidos.length > 0) ? `
+                        <p class="footer-message">Última Forma de Pagamento: ${lastPayment.forma_pagamento_descricao}</p>
+                        ` : ''}
                         <p class="footer-message">Obrigado pela preferência!</p>
                         <p class="footer-message">${empresa?.mensagem_confirmacao_pedido || ''}</p>
                         <p class="footer-message">Emitido em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+                        <hr style="border: none; border-top: 1px dashed #000; margin: 10px 0;">
+                        <p class="footer-message" style="font-weight: bold; margin-top: 10px;">
+                            Configuração da Impressora: Use 80mm de largura e margens 'Nenhuma'.
+                        </p>
                     </div>
                 </div>
             </body>
@@ -574,7 +764,7 @@ const CaixaPage = () => {
         printWindow.focus();
         printWindow.print();
         printWindow.onafterprint = () => printWindow.close();
-    }, [empresa]);
+    }, [empresa, formasPagamento]);
 
 
     const getStatusBadge = (status) => {
@@ -635,11 +825,16 @@ const CaixaPage = () => {
     const pedidosFiltrados = useMemo(() => {
         let currentPedidos = pedidos.filter(p => {
             const matchesTipoEntrega = filterTipoEntrega === 'all' || p.tipo_entrega === filterTipoEntrega;
-            const matchesSearch = searchTerm === '' || 
-                                  p.numero_pedido.includes(searchTerm) || 
-                                  (p.nome_cliente && p.nome_cliente.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                                  (p.nome_cliente_convidado && p.nome_cliente_convidado.toLowerCase().includes(searchTerm.toLowerCase()));
-            return matchesTipoEntrega && matchesSearch;
+            // Usa o debouncedSearchTerm para o filtro local
+            const matchesSearch = debouncedSearchTerm === '' || 
+                                  String(p.numero_pedido).includes(debouncedSearchTerm) || // Convertendo para string para includes
+                                  (p.nome_cliente && p.nome_cliente.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+                                  (p.nome_cliente_convidado && p.nome_cliente_convidado.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+            
+            // Filtra pela data do pedido
+            const matchesDate = filterDate === '' || format(parseISO(p.data_pedido), 'yyyy-MM-dd') === filterDate;
+
+            return matchesTipoEntrega && matchesSearch && matchesDate;
         });
 
         if (filterStatus === 'all') {
@@ -648,7 +843,7 @@ const CaixaPage = () => {
             const statusesToShow = filterStatus.split(',');
             return currentPedidos.filter(p => statusesToShow.includes(p.status));
         }
-    }, [pedidos, filterStatus, filterTipoEntrega, searchTerm]);
+    }, [pedidos, filterStatus, filterTipoEntrega, debouncedSearchTerm, filterDate]);
 
 
     const pedidosAbertos = useMemo(() => {
@@ -685,7 +880,7 @@ const CaixaPage = () => {
         <div className="p-6 bg-white rounded-lg shadow-md">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Caixa - {empresa.nome_fantasia}</h2>
 
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+            <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"> {/* Ajustado para 4 colunas para incluir a data */}
                 <div>
                     <Label htmlFor="filterStatus">Visualizar Status</Label>
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -719,8 +914,20 @@ const CaixaPage = () => {
                         className="w-full"
                     />
                 </div>
+                {/* Novo filtro de data */}
+                <div>
+                    <Label htmlFor="filterDate">Filtrar por Data</Label>
+                    <Input
+                        id="filterDate"
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="w-full"
+                    />
+                </div>
             </div>
 
+            {/* Pedidos Ativos - Agora sempre em uma única lista, sem separação por tipo */}
             <h3 className="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Pedidos Ativos ({pedidosAbertos.length})</h3>
             {pedidosAbertos.length === 0 ? (
                 <p className="text-gray-600">Nenhum pedido ativo encontrado para os filtros selecionados.</p>
@@ -741,18 +948,49 @@ const CaixaPage = () => {
                                     </Badge>
                                 </CardTitle>
                                 <CardDescription className="text-sm flex justify-between items-center">
-                                    <span>Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
+                                    {/* Nome do cliente agora maior e em negrito */}
+                                    <span className="text-base font-bold">Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
                                     {getStatusBadge(pedido.status)}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="text-sm pt-2">
-                                <p>Valor Total: R$ {parseFloat(pedido.valor_total || 0).toFixed(2).replace('.', ',')}</p>
-                                <p className="text-xs text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
-                                <p className="text-xs text-gray-500">Recebido Parcial: R$ {parseFloat(pedido.valor_recebido_parcial || 0).toFixed(2).replace('.', ',')}</p>
-                                <p className="font-semibold text-red-600">Falta Receber: R$ {Math.max(0, parseFloat(pedido.valor_total || 0) + (pedido.tipo_entrega === 'Delivery' ? parseFloat(empresa?.taxa_entrega || 0) : 0) - parseFloat(pedido.valor_recebido_parcial || 0)).toFixed(2).replace('.', ',')}</p>
-                                <div className="mt-2 flex justify-end">
-                                    {getPagamentoStatusBadge(pedido)}
-                                </div>
+                            <CardContent className="pt-2">
+                                {(() => {
+                                    const baseTotal = parseFloat(pedido.valor_total || 0);
+                                    const deliveryTax = (pedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) ? parseFloat(empresa.taxa_entrega) : 0;
+                                    const displayTotal = (baseTotal + deliveryTax).toFixed(2);
+                                    const receivedPartial = parseFloat(pedido.valor_recebido_parcial || 0);
+                                    const missingAmount = Math.max(0, parseFloat(displayTotal) - receivedPartial).toFixed(2);
+                                    
+                                    // console.log(`Pedido #${pedido.numero_pedido}:`);
+                                    // console.log("  pedido.valor_total:", pedido.valor_total);
+                                    // console.log("  empresa?.taxa_entrega:", empresa?.taxa_entrega);
+                                    // console.log("  pedido.tipo_entrega:", pedido.tipo_entrega);
+                                    // console.log("  displayTotal (calculado):", displayTotal);
+                                    // console.log("  receivedPartial:", receivedPartial);
+                                    // console.log("  missingAmount:", missingAmount);
+
+                                    return (
+                                        <>
+                                            <p className="text-base font-semibold">Valor Total: R$ {displayTotal.replace('.', ',')}</p>
+                                            
+                                            {/* Forma de pagamento aparece somente para Delivery ou Retirada */}
+                                            {['Delivery', 'Retirada'].includes(pedido.tipo_entrega) && (
+                                                <p className="text-base">Forma de pagamento: {pedido.formapagamento || 'N/A'}</p>
+                                            )} 
+                                            
+                                            <p className="text-sm text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
+                                            <p className="text-sm text-gray-500">Recebido Parcial: R$ {receivedPartial.toFixed(2).replace('.', ',')}</p>
+                                            
+                                            {/* Falta Receber aparece somente se tiver um valor parcial recebido maior que zero */}
+                                            {receivedPartial > 0 && parseFloat(missingAmount) > 0 && (
+                                                <p className="font-bold text-lg text-red-600">Falta Receber: R$ {missingAmount.replace('.', ',')}</p>
+                                            )}
+                                            <div className="mt-2 flex justify-end">
+                                                {getPagamentoStatusBadge(pedido)}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </CardContent>
                             <CardFooter className="pt-2 flex justify-end gap-2">
                                 <Button onClick={() => openPedidoDetailModal(pedido.id)} size="sm">Finalizar</Button>
@@ -788,17 +1026,36 @@ const CaixaPage = () => {
                                             </Badge>
                                         </CardTitle>
                                         <CardDescription className="text-sm flex justify-between items-center">
-                                            <span>Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
+                                            {/* Nome do cliente agora maior e em negrito */}
+                                            <span className="text-base font-bold">Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
                                             {getStatusBadge(pedido.status)}
                                         </CardDescription>
                                     </CardHeader>
-                                    <CardContent className="text-sm pt-2">
-                                        <p>Valor Total: R$ {parseFloat(pedido.valor_total || 0).toFixed(2).replace('.', ',')}</p>
-                                        <p className="text-xs text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
-                                        <p className="text-xs text-gray-500">Recebido Parcial: R$ {parseFloat(pedido.valor_recebido_parcial || 0).toFixed(2).replace('.', ',')}</p>
-                                        <div className="mt-2 flex justify-end">
-                                            {getPagamentoStatusBadge(pedido)}
-                                        </div>
+                                    <CardContent className="pt-2">
+                                        {(() => {
+                                            const baseTotal = parseFloat(pedido.valor_total || 0);
+                                            const deliveryTax = (pedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) ? parseFloat(empresa.taxa_entrega) : 0;
+                                            const displayTotal = (baseTotal + deliveryTax).toFixed(2);
+                                            const receivedPartial = parseFloat(pedido.valor_recebido_parcial || 0);
+                                            const missingAmount = Math.max(0, parseFloat(displayTotal) - receivedPartial).toFixed(2);
+
+                                            return (
+                                                <>
+                                                    <p className="text-base font-semibold">Valor Total: R$ {displayTotal.replace('.', ',')}</p>
+                                                    {['Delivery', 'Retirada'].includes(pedido.tipo_entrega) && (
+                                                        <p className="text-base">Forma de pagamento: {pedido.formapagamento || 'N/A'}</p>
+                                                    )}
+                                                    <p className="text-sm text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
+                                                    <p className="text-sm text-gray-500">Recebido Parcial: R$ {receivedPartial.toFixed(2).replace('.', ',')}</p>
+                                                    {receivedPartial > 0 && parseFloat(missingAmount) > 0 && (
+                                                        <p className="font-bold text-lg text-red-600">Falta Receber: R$ {missingAmount.replace('.', ',')}</p>
+                                                    )}
+                                                    <div className="mt-2 flex justify-end">
+                                                        {getPagamentoStatusBadge(pedido)}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </CardContent>
                                     <CardFooter className="pt-2 flex justify-end gap-2">
                                         <Button onClick={() => openPedidoDetailModal(pedido.id)} size="sm" variant="outline">Ver Detalhes</Button>
@@ -841,7 +1098,7 @@ const CaixaPage = () => {
                                                 <TableCell>{item.nome_produto} {item.observacoes && `(${item.observacoes})`}</TableCell>
                                                 <TableCell className="text-right">{item.quantidade}</TableCell>
                                                 <TableCell className="text-right">R$ {parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</TableCell>
-                                                <TableCell className="text-right">R$ ${(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</TableCell>
+                                                <TableCell className="text-right">R$ {(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -1034,6 +1291,33 @@ const CaixaPage = () => {
                             <Loader2 className="animate-spin h-8 w-8 mr-2" /> Carregando detalhes do pedido...
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Novo Modal de Confirmação de Impressão */}
+            <Dialog open={isPrintConfirmationModalOpen} onOpenChange={setIsPrintConfirmationModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Imprimir Cupom?</DialogTitle>
+                        <DialogDescription>
+                            Deseja imprimir o cupom para o Pedido #{selectedPedido?.numero_pedido}?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                            setIsPrintConfirmationModalOpen(false);
+                            closePedidoDetailModal(); // Fecha o modal de finalização também
+                        }}>
+                            Não Imprimir
+                        </Button>
+                        <Button onClick={() => {
+                            handlePrintCupom(selectedPedido);
+                            setIsPrintConfirmationModalOpen(false);
+                            closePedidoDetailModal(); // Fecha o modal de finalização também
+                        }}>
+                            Sim, Imprimir
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
