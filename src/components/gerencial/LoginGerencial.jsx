@@ -64,7 +64,7 @@ const LoginGerencial = ({ admin = false }) => {
         <CardHeader className="text-center flex flex-col items-center gap-4 py-8">
           {/* Logo da Athos - Caminho Corrigido */}
           <img
-            src="/logoathos.png" // Caminho corrigido para a pasta 'public'
+            src="/ATHOS.png" // Caminho corrigido para a pasta 'public'
             alt="Logo Athos"
             className="w-24 h-auto mb-4" // Use um tamanho menor para o ícone
           />
