@@ -563,7 +563,7 @@ const CardapioPage = () => {
                                             <p className="text-gray-800 font-bold text-lg mt-1">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
                                         )}
                                     </div>
-                                    {/* Botões de quantidade */}
+                                    {/* Botões de quantidade * /}
                                     <div className="flex items-center space-x-2 mt-2 self-end md:self-auto">
                                         <Button 
                                             type="button" 
@@ -589,13 +589,14 @@ const CardapioPage = () => {
                                         >
                                             <Plus className="h-4 w-4" />
                                         </Button>
+                                        { Botão para editar observação do item no carrinho */}
                                         {totalQuantityInCart > 0 && (
                                             <span className="text-sm font-semibold whitespace-nowrap">
                                                 Subtotal: R$ {(totalQuantityInCart * finalPrice).toFixed(2).replace('.', ',')}
                                             </span>
                                         )}
                                     </div>
-                                </div>
+                                
                             </Card>
                         );
                     })}
