@@ -694,7 +694,7 @@ const CardapioPage = () => {
                                 variant="outline" 
                                 size="sm" 
                                 onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade - 1, item.observacoes)}
-                                disabled={item.quantidade <= 1}
+                               // disabled={item.quantidade <= 1}
                             >
                                 <Minus className="h-4 w-4" />
                             </Button>
@@ -717,7 +717,7 @@ const CardapioPage = () => {
                                 type="button" 
                                 variant="destructive" 
                                 size="sm" 
-                                onClick={() => removerItem(item.id_produto, item.observacoes)}
+                                onClick={() => removerItem(item.id_produto,true, item.observacoes)}
                             >
                                 <XCircle className="h-4 w-4" />
                             </Button>
