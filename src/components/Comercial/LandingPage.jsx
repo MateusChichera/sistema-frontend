@@ -385,7 +385,7 @@ const LandingPage = () => {
                   </div>
                   <div>
                     <h3 className="font-bold">Endereço</h3>
-                    <p className="text-muted-foreground">São Paulo, SP - Brasil</p>
+                    <p className="text-muted-foreground">Presidente Prudente, SP - Brasil</p>
                   </div>
                 </div>
               </div>
