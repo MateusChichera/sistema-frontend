@@ -1,0 +1,183 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* Aqui, estamos convertendo os códigos HEX para o formato Oklch, 
+  que é o que o seu CSS está usando. Você pode usar uma ferramenta online
+  para isso, como o OKLCH color picker.
+
+  #1F539C (Azul Escuro) -> oklch(34.22% 0.147 259.05)
+  #32A3D4 (Azul Claro) -> oklch(66.52% 0.158 245.96)
+  #E4AF24 (Amarelo Escuro) -> oklch(72.76% 0.141 81.33)
+  #000000 (Preto) -> oklch(0 0 0)
+*/
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0); /* Fundo branco */
+  --foreground: oklch(0 0 0); /* Texto geral preto */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0 0 0);
+
+  /* CORES DA PALETA ATHOS */
+  --primary: oklch(34.22% 0.147 259.05); /* AZUL ESCURO (#1F539C) */
+  --primary-foreground: oklch(0.985 0 0); /* Branco para o texto */
+  --secondary: oklch(66.52% 0.158 245.96); /* AZUL CLARO (#32A3D4) */
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(72.76% 0.141 81.33); /* AMARELO ESCURO (#E4AF24) */
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  /* ... mantenha as cores de chart se precisar ... */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(34.22% 0.147 259.05); /* AZUL ESCURO (#1F539C) para o fundo da sidebar */
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  /* ... mantenha o modo escuro como está ou ajuste as cores aqui também */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Estilos adicionais para a landing page */
+.hero-gradient {
+  background: linear-gradient(135deg, 
+    oklch(34.22% 0.147 259.05 / 0.05) 0%, 
+    oklch(66.52% 0.158 245.96 / 0.05) 100%);
+}
+
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, 
+    oklch(34.22% 0.147 259.05) 0%, 
+    oklch(66.52% 0.158 245.96) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animações personalizadas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Responsividade aprimorada */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
+    line-height: 1.2;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.125rem;
+  }
+}
+
+/* Estilos para formulário */
+.form-input:focus {
+  border-color: oklch(34.22% 0.147 259.05);
+  box-shadow: 0 0 0 3px oklch(34.22% 0.147 259.05 / 0.1);
+}
+
+/* Botões personalizados */
+.btn-primary {
+  background: oklch(34.22% 0.147 259.05);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: oklch(34.22% 0.147 259.05 / 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px oklch(34.22% 0.147 259.05 / 0.2);
+}
+
+.btn-secondary {
+  border: 2px solid oklch(34.22% 0.147 259.05);
+  color: oklch(34.22% 0.147 259.05);
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: oklch(34.22% 0.147 259.05 / 0.05);
+  transform: translateY(-1px);
+}
+

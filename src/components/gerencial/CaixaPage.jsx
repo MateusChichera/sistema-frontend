@@ -110,7 +110,8 @@ const CaixaPage = () => {
 
     // --- SOCKET.IO INTEGRATION ---
     useEffect(() => {
-        if (!empresa?.id || !user?.token) return;
+        // Garante que o socket só seja configurado quando a empresa e o token estiverem disponíveis
+        if (!empresa?.id || !token) return;
 
         // Conecta o socket se ainda não estiver conectado
         if (!socket.connected) {
@@ -232,7 +233,7 @@ const CaixaPage = () => {
 
         // Função de limpeza
         return () => {
-            if (!empresa?.id || !user?.token) return;
+            if (!empresa?.id || !token) return;
             console.log('Socket.IO: Componente CaixaPage desmontado ou dependências alteradas, desconectando.');
             socket.emit('leave_company_room', empresa.id);
             // Remove os listeners específicos para evitar vazamento de memória
@@ -247,11 +248,11 @@ const CaixaPage = () => {
             // e não houver outros componentes usando-o, descomente a linha abaixo.
             // socket.disconnect();
         };
-    }, [empresa?.id, user?.token]); // Dependências simplificadas
+    }, [empresa?.id, token]); // Dependências simplificadas
 
 
     const fetchPedidos = async () => {
-        if (empresaLoading || !empresa || !empresa.slug || !user) {
+        if (empresaLoading || !empresa || !empresa.slug || !user || !token) {
             setLoadingPedidos(true);
             return;
         }
@@ -302,7 +303,7 @@ const CaixaPage = () => {
     };
 
     const fetchFormasPagamento = async () => {
-        if (empresaLoading || !empresa || !empresa.slug) return;
+        if (empresaLoading || !empresa || !empresa.slug || !token) return;
         try {
             const response = await api.get(`/gerencial/${empresa.slug}/formas-pagamento`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -750,9 +751,6 @@ const CaixaPage = () => {
                         <p class="footer-message">${empresa?.mensagem_confirmacao_pedido || ''}</p>
                         <p class="footer-message">Emitido em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
                         <hr style="border: none; border-top: 1px dashed #000; margin: 10px 0;">
-                        <p class="footer-message" style="font-weight: bold; margin-top: 10px;">
-                            Configuração da Impressora: Use 80mm de largura e margens 'Nenhuma'.
-                        </p>
                     </div>
                 </div>
             </body>

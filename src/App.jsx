@@ -22,6 +22,9 @@ import LayoutGerencial from './components/layout/LayoutGerencial';
 import LayoutCardapio from './components/layout/LayoutCardapio';
 import LayoutAdmin from './components/layout/LayoutAdmin';
 
+// Páginas de Comercial
+import LandingPage from './components/Comercial/LandingPage';
+
 import './App.css';
 
 // IMPORTAR AS PÁGINAS DE CADASTRO
@@ -44,7 +47,7 @@ function App() {
           <Router>
             <Routes>
               {/* Rota inicial - redireciona para uma empresa de exemplo */}
-              <Route path="/" element={<Navigate to="/demo-restaurante" replace />} />
+              <Route path="/" element={<LandingPage />} />
               
               {/* Rotas do Cardápio Digital (PÚBLICAS) */}
               {/* Cada rota define seu layout e página */}

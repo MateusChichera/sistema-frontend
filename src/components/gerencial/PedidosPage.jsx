@@ -15,7 +15,7 @@ import { format, parseISO } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import io from 'socket.io-client'; // Importar o socket.io-client
+import socket from '../../services/socket.js';
 
 // --- Funções Auxiliares (fora do componente para evitar re-criação) ---
 const getStatusBadge = (status) => {
@@ -275,11 +275,20 @@ const PedidosPage = () => {
     useEffect(() => {
         fetchPedidosData(); // Primeira carga dos pedidos
 
-        const socketUrl = import.meta.env.VITE_BACKEND_API_URL;
-        // Ajuste a URL para a raiz do Socket.IO se sua API estiver em /api/v1
-        const baseUrl = socketUrl.endsWith('/api/v1') ? socketUrl.replace('/api/v1', '') : socketUrl;
+        // ---- Integração com socket singleton ----
+        if (!socket.connected) {
+            socket.connect();
+        }
 
-        const socket = io(baseUrl); // Conecta ao Socket.IO na URL base
+        socket.emit('join_company_room', empresa.id);
+
+        socket.on('connect', () => {
+            console.log('Socket.IO: Conectado ao servidor de PedidosPage.');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket.IO: Desconectado do servidor (PedidosPage).');
+        });
 
         socket.on('newOrder', (newOrder) => {
     console.log('Socket.IO: Novo pedido recebido:', newOrder);
@@ -368,7 +377,7 @@ socket.on('orderUpdated', (updatedOrder) => {
 
         return () => {
             if (empresa?.id) {
-                 socket.emit('leaveCompanyRoom', empresa.id); // Nome do evento igual ao backend
+                socket.emit('leave_company_room', empresa.id);
             }
             socket.off('connect');
             socket.off('disconnect');
@@ -376,8 +385,7 @@ socket.on('orderUpdated', (updatedOrder) => {
             socket.off('newOrder');
             socket.off('orderUpdated');
             socket.off('orderDeleted');
-            socket.disconnect();
-            console.log('Socket.IO: Componente PedidosPage desmontado, desconectando.');
+            console.log('Socket.IO: Componente PedidosPage desmontado, listeners removidos.');
         };
     }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega]); // Dependências do useEffect
 

@@ -12,7 +12,7 @@ import { useEmpresa } from '../../contexts/EmpresaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
-import io from 'socket.io-client';
+import socket from '../../services/socket.js';
 
 
 // --- Funções Auxiliares (mantidas globais pois não dependem do estado do componente) ---
@@ -125,12 +125,15 @@ const OrderStatusPage = () => {
                 setLoadingPedidos(false);
             }
 
-            // --- Socket.IO Integration ---
-            const socket = io(import.meta.env.VITE_BACKEND_API_URL.replace('/api/v1', ''));
+            // --- Integração com Socket.IO (instância global) ---
+            if (!socket.connected) {
+                socket.connect();
+            }
+
+            socket.emit('join_company_room', empresa.id);
 
             socket.on('connect', () => {
                 console.log('Socket.IO: Conectado ao servidor para cozinha.');
-                socket.emit('join_company_room', empresa.id);
             });
 
             socket.on('disconnect', () => {
@@ -203,11 +206,16 @@ const OrderStatusPage = () => {
                 toast.warning(`Pedido #${deletedOrder.numero_pedido} foi excluído.`);
             });
 
-            // Limpeza do socket ao desmontar o componente ou mudar dependências
+            // Limpeza dos listeners ao desmontar o componente ou mudar dependências
             return () => {
                 socket.emit('leave_company_room', empresa.id);
-                socket.disconnect();
-                console.log('Socket.IO: Componente OrderStatusPage desmontado, desconectando.');
+                socket.off('newOrder');
+                socket.off('orderUpdated');
+                socket.off('orderFinalized');
+                socket.off('orderDeleted');
+                socket.off('connect');
+                socket.off('disconnect');
+                console.log('Socket.IO: Componente OrderStatusPage desmontado, listeners removidos.');
             };
         };
 

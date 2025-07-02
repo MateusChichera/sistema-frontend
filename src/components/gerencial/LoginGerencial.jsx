@@ -66,7 +66,7 @@ const LoginGerencial = ({ admin = false }) => {
           <img
             src="/ATHOS.png" // Caminho corrigido para a pasta 'public'
             alt="Logo Athos"
-            className="w-24 h-auto mb-4" // Use um tamanho menor para o ícone
+            className="w-48 h-auto mt-8 mb-0" // Use um tamanho menor para o ícone
           />
           <CardTitle className="text-3xl font-bold" style={{ color: '#000000' }}>
             {admin ? 'Login Admin Master' : 'Login Gerencial'}
