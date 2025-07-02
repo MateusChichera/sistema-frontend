@@ -54,7 +54,7 @@ const LandingPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img src="/logoathos.png" alt="Athos" className="w-10 h-10" />
+              <img src="/logoathos.png" alt="Athos" className="w-12 h-10" />
             </div>
             
             <nav className="hidden md:flex space-x-8">
@@ -105,7 +105,7 @@ const LandingPage = () => {
                 <h1 className="text-4xl md:text-6xl font-bold leading-tight">
                   Revolucione seu
                   <span className="text-primary block">Restaurante</span>
-                  com a Athos
+                  com a ATHOS
                 </h1>
                 <p className="text-xl text-muted-foreground leading-relaxed">
                   Sistema completo de gestão para restaurantes com cardápio digital, 
@@ -183,7 +183,7 @@ const LandingPage = () => {
               Funcionalidades que <span className="text-primary">Transformam</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Descubra como a Athos pode revolucionar a gestão do seu restaurante
+              Descubra como a ATHOS pode revolucionar a gestão do seu restaurante
             </p>
           </div>
 
@@ -264,7 +264,7 @@ const LandingPage = () => {
             <div className="space-y-8">
               <div className="space-y-4">
                 <h2 className="text-3xl md:text-4xl font-bold">
-                  Sobre a <span className="text-primary">Athos</span>
+                  Sobre a <span className="text-primary">ATHOS</span>
                 </h2>
                 <p className="text-xl text-muted-foreground leading-relaxed">
                   Somos especialistas em tecnologia para restaurantes, desenvolvendo 
@@ -317,7 +317,7 @@ const LandingPage = () => {
             <div className="relative">
               <div className="bg-white rounded-2xl shadow-2xl p-8">
                 <div className="space-y-6">
-                  <h3 className="text-2xl font-bold text-center">Por que escolher a Athos?</h3>
+                  <h3 className="text-2xl font-bold text-center">Por que escolher a ATHOS?</h3>
                   
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-lg">
@@ -482,17 +482,17 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-primary text-primary-foreground py-12">
+      <footer className="bg-primary/10 text-foreground py-6">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
               <img src="/ATHOS.png" alt="Athos" className="w-30 h-20" />
             </div>
-            <p className="text-primary-foreground/80 mb-6">
+            <p className="text-muted-foreground mb-6">
               Transformando restaurantes através da tecnologia
             </p>
             <div className="flex justify-center space-x-8 text-sm">
-              <span>© 2025 Athos. Todos os direitos reservados.</span>
+              <span>© 2025 ATHOS. Todos os direitos reservados.</span>
             </div>
           </div>
         </div>
