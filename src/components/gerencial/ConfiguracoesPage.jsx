@@ -61,6 +61,8 @@ const ConfiguracoesPage = () => {
     alerta_estoque_baixo_ativo: false,
     limite_estoque_baixo: '',
     enviar_email_confirmacao: false,
+    som_notificacao_cozinha: true,
+    som_notificacao_delivery: true,
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState(null);
@@ -105,6 +107,8 @@ const ConfiguracoesPage = () => {
           alerta_estoque_baixo_ativo: !!empresa.alerta_estoque_baixo_ativo,
           limite_estoque_baixo: empresa.limite_estoque_baixo || '',
           enviar_email_confirmacao: !!empresa.enviar_email_confirmacao,
+          som_notificacao_cozinha: !!empresa.som_notificacao_cozinha,
+          som_notificacao_delivery: !!empresa.som_notificacao_delivery,
         });
         setPreviewLogoUrl(null);
         toast.success("Configurações carregadas com sucesso!");
@@ -168,6 +172,8 @@ const ConfiguracoesPage = () => {
         alerta_estoque_baixo_ativo: formData.alerta_estoque_baixo_ativo ? 1 : 0,
         limite_estoque_baixo: parseInt(formData.limite_estoque_baixo) || 0,
         enviar_email_confirmacao: formData.enviar_email_confirmacao ? 1 : 0,
+        som_notificacao_cozinha: formData.som_notificacao_cozinha ? 1 : 0,
+        som_notificacao_delivery: formData.som_notificacao_delivery ? 1 : 0,
       };
 
       await api.put(`/gerencial/${empresa.slug}/config`, dataToSend, {
@@ -389,6 +395,26 @@ const ConfiguracoesPage = () => {
                   disabled={!canManage}
                 />
                 <Label htmlFor="desativar_entrega">Desativar Opção de Entrega (Delivery)</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="som_notificacao_cozinha"
+                  checked={formData.som_notificacao_cozinha}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, som_notificacao_cozinha: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="som_notificacao_cozinha">Ativar Som de Notificação na Cozinha</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="som_notificacao_delivery"
+                  checked={formData.som_notificacao_delivery}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, som_notificacao_delivery: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="som_notificacao_delivery">Ativar Som de Notificação no Delivery</Label>
               </div>
 
               <div className="flex items-center space-x-2">

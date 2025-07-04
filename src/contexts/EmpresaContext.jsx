@@ -43,7 +43,7 @@ export const EmpresaProvider = ({ children }) => {
 
       setEmpresa(empresaData);
       // LOG MELHORADO:
-     // console.log("EmpresaContext: loadEmpresa: Dados da Empresa Carregados:", empresaData, "Slug no Objeto:", empresaData.slug);
+      console.log("EmpresaContext: loadEmpresa: Dados da Empresa Carregados:", empresaData, "Slug no Objeto:", empresaData.slug);
 
     } catch (error) {
       console.error('EmpresaContext: loadEmpresa: Erro ao carregar empresa:', error.response?.data?.message || error.message);
@@ -67,7 +67,7 @@ export const EmpresaProvider = ({ children }) => {
           slug = segments[0];
         }
       }
-     // console.log("EmpresaContext: handleLocationChange: Slug extraído da URL:", slug);
+   //   console.log("EmpresaContext: handleLocationChange: Slug extraído da URL:", slug);
       loadEmpresa(slug);
     };
 

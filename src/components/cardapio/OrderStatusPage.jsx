@@ -80,6 +80,16 @@ const OrderStatusPage = () => {
 
     const allowedRoles = useMemo(() => ['Funcionario', 'Caixa', 'Gerente', 'Proprietario'], []);
 
+    // Função para tocar o som de notificação da cozinha (respeitando configuração da empresa)
+    const playKitchenSound = useCallback(() => {
+        if (empresa?.som_notificacao_cozinha) {
+            const audio = new Audio('/sounds/cozinha.mp3');
+            audio.play().catch((err) => {
+                console.error('Erro ao reproduzir som de notificação da cozinha:', err);
+            });
+        }
+    }, [empresa]);
+
     // Efeito para carregar pedidos e integrar Socket.IO
     useEffect(() => {
         const fetchAndSetupSocket = async () => { // Função combinada para gerenciar o setup inicial e o socket
@@ -169,6 +179,8 @@ const OrderStatusPage = () => {
                 });
                 if (allKitchenStatuses.includes(newOrder.status)) {
                     toast.info(`Novo Pedido para Cozinha: #${newOrder.numero_pedido} (${newOrder.tipo_entrega})`);
+                    // Toca som de notificação, caso configurado
+                    playKitchenSound();
                 }
             });
 
@@ -229,7 +241,7 @@ const OrderStatusPage = () => {
 
         fetchAndSetupSocket();
 
-    }, [empresa?.id, empresa?.slug, isReady, user, token, allowedRoles, empresaLoading]);
+    }, [empresa?.id, empresa?.slug, isReady, user, token, allowedRoles, empresaLoading, playKitchenSound]);
 
 
     // Função para mudar o status do pedido (avançar ou voltar)

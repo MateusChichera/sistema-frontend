@@ -1,5 +1,5 @@
 // frontend/src/components/gerencial/PedidosPage.jsx
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useEmpresa } from '../../contexts/EmpresaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -61,6 +61,37 @@ const PedidosPage = () => {
     const tipoEntregaOptions = ['Mesa', 'Balcao', 'Delivery'];
 
     const allowedRoles = useMemo(() => ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'], []);
+
+    // Ref para manter a instância de áudio entre renders
+    const deliveryAudioRef = useRef(null);
+
+    // Carrega o áudio uma única vez quando o componente monta
+    useEffect(() => {
+        deliveryAudioRef.current = new Audio('/sounds/delivery.mp3');
+    }, []);
+
+    // Função para tocar o som de notificação de Delivery (respeita configuração da empresa)
+    const playDeliverySound = useCallback(() => {
+        if (!empresa?.som_notificacao_delivery) return;
+
+        if (!deliveryAudioRef.current) return;
+
+        deliveryAudioRef.current.currentTime = 0; // Garante que comece do início
+
+        deliveryAudioRef.current.play().catch(err => {
+            if (err.name === 'NotAllowedError') {
+                // O navegador bloqueou o autoplay: pede uma interação do usuário
+                const resumeAudio = () => {
+                    deliveryAudioRef.current.play().catch(e => console.error('Erro ao tentar reproduzir após interação:', e));
+                    document.removeEventListener('click', resumeAudio);
+                };
+                document.addEventListener('click', resumeAudio);
+                toast.info('Clique em qualquer lugar da página para ativar o som de notificação.');
+            } else {
+                console.error('Erro ao reproduzir som de notificação de delivery:', err);
+            }
+        });
+    }, [empresa]);
 
     // Função para abrir o modal de detalhes do pedido
     // Definida AQUI para garantir que esteja no escopo correto
@@ -293,6 +324,8 @@ const PedidosPage = () => {
         socket.on('newOrder', (newOrder) => {
     console.log('Socket.IO: Novo pedido recebido:', newOrder);
     toast.info(`Novo pedido recebido: #${newOrder.numero_pedido} (${newOrder.tipo_entrega})`);
+    // Toca som de notificação, se permitido
+    playDeliverySound();
     setPedidos(prevPedidos => {
         // Verifica se já existe ou se não corresponde ao filtro de tipo de entrega
         if (prevPedidos.some(p => p.id === newOrder.id) ||
@@ -387,7 +420,7 @@ socket.on('orderUpdated', (updatedOrder) => {
             socket.off('orderDeleted');
             console.log('Socket.IO: Componente PedidosPage desmontado, listeners removidos.');
         };
-    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega]); // Dependências do useEffect
+    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega, playDeliverySound]); // Dependências do useEffect
 
     // Lógica para mudar o status do pedido via API (PUT)
     const handleChangeStatus = async (pedidoId, newStatus) => {
