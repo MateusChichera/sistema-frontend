@@ -17,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge'; 
 import { useNavigate } from 'react-router-dom'; 
 
-// REMOVIDO: import LayoutCardapio from '../layout/LayoutCardapio'; // Não é importado aqui
 
 
 // Função para remover acentos (para busca)
