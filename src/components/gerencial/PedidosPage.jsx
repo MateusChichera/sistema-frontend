@@ -304,6 +304,9 @@ const PedidosPage = () => {
 
     // Efeito para carregar pedidos e integrar Socket.IO (estrutura replicada da OrderStatusPage)
     useEffect(() => {
+        // Só configura quando empresa e token estiverem prontos
+        if (!empresa?.id || !token) return;
+
         fetchPedidosData(); // Primeira carga dos pedidos
 
         // ---- Integração com socket singleton ----
@@ -311,94 +314,97 @@ const PedidosPage = () => {
             socket.connect();
         }
 
-        socket.emit('join_company_room', empresa.id);
-
-        socket.on('connect', () => {
+        // ----- Handlers nomeados (para remover depois) -----
+        const handleConnect = () => {
             console.log('Socket.IO: Conectado ao servidor de PedidosPage.');
-        });
+        };
 
-        socket.on('disconnect', () => {
+        const handleDisconnect = () => {
             console.log('Socket.IO: Desconectado do servidor (PedidosPage).');
-        });
-
-        socket.on('newOrder', (newOrder) => {
-    console.log('Socket.IO: Novo pedido recebido:', newOrder);
-    toast.info(`Novo pedido recebido: #${newOrder.numero_pedido} (${newOrder.tipo_entrega})`);
-    // Toca som de notificação, se permitido
-    playDeliverySound();
-    setPedidos(prevPedidos => {
-        // Verifica se já existe ou se não corresponde ao filtro de tipo de entrega
-        if (prevPedidos.some(p => p.id === newOrder.id) ||
-            (filterTipoEntrega !== 'all' && newOrder.tipo_entrega !== filterTipoEntrega)) {
-            return prevPedidos;
-        }
-        // Processa o novo pedido para garantir a consistência dos dados
-        const processedNewOrder = {
-            ...newOrder,
-            itens: (newOrder.itens || []).map(item => ({ ...item, observacoes: item.observacoes || '' })),
-            observacoes: newOrder.observacoes || '',
-            // Garante campos de endereço (mesmo que vazios) para evitar erros
-            endereco_entrega: newOrder.endereco_entrega || '',
-            complemento_entrega: newOrder.complemento_entrega || '',
-            numero_entrega: newOrder.numero_entrega || '',
-            bairro_entrega: newOrder.bairro_entrega || '',
-            cidade_entrega: newOrder.cidade_entrega || '',
-            estado_entrega: newOrder.estado_entrega || '',
-            cep_entrega: newOrder.cep_entrega || '',
         };
 
-        // Adiciona o novo pedido e filtra por status se o filtro de status estiver ativo
-        const updatedList = [...prevPedidos, processedNewOrder].filter(p => 
-            filterStatus === 'all' || p.status === filterStatus
-        );
-        
-        // Mantenha a ordenação após adicionar o novo pedido
-        return updatedList.sort((a, b) => new Date(a.data_pedido).getTime() - new Date(b.data_pedido).getTime());
-    });
-});
+        const handleNewOrder = (newOrder) => {
+            console.log('Socket.IO: Novo pedido recebido:', newOrder);
+            toast.info(`Novo pedido recebido: #${newOrder.numero_pedido} (${newOrder.tipo_entrega})`);
+            // Toca som de notificação, se permitido
+            playDeliverySound();
+            setPedidos(prevPedidos => {
+                // Verifica se já existe ou se não corresponde ao filtro de tipo de entrega
+                if (prevPedidos.some(p => p.id === newOrder.id) ||
+                    (filterTipoEntrega !== 'all' && newOrder.tipo_entrega !== filterTipoEntrega)) {
+                    return prevPedidos;
+                }
+                // Processa o novo pedido para garantir a consistência dos dados
+                const processedNewOrder = {
+                    ...newOrder,
+                    itens: (newOrder.itens || []).map(item => ({ ...item, observacoes: item.observacoes || '' })),
+                    observacoes: newOrder.observacoes || '',
+                    // Garante campos de endereço (mesmo que vazios) para evitar erros
+                    endereco_entrega: newOrder.endereco_entrega || '',
+                    complemento_entrega: newOrder.complemento_entrega || '',
+                    numero_entrega: newOrder.numero_entrega || '',
+                    bairro_entrega: newOrder.bairro_entrega || '',
+                    cidade_entrega: newOrder.cidade_entrega || '',
+                    estado_entrega: newOrder.estado_entrega || '',
+                    cep_entrega: newOrder.cep_entrega || '',
+                };
 
-socket.on('orderUpdated', (updatedOrder) => {
-    console.log('Socket.IO: Pedido atualizado:', updatedOrder);
-    toast.info(`Pedido #${updatedOrder.numero_pedido} atualizado para ${updatedOrder.status}!`);
-    setPedidos(prevPedidos => {
-        // Processa o pedido atualizado para garantir a consistência dos dados
-        const processedUpdatedOrder = {
-            ...updatedOrder,
-            itens: (updatedOrder.itens || []).map(item => ({ ...item, observacoes: item.observacoes || '' })),
-            observacoes: updatedOrder.observacoes || '',
-            endereco_entrega: updatedOrder.endereco_entrega || '',
-            complemento_entrega: updatedOrder.complemento_entrega || '',
-            numero_entrega: updatedOrder.numero_entrega || '',
-            bairro_entrega: updatedOrder.bairro_entrega || '',
-            cidade_entrega: updatedOrder.cidade_entrega || '',
-            estado_entrega: updatedOrder.estado_entrega || '',
-            cep_entrega: updatedOrder.cep_entrega || '',
+                // Adiciona o novo pedido e filtra por status se o filtro de status estiver ativo
+                const updatedList = [...prevPedidos, processedNewOrder].filter(p => 
+                    filterStatus === 'all' || p.status === filterStatus
+                );
+                
+                // Mantenha a ordenação após adicionar o novo pedido
+                return updatedList.sort((a, b) => new Date(a.data_pedido).getTime() - new Date(b.data_pedido).getTime());
+            });
         };
 
-        const updatedList = prevPedidos.map(p =>
-            p.id === processedUpdatedOrder.id ? processedUpdatedOrder : p
-        ).filter(p => {
-            // Remove da lista se não corresponder mais ao filtro de tipo de entrega E filtro de status
-            return (filterTipoEntrega === 'all' || p.tipo_entrega === filterTipoEntrega) &&
-                   (filterStatus === 'all' || p.status === filterStatus);
-        });
+        const handleOrderUpdated = (updatedOrder) => {
+            console.log('Socket.IO: Pedido atualizado:', updatedOrder);
+            toast.info(`Pedido #${updatedOrder.numero_pedido} atualizado para ${updatedOrder.status}!`);
+            setPedidos(prevPedidos => {
+                // Processa o pedido atualizado para garantir a consistência dos dados
+                const processedUpdatedOrder = {
+                    ...updatedOrder,
+                    itens: (updatedOrder.itens || []).map(item => ({ ...item, observacoes: item.observacoes || '' })),
+                    observacoes: updatedOrder.observacoes || '',
+                    endereco_entrega: updatedOrder.endereco_entrega || '',
+                    complemento_entrega: updatedOrder.complemento_entrega || '',
+                    numero_entrega: updatedOrder.numero_entrega || '',
+                    bairro_entrega: updatedOrder.bairro_entrega || '',
+                    cidade_entrega: updatedOrder.cidade_entrega || '',
+                    estado_entrega: updatedOrder.estado_entrega || '',
+                    cep_entrega: updatedOrder.cep_entrega || '',
+                };
 
-        // Se o pedido atualizado não estava na lista e agora corresponde aos filtros, adicione-o
-        if (!prevPedidos.some(p => p.id === processedUpdatedOrder.id) &&
-            (filterTipoEntrega === 'all' || processedUpdatedOrder.tipo_entrega === filterTipoEntrega) &&
-            (filterStatus === 'all' || processedUpdatedOrder.status === filterStatus)) {
-                updatedList.push(processedUpdatedOrder);
-        }
+                const updatedList = prevPedidos.map(p =>
+                    p.id === processedUpdatedOrder.id ? processedUpdatedOrder : p
+                ).filter(p => {
+                    // Remove da lista se não corresponder mais ao filtro de tipo de entrega E filtro de status
+                    return (filterTipoEntrega === 'all' || p.tipo_entrega === filterTipoEntrega) &&
+                           (filterStatus === 'all' || p.status === filterStatus);
+                });
 
-        // Atualiza o pedido selecionado no modal, se for o caso
-        if (selectedPedido && selectedPedido.id === processedUpdatedOrder.id) {
-            setSelectedPedido(processedUpdatedOrder);
-        }
-        // Mantenha a ordenação após a atualização
-        return updatedList.sort((a, b) => new Date(a.data_pedido).getTime() - new Date(b.data_pedido).getTime());
-    });
-});
+                // Se o pedido atualizado não estava na lista e agora corresponde aos filtros, adicione-o
+                if (!prevPedidos.some(p => p.id === processedUpdatedOrder.id) &&
+                    (filterTipoEntrega === 'all' || processedUpdatedOrder.tipo_entrega === filterTipoEntrega) &&
+                    (filterStatus === 'all' || processedUpdatedOrder.status === filterStatus)) {
+                        updatedList.push(processedUpdatedOrder);
+                }
 
+                // Atualiza o pedido selecionado no modal, se for o caso
+                if (selectedPedido && selectedPedido.id === processedUpdatedOrder.id) {
+                    setSelectedPedido(processedUpdatedOrder);
+                }
+                // Mantenha a ordenação após a atualização
+                return updatedList.sort((a, b) => new Date(a.data_pedido).getTime() - new Date(b.data_pedido).getTime());
+            });
+        };
+
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
+        socket.on('newOrder', handleNewOrder);
+        socket.on('orderUpdated', handleOrderUpdated);
         socket.on('orderDeleted', (deletedOrder) => {
             console.log('Socket.IO: Pedido excluído:', deletedOrder);
             toast.warning(`Pedido #${deletedOrder.numero_pedido} foi excluído.`);
@@ -408,19 +414,21 @@ socket.on('orderUpdated', (updatedOrder) => {
             }
         });
 
+        // Entrar na sala da empresa após configurar listeners
+        socket.emit('join_company_room', empresa.id);
+
         return () => {
             if (empresa?.id) {
                 socket.emit('leave_company_room', empresa.id);
             }
-            socket.off('connect');
-            socket.off('disconnect');
-            socket.off('error');
-            socket.off('newOrder');
-            socket.off('orderUpdated');
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
+            socket.off('newOrder', handleNewOrder);
+            socket.off('orderUpdated', handleOrderUpdated);
             socket.off('orderDeleted');
             console.log('Socket.IO: Componente PedidosPage desmontado, listeners removidos.');
         };
-    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega, playDeliverySound]); // Dependências do useEffect
+    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega, playDeliverySound, token]); // Dependências do useEffect
 
     // Lógica para mudar o status do pedido via API (PUT)
     const handleChangeStatus = async (pedidoId, newStatus) => {

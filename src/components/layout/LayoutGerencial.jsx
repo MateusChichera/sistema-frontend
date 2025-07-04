@@ -34,7 +34,8 @@ const LayoutGerencial = ({ children }) => {
   const location = useLocation();
   const { slug: urlSlugFromParams } = useParams();
 
-  const [isCadastrosOpen, setIsCadastrosOpen] = useState(false);
+  // Controla qual menu pai está atualmente expandido (null = nenhum)
+  const [openParentMenu, setOpenParentMenu] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentResolvedSlug, setCurrentResolvedSlug] = useState(null);
 
@@ -103,7 +104,7 @@ const LayoutGerencial = ({ children }) => {
         return (
           <div key={item.name}>
             <button
-              onClick={() => setIsCadastrosOpen(!isCadastrosOpen)}
+              onClick={() => setOpenParentMenu(prev => (prev === item.name ? null : item.name))}
               className={`w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                 isActive || (item.subMenu && item.subMenu.some(sub => location.pathname.startsWith(sub.path)))
                   ? 'bg-primary text-primary-foreground'
@@ -112,9 +113,13 @@ const LayoutGerencial = ({ children }) => {
             >
               <Icon className="mr-3 h-5 w-5" />
               {item.name}
-              {isCadastrosOpen ? <ChevronUp className="ml-auto h-4 w-4" /> : <ChevronDown className="ml-auto h-4 w-4" />}
+              {openParentMenu === item.name ? (
+                <ChevronUp className="ml-auto h-4 w-4" />
+              ) : (
+                <ChevronDown className="ml-auto h-4 w-4" />
+              )}
             </button>
-            {isCadastrosOpen && (
+            {openParentMenu === item.name && (
               <div className="ml-6 mt-1 space-y-1">
                 {item.subMenu.map((subItem) => {
                   if (!subItem.roles.includes(user?.role)) return null;
