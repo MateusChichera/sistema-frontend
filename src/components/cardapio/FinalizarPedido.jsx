@@ -10,11 +10,11 @@ import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'; 
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { IMaskInput } from 'react-imask';
 import { Switch } from '../ui/switch';
 
-const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, itens }) => {
+const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, itens, onAddMoreItems }) => {
     const { user, token } = useAuth(); 
 
     const [loading, setLoading] = useState(false);
@@ -355,11 +355,27 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
 
                 {submitError && <p className="text-red-500 text-sm mt-3">{submitError}</p>}
 
+                    
                 <DialogFooter className="mt-6 flex justify-end gap-2">
+                    <Button 
+                        type="button" 
+                        onClick={onClose}
+                        style={{ backgroundColor: '#d32f2f', color: 'white', border: 'none' }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button 
+                        type="button" 
+                        onClick={onAddMoreItems}
+                        className="flex items-center"
+                        style={{ backgroundColor: '#E4AF24', color: 'white', border: 'none'}}
+                    >
+                        <Plus className="mr-2 h-4 w-4" color="white" />
+                        Adicionar mais itens
+                    </Button>
                     <Button type="submit" disabled={loading} className="flex items-center" style={{ backgroundColor: primaryColor, color: 'white' }}>
                         {loading && <Loader2 className="animate-spin mr-2" />} Finalizar Pedido
                     </Button>
-                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
                 </DialogFooter>
             </form>
         </div>

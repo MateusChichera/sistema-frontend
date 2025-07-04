@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from 'sonner';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -13,6 +13,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import socket from '../../services/socket.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 
 // --- Funções Auxiliares (mantidas globais pois não dependem do estado do componente) ---
@@ -50,6 +51,13 @@ const getButtonColorClassGlobal = (status) => {
 // Lista de todos os status que podem ser exibidos/gerenciados
 const allKitchenStatuses = ['Pendente', 'Preparando', 'Pronto', 'Entregue', 'Cancelado'];
 
+const statusColorMap = {
+  Pendente: 'bg-yellow-100 text-yellow-800',
+  Preparando: 'bg-blue-100 text-blue-800',
+  Pronto: 'bg-purple-100 text-purple-800',
+  Entregue: 'bg-green-100 text-green-800',
+  Cancelado: 'bg-red-100 text-red-800',
+};
 
 const OrderStatusPage = () => {
     const { slug } = useParams();
@@ -224,14 +232,8 @@ const OrderStatusPage = () => {
     }, [empresa?.id, empresa?.slug, isReady, user, token, allowedRoles, empresaLoading]);
 
 
-    // Função para avançar o status do pedido
-    const handleAdvanceStatus = async (pedidoId, currentStatus) => {
-        const nextStatus = statusTransitionGlobal[currentStatus];
-        if (!nextStatus) {
-            toast.info('Este pedido já está no último status de gerenciamento da cozinha.');
-            return;
-        }
-
+    // Função para mudar o status do pedido (avançar ou voltar)
+    const handleChangeStatus = async (pedidoId, newStatus) => {
         if (!user || !token || !allowedRoles.includes(user.role)) {
             toast.error('Você não tem permissão para alterar o status do pedido.');
             return;
@@ -239,12 +241,9 @@ const OrderStatusPage = () => {
 
         setUpdatingStatus(pedidoId);
         try {
-            // USANDO A ROTA PUT ESPECIFICADA - NÃO ATUALIZA setPedidos AQUI
-            // A atualização da UI (setPedidos) é TOTALMENTE tratada pelo Socket.IO no 'orderUpdated' listener.
-            await api.put(`/gerencial/${empresa.slug}/pedidos/${pedidoId}/status`, { status: nextStatus }, {
+            await api.put(`/gerencial/${empresa.slug}/pedidos/${pedidoId}/status`, { status: newStatus }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            // Nenhuma chamada a setPedidos aqui para evitar inconsistências com o Socket.IO.
         } catch (err) {
             toast.error(err.response?.data?.message || `Erro ao atualizar status do pedido.`);
             console.error(`Erro ao atualizar status:`, err);
@@ -391,23 +390,29 @@ const OrderStatusPage = () => {
                                                         </p>
                                                     </CardContent>
                                                     <CardFooter className="pt-4 flex justify-center">
-                                                        {buttonProps.text !== 'Status Final' ? (
-                                                            <Button
-                                                                onClick={() => handleAdvanceStatus(pedido.id, pedido.status)}
-                                                                className={`w-full flex items-center justify-center text-sm text-white ${buttonProps.color}`}
-                                                                disabled={buttonProps.disabled || isUpdatingThisPedido}
+                                                        <Select
+                                                            value={pedido.status}
+                                                            onValueChange={(newStatus) => handleChangeStatus(pedido.id, newStatus)}
+                                                            disabled={isUpdatingThisPedido}
+                                                        >
+                                                            <SelectTrigger
+                                                                className={`w-full border-blue-500 focus:border-blue-600 focus:ring-blue-500 flex items-center ${statusColorMap[pedido.status]}`}
                                                             >
-                                                                {isUpdatingThisPedido ? (
-                                                                    <> <Loader2 className="animate-spin mr-2 h-4 w-4" /> Atualizando... </>
-                                                                ) : (
-                                                                    <> {buttonProps.text} <ArrowRight className="ml-2 h-4 w-4" /> </>
-                                                                )}
-                                                            </Button>
-                                                        ) : (
-                                                            <Badge className="bg-gray-200 text-gray-800 px-4 py-2 text-xs w-full text-center">
-                                                                Status Final: {pedido.status}
-                                                            </Badge>
-                                                        )}
+                                                                <SelectValue placeholder="Mudar Status" />
+                                                               
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {allKitchenStatuses.map(status => (
+                                                                    <SelectItem
+                                                                        key={status}
+                                                                        value={status}
+                                                                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:text-white focus:bg-blue-100 focus:text-blue-900"
+                                                                    >
+                                                                        {status} {status === pedido.status ? ' (Atual)' : ''}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </CardFooter>
                                                 </Card>
                                             );

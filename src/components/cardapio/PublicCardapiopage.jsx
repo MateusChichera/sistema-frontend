@@ -364,6 +364,13 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
     setIsFinalizarPedidoModalOpen(false);
   };
 
+  const handleAddMoreItems = () => {
+    // Fecha o modal de finalização temporariamente para permitir adicionar mais itens
+    setIsFinalizarPedidoModalOpen(false);
+    // Opcional: mostrar uma mensagem informativa
+    toast.info('Adicione mais itens ao seu pedido!');
+  };
+
 
   if (empresaLoading || loadingContent || !isReady) {
     return (
@@ -651,6 +658,7 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
             limparCarrinho={limparCarrinho}
             total={total}
             itens={itens}
+            onAddMoreItems={handleAddMoreItems}
           />
         </DialogContent>
       </Dialog>
