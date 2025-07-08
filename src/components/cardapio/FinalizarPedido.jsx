@@ -21,23 +21,61 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
     const [submitError, setSubmitError] = useState(null);
     const [formasPagamento, setFormasPagamento] = useState([]);
 
-    const [nomeCliente, setNomeCliente] = useState(user?.nome || '');
-    const [emailCliente, setEmailCliente] = useState(user?.email || '');
-    const [telefoneCliente, setTelefoneCliente] = useState(user?.telefone || '');
+    // Carrega dados salvos do localStorage ou usa valores padrão
+    const loadSavedData = () => {
+        try {
+            const saved = localStorage.getItem('finalizarPedidoFormData');
+            return saved ? JSON.parse(saved) : null;
+        } catch (error) {
+            return null;
+        }
+    };
 
-    const [ruaCliente, setRuaCliente] = useState(user?.endereco?.rua || '');
-    const [numeroCliente, setNumeroCliente] = useState(user?.endereco?.numero || '');
-    const [bairroCliente, setBairroCliente] = useState(user?.endereco?.bairro || '');
-    const [cepCliente, setCepCliente] = useState(user?.endereco?.cep || '');
-    const [cidadeCliente, setCidadeCliente] = useState(user?.endereco?.cidade || '');
-    const [estadoCliente, setEstadoCliente] = useState(user?.endereco?.estado || '');
-    const [precisaTroco, setPrecisaTroco] = useState(false);
-    const [valorPagoCliente, setValorPagoCliente] = useState('');
+    const savedData = loadSavedData();
 
-    const [obsPedido, setObsPedido] = useState('');
-    const [selectedFormaPagamento, setSelectedFormaPagamento] = useState(undefined); 
-    const [wantsToRegister, setWantsToRegister] = useState(false);
-    const [passwordRegister, setPasswordRegister] = useState('');
+    const [nomeCliente, setNomeCliente] = useState(savedData?.nomeCliente || user?.nome || '');
+    const [emailCliente, setEmailCliente] = useState(savedData?.emailCliente || user?.email || '');
+    const [telefoneCliente, setTelefoneCliente] = useState(savedData?.telefoneCliente || user?.telefone || '');
+
+    const [ruaCliente, setRuaCliente] = useState(savedData?.ruaCliente || user?.endereco?.rua || '');
+    const [numeroCliente, setNumeroCliente] = useState(savedData?.numeroCliente || user?.endereco?.numero || '');
+    const [bairroCliente, setBairroCliente] = useState(savedData?.bairroCliente || user?.endereco?.bairro || '');
+    const [cepCliente, setCepCliente] = useState(savedData?.cepCliente || user?.endereco?.cep || '');
+    const [cidadeCliente, setCidadeCliente] = useState(savedData?.cidadeCliente || user?.endereco?.cidade || '');
+    const [estadoCliente, setEstadoCliente] = useState(savedData?.estadoCliente || user?.endereco?.estado || '');
+    const [precisaTroco, setPrecisaTroco] = useState(savedData?.precisaTroco || false);
+    const [valorPagoCliente, setValorPagoCliente] = useState(savedData?.valorPagoCliente || '');
+
+    const [obsPedido, setObsPedido] = useState(savedData?.obsPedido || '');
+    const [selectedFormaPagamento, setSelectedFormaPagamento] = useState(savedData?.selectedFormaPagamento || undefined); 
+    const [wantsToRegister, setWantsToRegister] = useState(savedData?.wantsToRegister || false);
+    const [passwordRegister, setPasswordRegister] = useState(savedData?.passwordRegister || '');
+
+    // Salva dados no localStorage sempre que houver mudanças
+    useEffect(() => {
+        const formData = {
+            nomeCliente,
+            emailCliente,
+            telefoneCliente,
+            ruaCliente,
+            numeroCliente,
+            bairroCliente,
+            cepCliente,
+            cidadeCliente,
+            estadoCliente,
+            precisaTroco,
+            valorPagoCliente,
+            obsPedido,
+            selectedFormaPagamento,
+            wantsToRegister,
+            passwordRegister
+        };
+        localStorage.setItem('finalizarPedidoFormData', JSON.stringify(formData));
+    }, [
+        nomeCliente, emailCliente, telefoneCliente,
+        ruaCliente, numeroCliente, bairroCliente, cepCliente, cidadeCliente, estadoCliente,
+        precisaTroco, valorPagoCliente, obsPedido, selectedFormaPagamento, wantsToRegister, passwordRegister
+    ]);
 
     useEffect(() => {
         const fetchFormasPagamento = async () => {
@@ -52,9 +90,9 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 const formasOnline = response.data.filter(fp => fp.ativo);
                 setFormasPagamento(formasOnline);
 
-                if (formasOnline.length > 0) {
+                if (formasOnline.length > 0 && !selectedFormaPagamento) {
                     setSelectedFormaPagamento(formasOnline[0].id.toString());
-                } else {
+                } else if (formasOnline.length === 0) {
                     setSelectedFormaPagamento(undefined);
                     toast.warning("Nenhuma forma de pagamento online disponível. Contate a empresa.");
                 }
@@ -64,7 +102,7 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
             }
         };
         fetchFormasPagamento();
-    }, [empresa, token]);
+    }, [empresa, token, selectedFormaPagamento]);
 
     const handleFinalizarPedido = async (e) => {
         e.preventDefault();
@@ -170,6 +208,7 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
 
             toast.success('Pedido enviado com sucesso! Aguarde a confirmação.');
             limparCarrinho();
+            localStorage.removeItem('finalizarPedidoFormData'); // Limpa dados após finalizar
             onClose();
             alert(empresa?.mensagem_confirmacao_pedido || 'Seu pedido foi recebido.');
         } catch (err) {
@@ -356,10 +395,14 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 {submitError && <p className="text-red-500 text-sm mt-3">{submitError}</p>}
 
                     
-                <DialogFooter className="mt-6 flex justify-end gap-2">
+                <DialogFooter className="mt-6 flex justify-end gap-2
+                ">
                     <Button 
                         type="button" 
-                        onClick={onClose}
+                        onClick={() => {
+                            localStorage.removeItem('finalizarPedidoFormData'); // Limpa dados ao cancelar
+                            onClose();
+                        }}
                         style={{ backgroundColor: '#d32f2f', color: 'white', border: 'none' }}
                     >
                         Cancelar
