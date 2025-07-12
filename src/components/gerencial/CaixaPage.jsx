@@ -13,10 +13,13 @@ import { Badge } from '../ui/badge';
 import { Loader2, Printer, CheckCircle, XCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'; // talvez já usado em outros lugares
+import { PlusCircle, MinusCircle, DollarSign, HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
 import socket from '../../services/socket.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 
 
 
@@ -42,6 +45,35 @@ const CaixaPage = () => {
     const [dividirContaAtivo, setDividirContaAtivo] = useState(false);
     const [numPessoasDividir, setNumPessoasDividir] = useState('');
     const [loadingFinalizacao, setLoadingFinalizacao] = useState(false);
+
+    // FIRST_EDIT: estados para controle de caixa
+    const [caixaInfo, setCaixaInfo] = useState(null);
+    const [loadingCaixa, setLoadingCaixa] = useState(true);
+    const [isAberturaModalOpen, setIsAberturaModalOpen] = useState(false);
+    const [isFechamentoModalOpen, setIsFechamentoModalOpen] = useState(false);
+    const [isSuprimentoModalOpen, setIsSuprimentoModalOpen] = useState(false);
+
+    const [valorAberturaInput, setValorAberturaInput] = useState('');
+    const [valorFechamentoInput, setValorFechamentoInput] = useState('');
+    const [observacoesFechamento, setObservacoesFechamento] = useState('');
+    const [detalhesFechamento, setDetalhesFechamento] = useState([]);
+    const [resumoCaixa, setResumoCaixa] = useState(null);
+    const [totalizadoresFP, setTotalizadoresFP] = useState([]);
+
+    const [tipoMovimentacao, setTipoMovimentacao] = useState('Suprimento');
+    const [valorMovimentacao, setValorMovimentacao] = useState('');
+    const [formaPagamentoMovId, setFormaPagamentoMovId] = useState('');
+    const [observacoesMovimentacao, setObservacoesMovimentacao] = useState('');
+
+    // Estados para confirmação de impressão de cupons
+    const [isPrintAberturaModalOpen, setIsPrintAberturaModalOpen] = useState(false);
+    const [aberturaPrintData, setAberturaPrintData] = useState(null);
+
+    const [isPrintFechamentoModalOpen, setIsPrintFechamentoModalOpen] = useState(false);
+    const [fechamentoPrintData, setFechamentoPrintData] = useState(null); // {resp, detalhes}
+
+    const [isPrintMovModalOpen, setIsPrintMovModalOpen] = useState(false);
+    const [movPrintData, setMovPrintData] = useState(null);
 
     const printContentRef = useRef(null);
 
@@ -858,7 +890,210 @@ const CaixaPage = () => {
     const canFinalizeOrder = user?.role && ['Proprietario', 'Caixa', 'Gerente'].includes(user.role);
 
 
-    if (empresaLoading || !empresa) {
+    // SECOND_EDIT: efeito para checar caixa aberto
+    useEffect(() => {
+        const checkCaixaAberto = async () => {
+            if (!empresa || !token) return;
+            if (!empresa.usa_controle_caixa) { setLoadingCaixa(false); return; }
+            try {
+                const resp = await api.get(`/gerencial/${empresa.slug}/caixas/aberto`, { headers: { Authorization: `Bearer ${token}` }});
+                if (resp.data && resp.data.aberto && resp.data.caixa) {
+                    const caixaData = resp.data.caixa;
+                    // Se o caixa aberto for de data anterior ao dia atual, força fechamento
+                    const dataAberturaStr = caixaData.data_abertura || caixaData.created_at || caixaData.data_inicio;
+                    if (dataAberturaStr) {
+                        const dataAbertura = parseISO(dataAberturaStr);
+                        const hojeStr = format(new Date(), 'yyyy-MM-dd');
+                        const aberturaStr = format(dataAbertura, 'yyyy-MM-dd');
+                        if (aberturaStr !== hojeStr) {
+                            // Caixa de dia anterior
+                            setCaixaInfo(caixaData);
+                            toast.warning('Existe um caixa aberto do dia anterior. Favor realizar o fechamento.');
+                            openFechamentoModal();
+                            setLoadingCaixa(false);
+                            return;
+                        }
+                    }
+                    setCaixaInfo(caixaData);
+                } else {
+                    setCaixaInfo(null);
+                    setIsAberturaModalOpen(true);
+                }
+            } catch (e) {
+                setCaixaInfo(null);
+                setIsAberturaModalOpen(true);
+            } finally {
+                setLoadingCaixa(false);
+            }
+        };
+        checkCaixaAberto();
+    }, [empresa, token]);
+
+    // THIRD_EDIT: funções de impressão simples (abertura/fechamento)
+    const printCaixaAbertura = useCallback((data) => {
+        if (!data || !user) return;
+        const win = window.open('', '_blank', 'width=300,height=400');
+        if (!win) return;
+        const content = `<html><head><title>Abertura de Caixa</title><style>
+            body{font-family:'Courier New',monospace;margin:0;padding:0;}
+            .container{width:76mm;margin:0 auto;padding:0 2mm;}
+            h3{text-align:center;margin:4px 0;}
+            p{margin:2px 0;}
+            @media print{@page{size:80mm auto;margin:0;}}
+        </style></head><body><div class="container">
+             <h3>ABERTURA DE CAIXA</h3>
+             <p>Data/Hora: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+             <p>Funcionário: ${user.nome}</p>
+             <p>Valor Inicial: R$ ${parseFloat(data.valor_abertura || 0).toFixed(2).replace('.', ',')}</p>
+        </div></body></html>`;
+        win.document.write(content);
+        win.document.close();
+        win.focus();
+        win.print();
+        win.onafterprint = () => win.close();
+    }, [user]);
+
+    const printCaixaFechamento = useCallback((fechamentoResp, resumo, totFP) => {
+        if (!fechamentoResp || !user) return;
+        const win = window.open('', '_blank', 'width=300,height=500');
+        if (!win) return;
+        const content = `<html><head><title>Fechamento de Caixa</title><style>
+            body{font-family:'Courier New',monospace;margin:0;padding:0;}
+            .container{width:76mm;margin:0 auto;padding:0 2mm;}
+            h3{text-align:center;margin:4px 0;}
+            p{margin:2px 0;}
+            table{width:100%;font-size:10px;border-collapse:collapse;margin-top:4px;}
+            th,td{text-align:left;padding:2px;}
+            th{border-bottom:1px solid #000;}
+            @media print{@page{size:80mm auto;margin:0;}}
+        </style></head><body><div class="container">
+             <h3>FECHAMENTO DE CAIXA</h3>
+             <p>Data/Hora: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+             <p>Funcionário: ${user.nome}</p>
+             ${resumo ? `<p>Valor Abertura: R$ ${parseFloat(resumo.valor_abertura||0).toFixed(2).replace('.', ',')}</p>
+             <p>Total Pagamentos: R$ ${parseFloat(resumo.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</p>
+             <p>Total Suprimentos: R$ ${parseFloat(resumo.total_suprimentos||0).toFixed(2).replace('.', ',')}</p>
+             <p>Total Sangrias: R$ ${parseFloat(resumo.total_sangrias||0).toFixed(2).replace('.', ',')}</p>`:''}
+             <p>Valor no Sistema: R$ ${parseFloat(fechamentoResp.valor_sistema || 0).toFixed(2).replace('.', ',')}</p>
+             <p>Valor Informado: R$ ${parseFloat(fechamentoResp.valor_informado || 0).toFixed(2).replace('.', ',')}</p>
+             <p>Diferença: R$ ${parseFloat(fechamentoResp.diferenca || 0).toFixed(2).replace('.', ',')}</p>
+             ${totFP && totFP.length>0 ? `<table><thead><tr><th>Forma</th><th align="right">Valor</th></tr></thead><tbody>${totFP.map(fp=>`<tr><td>${fp.forma_pagamento_descricao}</td><td align="right">R$ ${parseFloat(fp.valor_sistema_calculado_por_forma||0).toFixed(2).replace('.', ',')}</td></tr>`).join('')}</tbody></table>`:''}
+        </div></body></html>`;
+        win.document.write(content);
+        win.document.close();
+        win.focus();
+        win.print();
+        win.onafterprint = () => win.close();
+    }, [user]);
+
+    // Impressão de Suprimento / Sangria
+    const printMovimentacaoCupom = useCallback(({ tipo, valor, formaPagamentoDesc, obs }) => {
+        const win = window.open('', '_blank', 'width=300,height=400');
+        if (!win) return;
+        const content = `<html><head><title>${tipo}</title><style>
+            body{font-family:'Courier New',monospace;margin:0;padding:0;}
+            .container{width:76mm;margin:0 auto;padding:0 2mm;}
+            h3{text-align:center;margin:4px 0;}
+            p{margin:2px 0;}
+            @media print{@page{size:80mm auto;margin:0;}}
+        </style></head><body><div class="container">
+            <h3>${tipo.toUpperCase()}</h3>
+            <p>Data/Hora: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+            <p>Funcionário: ${user?.nome}</p>
+            <p>Valor: R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}</p>
+            <p>Forma de Pagamento: ${formaPagamentoDesc}</p>
+            ${obs ? `<p>Obs: ${obs}</p>` : ''}
+        </div></body></html>`;
+        win.document.write(content);
+        win.document.close();
+        win.focus();
+        win.print();
+        win.onafterprint = () => win.close();
+    }, [user]);
+
+    // FOURTH_EDIT: handlers para abertura/fechamento/movimentacao
+    const handleAbrirCaixa = async () => {
+        if (!empresa || !token) return;
+        try {
+            const body = {};
+            if (valorAberturaInput !== '') body.valor_abertura = parseFloat(valorAberturaInput);
+            const resp = await api.post(`/gerencial/${empresa.slug}/caixas/abrir`, body, { headers: { Authorization: `Bearer ${token}` }});
+            toast.success(resp.data.message || 'Caixa aberto!');
+            setCaixaInfo(resp.data);
+            setIsAberturaModalOpen(false);
+            setAberturaPrintData(resp.data);
+            setIsPrintAberturaModalOpen(true);
+        } catch (e) {
+            toast.error(e.response?.data?.message || 'Erro ao abrir caixa');
+        }
+    };
+
+    const fetchDetalhesFechamento = async () => {
+        if (!empresa || !token || !caixaInfo) return;
+        try {
+            const resp = await api.get(`/gerencial/${empresa.slug}/caixas/${caixaInfo.id}/detalhes-fechamento`, { headers: { Authorization: `Bearer ${token}` }});
+            if(Array.isArray(resp.data)) {
+               setDetalhesFechamento(resp.data);
+               setResumoCaixa(resp.data[0] || null);
+               setTotalizadoresFP([]);
+            } else {
+               setResumoCaixa(resp.data.resumo_caixa || null);
+               setTotalizadoresFP(resp.data.totalizadores_formas_pagamento || []);
+            }
+        } catch (e) {
+            toast.error('Erro ao buscar detalhes de fechamento');
+        }
+    };
+
+    const openFechamentoModal = () => {
+        setIsFechamentoModalOpen(true);
+        setValorFechamentoInput('');
+        setObservacoesFechamento('');
+        setDetalhesFechamento([]);
+        fetchDetalhesFechamento();
+    };
+
+    const handleFecharCaixa = async () => {
+        if (!empresa || !token || !caixaInfo) return;
+        try {
+            const body = { valor_fechamento_informado: parseFloat(valorFechamentoInput) || 0, observacoes_fechamento: observacoesFechamento };
+            const resp = await api.put(`/gerencial/${empresa.slug}/caixas/${caixaInfo.id}/fechar`, body, { headers: { Authorization: `Bearer ${token}` }});
+            toast.success(resp.data.message || 'Caixa fechado com sucesso');
+            setIsFechamentoModalOpen(false);
+            setCaixaInfo(null);
+            setFechamentoPrintData({resp: resp.data, resumo: resumoCaixa, totalizadores: totalizadoresFP});
+            setIsPrintFechamentoModalOpen(true);
+            // Após fechar, força abertura novamente se controle ativo
+            if (empresa.usa_controle_caixa) setIsAberturaModalOpen(true);
+        } catch (e) {
+            toast.error(e.response?.data?.message || 'Erro ao fechar caixa');
+        }
+    };
+
+    const handleRegistrarMovimentacao = async () => {
+        if (!empresa || !token || !caixaInfo) return;
+        if (!valorMovimentacao || parseFloat(valorMovimentacao) <= 0) { toast.error('Informe um valor válido'); return; }
+        if (!formaPagamentoMovId) { toast.error('Selecione a forma de pagamento'); return; }
+        try {
+            const body = { valor: parseFloat(valorMovimentacao), id_forma_pagamento: parseInt(formaPagamentoMovId), observacoes: observacoesMovimentacao };
+            const endpoint = tipoMovimentacao === 'Suprimento' ? 'suprimento' : 'sangria';
+            const resp = await api.post(`/gerencial/${empresa.slug}/caixas/${caixaInfo.id}/${endpoint}`, body, { headers: { Authorization: `Bearer ${token}` }});
+            toast.success(resp.data.message || 'Movimentação registrada');
+            setIsSuprimentoModalOpen(false);
+            const fpDesc = formasPagamento.find(fp=>fp.id.toString()===formaPagamentoMovId)?.descricao || '';
+            setMovPrintData({tipo: tipoMovimentacao, valor: valorMovimentacao, formaPagamentoDesc: fpDesc, obs: observacoesMovimentacao});
+            setIsPrintMovModalOpen(true);
+            // Limpa campos
+            setValorMovimentacao('');
+            setObservacoesMovimentacao('');
+        } catch (e) {
+            toast.error(e.response?.data?.message || 'Erro ao registrar movimentação');
+        }
+    };
+
+
+    // Substituir condição inicial de carregamento
+    if (empresaLoading || !empresa || (empresa.usa_controle_caixa && loadingCaixa)) {
         return <div className="p-4 text-center text-gray-600">Carregando dados da empresa...</div>;
     }
 
@@ -876,7 +1111,15 @@ const CaixaPage = () => {
 
     return (
         <div className="p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Caixa - {empresa.nome_fantasia}</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Caixa - {empresa.nome_fantasia}</h2>
+              {empresa.usa_controle_caixa && caixaInfo && (
+                 <div className="flex gap-2">
+                     <Button variant="outline" onClick={() => setIsSuprimentoModalOpen(true)} className="flex items-center"><PlusCircle className="h-4 w-4 mr-1"/> Suprimento/Sangria</Button>
+                     <Button onClick={openFechamentoModal} className="bg-red-600 hover:bg-red-700 text-white flex items-center"><DollarSign className="h-4 w-4 mr-1"/> Fechar Caixa</Button>
+                 </div>
+              )}
+            </div>
 
             <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"> {/* Ajustado para 4 colunas para incluir a data */}
                 <div>
@@ -1315,6 +1558,215 @@ const CaixaPage = () => {
                         }}>
                             Sim, Imprimir
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de ABERTURA DE CAIXA */}
+            <Dialog open={isAberturaModalOpen} onOpenChange={setIsAberturaModalOpen}>
+                <DialogContent style={{ width: '90vw', maxWidth: '1280px' }}>
+                    <DialogHeader>
+                        <DialogTitle>Abertura de Caixa</DialogTitle>
+                        <DialogDescription>Informe o valor inicial do caixa.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <p>Funcionário: <strong>{user?.nome}</strong></p>
+                        <div>
+                            <Label htmlFor="valorAbertura">Valor Inicial (R$)</Label>
+                            <Input id="valorAbertura" type="number" step="0.01" min="0" value={valorAberturaInput} onWheel={(e)=>e.target.blur()} onChange={(e)=>setValorAberturaInput(e.target.value)} placeholder={(empresa.valor_inicial_caixa_padrao || 0).toFixed ? (parseFloat(empresa.valor_inicial_caixa_padrao).toFixed(2)) : '0.00'} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleAbrirCaixa}>Abrir Caixa</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de FECHAMENTO DE CAIXA */}
+            <Dialog open={isFechamentoModalOpen} onOpenChange={setIsFechamentoModalOpen}>
+                <DialogContent style={{ width: '90vw', maxWidth: '1280px' }}>
+                    <DialogHeader>
+                        <DialogTitle>Fechamento de Caixa</DialogTitle>
+                        <DialogDescription>Informe o valor contado para fechar o caixa.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <p>Funcionário: <strong>{user?.nome}</strong></p>
+                        <div>
+                            <Label htmlFor="valorFechamento">Valor Contado (R$)</Label>
+                            <Input id="valorFechamento" type="number" step="0.01" min="0" value={valorFechamentoInput} onWheel={(e)=>e.target.blur()} onChange={(e)=>setValorFechamentoInput(e.target.value)} placeholder="0.00" />
+                        </div>
+                        <div>
+                            <Label htmlFor="observacoesFechamento">Observações</Label>
+                            <Textarea id="observacoesFechamento" value={observacoesFechamento} onChange={(e)=>setObservacoesFechamento(e.target.value)} rows={2} />
+                        </div>
+                        {/* Detalhes de fechamento (lista simples) */}
+                        {empresa.exibir_valores_fechamento_caixa && resumoCaixa && (
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-h-96 overflow-y-auto">
+                                {/* Card Resumo Caixa */}
+                                <Card>
+                                    <CardHeader className="flex items-center justify-between">
+                                        <CardTitle>Valores do Caixa</CardTitle>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <HelpCircle className="w-4 h-4 text-gray-500 cursor-pointer" />
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-72 text-xs">
+                                                <p><strong>Valor Inicial:</strong> Valor informado na abertura do caixa (troco).</p>
+                                                <p className="mt-1"><strong>Total Pagamentos:</strong> Valores recebidos em dinheiro neste caixa.</p>
+                                                <p className="mt-1"><strong>Suprimento:</strong> Quantias de dinheiro adicionadas após abertura.</p>
+                                                <p className="mt-1"><strong>Sangria:</strong> Quantias retiradas do caixa.</p>
+                                                <p className="mt-1"><strong>Valor (Sistema):</strong> Calculado: inicial + pagamentos + suprimento - sangria.</p>
+                                            </PopoverContent>
+                                        </Popover>
+                                     </CardHeader>
+                                     <CardContent className="text-sm space-y-1">
+                                        <p>Valor Abertura: <strong>R$ {parseFloat(resumoCaixa.valor_abertura||0).toFixed(2).replace('.', ',')}</strong></p>
+                                        <p>Total Pagamentos: <strong>R$ {parseFloat(resumoCaixa.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</strong></p>
+                                        <p>Total Suprimentos: <strong>R$ {parseFloat(resumoCaixa.total_suprimentos||0).toFixed(2).replace('.', ',')}</strong></p>
+                                        <p>Total Sangrias: <strong>R$ {parseFloat(resumoCaixa.total_sangrias||0).toFixed(2).replace('.', ',')}</strong></p>
+                                        <p className="font-semibold">Valor (Sistema): R$ {parseFloat(resumoCaixa.valor_fechamento_sistema_calculado||0).toFixed(2).replace('.', ',')}</p>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Card Totalizadores (valor atual) */}
+                                {totalizadoresFP.length > 0 && (
+                                    <Card>
+                                        <CardHeader className="flex items-center justify-between">
+                                            <CardTitle>Totalizadores (valor atual)</CardTitle>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <HelpCircle className="w-4 h-4 text-gray-500 cursor-pointer" />
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-72 text-xs">
+                                                    <p>Mostra o saldo atual por forma de pagamento, já considerando suprimentos e sangrias.</p>
+                                                    <p className="mt-1 text-[10px] italic">Obs: para Dinheiro não é contabilizado o valor inicial; considera-se apenas vendas, suprimentos e sangrias.</p>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </CardHeader>
+                                        <CardContent className="text-sm space-y-1">
+                                            {totalizadoresFP.map(fp => (
+                                                <p key={fp.forma_pagamento_id}>{fp.forma_pagamento_descricao}: <strong>R$ {parseFloat(fp.valor_sistema_calculado_por_forma||0).toFixed(2).replace('.', ',')}</strong></p>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Card Faturamento bruto */}
+                                {totalizadoresFP.length > 0 && (
+                                    <Card>
+                                        <CardHeader className="flex items-center justify-between">
+                                            <CardTitle>Faturamento</CardTitle>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <HelpCircle className="w-4 h-4 text-gray-500 cursor-pointer" />
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-72 text-xs">
+                                                    <p>Valores totais de faturamento por forma de pagamento, sem descontar suprimentos nem sangrias.</p>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </CardHeader>
+                                        <CardContent className="text-sm space-y-1">
+                                            {totalizadoresFP.map(fp => (
+                                                <p key={fp.forma_pagamento_id}>{fp.forma_pagamento_descricao}: <strong>R$ {parseFloat(fp.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</strong></p>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter className="flex flex-wrap gap-2 justify-end">
+                        <Button variant="secondary" onClick={()=>{setIsSuprimentoModalOpen(true);}}>Suprimento/Sangria</Button>
+                        <Button variant="outline" onClick={()=>setIsFechamentoModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleFecharCaixa} className="bg-red-600 hover:bg-red-700 text-white">Fechar Caixa</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de SUPRIMENTO / SANGRIA */}
+            <Dialog open={isSuprimentoModalOpen} onOpenChange={setIsSuprimentoModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Suprimento / Sangria</DialogTitle>
+                        <DialogDescription>Registre uma movimentação de caixa.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <p>Funcionário: <strong>{user?.nome}</strong></p>
+                        <div>
+                            <Label htmlFor="tipoMov">Tipo</Label>
+                            <Select value={tipoMovimentacao} onValueChange={setTipoMovimentacao}>
+                                <SelectTrigger id="tipoMov"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Suprimento">Suprimento</SelectItem>
+                                    <SelectItem value="Sangria">Sangria</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="valorMov">Valor (R$)</Label>
+                            <Input id="valorMov" type="number" step="0.01" min="0" value={valorMovimentacao} onWheel={(e)=>e.target.blur()} onChange={(e)=>setValorMovimentacao(e.target.value)} placeholder="0.00" />
+                        </div>
+                        <div>
+                            <Label htmlFor="formaPagMov">Forma de Pagamento</Label>
+                            <Select value={formaPagamentoMovId} onValueChange={setFormaPagamentoMovId}>
+                                <SelectTrigger id="formaPagMov"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                    {formasPagamento.map(fp => (
+                                        <SelectItem key={fp.id} value={fp.id.toString()}>{fp.descricao}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="obsMov">Observações</Label>
+                            <Textarea id="obsMov" rows={2} value={observacoesMovimentacao} onChange={(e)=>setObservacoesMovimentacao(e.target.value)} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={()=>setIsSuprimentoModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleRegistrarMovimentacao}>Salvar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal Confirmação Impressão Abertura */}
+            <Dialog open={isPrintAberturaModalOpen} onOpenChange={setIsPrintAberturaModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Imprimir Comprovante?</DialogTitle>
+                        <DialogDescription>Deseja imprimir o comprovante de abertura do caixa?</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={()=>setIsPrintAberturaModalOpen(false)}>Não Imprimir</Button>
+                        <Button onClick={()=>{ printCaixaAbertura(aberturaPrintData); setIsPrintAberturaModalOpen(false);} }>Sim, Imprimir</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal Confirmação Impressão Fechamento */}
+            <Dialog open={isPrintFechamentoModalOpen} onOpenChange={setIsPrintFechamentoModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Imprimir Comprovante?</DialogTitle>
+                        <DialogDescription>Deseja imprimir o comprovante de fechamento do caixa?</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={()=>setIsPrintFechamentoModalOpen(false)}>Não Imprimir</Button>
+                        <Button onClick={()=>{ if(fechamentoPrintData){ printCaixaFechamento(fechamentoPrintData.resp, fechamentoPrintData.resumo, fechamentoPrintData.totalizadores);} setIsPrintFechamentoModalOpen(false);} }>Sim, Imprimir</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal Confirmação Impressão Movimentação */}
+            <Dialog open={isPrintMovModalOpen} onOpenChange={setIsPrintMovModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Imprimir Comprovante?</DialogTitle>
+                        <DialogDescription>Deseja imprimir o comprovante da movimentação de caixa?</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={()=>setIsPrintMovModalOpen(false)}>Não Imprimir</Button>
+                        <Button onClick={()=>{ if(movPrintData) { printMovimentacaoCupom(movPrintData);} setIsPrintMovModalOpen(false);} }>Sim, Imprimir</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -63,6 +63,9 @@ const ConfiguracoesPage = () => {
     enviar_email_confirmacao: false,
     som_notificacao_cozinha: true,
     som_notificacao_delivery: true,
+    valor_inicial_caixa_padrao: '',
+    exibir_valores_fechamento_caixa: false,
+    usa_controle_caixa: false,
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState(null);
@@ -109,6 +112,9 @@ const ConfiguracoesPage = () => {
           enviar_email_confirmacao: !!empresa.enviar_email_confirmacao,
           som_notificacao_cozinha: !!empresa.som_notificacao_cozinha,
           som_notificacao_delivery: !!empresa.som_notificacao_delivery,
+          valor_inicial_caixa_padrao: empresa.valor_inicial_caixa_padrao || '',
+          exibir_valores_fechamento_caixa: !!empresa.exibir_valores_fechamento_caixa,
+          usa_controle_caixa: !!empresa.usa_controle_caixa,
         });
         setPreviewLogoUrl(null);
         toast.success("Configurações carregadas com sucesso!");
@@ -174,6 +180,9 @@ const ConfiguracoesPage = () => {
         enviar_email_confirmacao: formData.enviar_email_confirmacao ? 1 : 0,
         som_notificacao_cozinha: formData.som_notificacao_cozinha ? 1 : 0,
         som_notificacao_delivery: formData.som_notificacao_delivery ? 1 : 0,
+        valor_inicial_caixa_padrao: parseFloat(formData.valor_inicial_caixa_padrao) || 0.00,
+        exibir_valores_fechamento_caixa: formData.exibir_valores_fechamento_caixa ? 1 : 0,
+        usa_controle_caixa: formData.usa_controle_caixa ? 1 : 0,
       };
 
       await api.put(`/gerencial/${empresa.slug}/config`, dataToSend, {
@@ -243,10 +252,11 @@ const ConfiguracoesPage = () => {
 
       {/* Adicionado o componente Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="detalhes">Detalhes da Empresa</TabsTrigger>
           <TabsTrigger value="pedidosCardapio">Pedidos e Cardápio</TabsTrigger>
           <TabsTrigger value="estoque">Estoque</TabsTrigger>
+          <TabsTrigger value="caixa">Caixa</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSaveConfig} className="mt-4">
@@ -557,6 +567,46 @@ const ConfiguracoesPage = () => {
                   onChange={handleFormChange}
                   disabled={!canManage}
                 />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ABA 4: CONFIGURAÇÕES DE CAIXA */}
+          <TabsContent value="caixa" className="p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-xl font-semibold mb-4 text-gray-700">Configurações de Caixa</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div>
+                <Label htmlFor="valor_inicial_caixa_padrao">Valor Inicial do Caixa Padrão (R$)</Label>
+                <Input
+                  id="valor_inicial_caixa_padrao"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Ex: 100.00"
+                  value={formData.valor_inicial_caixa_padrao}
+                  onChange={handleFormChange}
+                  disabled={!canManage}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="exibir_valores_fechamento_caixa"
+                  checked={formData.exibir_valores_fechamento_caixa}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, exibir_valores_fechamento_caixa: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="exibir_valores_fechamento_caixa">Exibir Valores no Fechamento do Caixa</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="usa_controle_caixa"
+                  checked={formData.usa_controle_caixa}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, usa_controle_caixa: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="usa_controle_caixa">Usar Controle de Caixa</Label>
               </div>
             </div>
           </TabsContent>
