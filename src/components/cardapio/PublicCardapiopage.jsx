@@ -1,6 +1,6 @@
 // frontend/src/components/cardapio/PublicCardapioPage.jsx
 // ESTE ARQUIVO É O CARDÁPIO EXCLUSIVO PARA PEDIDOS ONLINE (CLIENTES)
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useEmpresa } from '../../contexts/EmpresaContext';
 // import { useAuth } from '../../contexts/AuthContext'; // Comentado: user e logout devem ser passados via props do LayoutCardapio
 import { useCarrinho } from '../../contexts/CarrinhoContext';
@@ -232,6 +232,60 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
 
     fetchCardapioData();
   }, [empresa, isReady]); // Dependências ajustadas: não incluem 'user' ou 'canMakeOnlineOrder' diretamente aqui para evitar instabilidade.
+
+
+  // Ref + flag em localStorage para evitar múltiplos POSTs
+  const acessoRegistradoRef = useRef(false);
+
+  useEffect(() => {
+    // Executa apenas uma vez por montagem (mesmo em StrictMode poderá montar duas vezes, por isso usamos localStorage)
+    if (!isReady) return;
+
+    // 1. Gera (ou recupera) um session_id único
+    let sessionId = localStorage.getItem('session_id');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem('session_id', sessionId);
+    }
+
+    // Se já registramos acesso nesta sessão, não faz nada
+    const acessoFlagKey = `access_registered_${sessionId}`;
+    if (localStorage.getItem(acessoFlagKey)) {
+      return; // Já havia registrado
+    }
+
+    // Impede chamadas concorrentes
+    if (acessoRegistradoRef.current) return;
+    acessoRegistradoRef.current = true;
+
+    const registrarAcesso = async () => {
+      try {
+        const dispositivo = window.innerWidth <= 768 ? 'mobile' : 'desktop';
+        let ip_address = 'unknown';
+        try {
+          const response = await fetch('https://api.ipify.org?format=json');
+          const data = await response.json();
+          if (data?.ip) ip_address = data.ip;
+        } catch (err) {
+          console.error('Falha ao obter IP:', err);
+        }
+
+        const endpoint = empresa?.slug ? `/${empresa.slug}/acesso` : '/acesso';
+        await api.post(endpoint, {
+          session_id: sessionId,
+          dispositivo,
+          ip_address,
+        });
+
+        // Marca localmente que já registramos
+        localStorage.setItem(acessoFlagKey, 'true');
+      } catch (err) {
+        console.error('Erro ao registrar acesso:', err);
+      }
+    };
+
+    registrarAcesso();
+  }, [isReady, empresa]);
 
 
   useEffect(() => {

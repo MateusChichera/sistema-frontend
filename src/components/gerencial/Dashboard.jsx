@@ -8,7 +8,17 @@ import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../ui/card'; 
 import { Loader2, DollarSign, ListOrdered, Package, TrendingUp, CheckCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
+import {
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 const Dashboard = () => {
   const { empresa, loading: empresaLoading } = useEmpresa();
@@ -17,6 +27,10 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [error, setError] = useState(null);
+
+  // Acessos x Pedidos
+  const [acessosPedidosData, setAcessosPedidosData] = useState([]);
+  const [loadingAcessosPedidos, setLoadingAcessosPedidos] = useState(true);
 
   const fetchDashboardData = async () => {
     if (empresaLoading || !empresa || !empresa.slug || !user) {
@@ -47,8 +61,62 @@ const Dashboard = () => {
     }
   };
 
+  // Função para buscar acessos x pedidos (últimos 7 dias)
+  const fetchAcessosPedidos = async () => {
+    if (empresaLoading || !empresa || !empresa.slug || !user) {
+      return;
+    }
+
+    setLoadingAcessosPedidos(true);
+    try {
+      const endDate = format(new Date(), 'yyyy-MM-dd');
+      const startDate = format(subDays(new Date(), 6), 'yyyy-MM-dd');
+
+      const response = await api.get(`/gerencial/${empresa.slug}/relatorio-acessos-pedidos`, {
+        params: { startDate, endDate },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Espera array de objetos ou tuplas, normaliza
+      const rawData = response.data || [];
+      const normalized = rawData.map((item) => {
+        if (Array.isArray(item)) {
+          const [dateStr, acessos, pedidos /* taxa */] = item;
+          return {
+            data: dateStr,
+            acessos: Number(acessos),
+            pedidos: Number(pedidos),
+          };
+        }
+
+        // Nos objetos, tentamos extrair campos padronizados ou alternativas
+        const dateStr = item.data || item.data_relatorio || item.dataRelatorio;
+        const acessos =
+          item.acessos ?? item.total_acessos ?? item.totalAcessos ?? 0;
+        const pedidos =
+          item.pedidos ?? item.total_pedidos ?? item.totalPedidos ?? 0;
+
+        return {
+          data: dateStr,
+          acessos: Number(acessos),
+          pedidos: Number(pedidos),
+        };
+      });
+
+      setAcessosPedidosData(normalized);
+    } catch (err) {
+      console.error('Erro ao buscar relatório de acessos/pedidos:', err);
+    } finally {
+      setLoadingAcessosPedidos(false);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
+  }, [empresa, empresaLoading, user, token]);
+
+  useEffect(() => {
+    fetchAcessosPedidos();
   }, [empresa, empresaLoading, user, token]);
 
   if (empresaLoading || !empresa) {
@@ -66,6 +134,11 @@ const Dashboard = () => {
   if (!dashboardData || (user.role !== 'Proprietario' && user.role !== 'Gerente')) {
     return <div className="p-4 text-center text-gray-600">Nenhum dado disponível para o dashboard ou acesso negado.</div>;
   }
+
+  // Dados resumidos de conversão geral
+  const totalAcessos = acessosPedidosData.reduce((sum, d) => sum + d.acessos, 0);
+  const totalPedidos = acessosPedidosData.reduce((sum, d) => sum + d.pedidos, 0);
+  const taxaConversaoGeral = totalAcessos > 0 ? ((totalPedidos / totalAcessos) * 100).toFixed(2) : 0;
 
   const totalPedidosAbertos = dashboardData.totalPedidosAtivos;
   const totalPedidosEntregues = dashboardData.pedidosOverview.find(p => p.status === 'Entregue')?.total_pedidos || 0;
@@ -219,6 +292,65 @@ const Dashboard = () => {
               ))
           )}
       </div>
+
+      {/* Acessos x Pedidos */}
+      <h3 className="text-xl font-semibold mb-4 mt-8 text-gray-800 border-b pb-2">Acessos x Pedidos (Últimos 7 Dias)</h3>
+      {loadingAcessosPedidos ? (
+        <p className="text-gray-600">Carregando relatório de acessos...</p>
+      ) : acessosPedidosData.length === 0 ? (
+        <p className="text-gray-600">Nenhum dado de acesso encontrado.</p>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Conversão Delivery/Retirada</CardTitle>
+              <CardDescription>Acessos vs. Pedidos Online</CardDescription>
+            </CardHeader>
+            <CardContent style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={acessosPedidosData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="data" tickFormatter={(d) => format(parseISO(d), 'dd/MM')} />
+                  <YAxis />
+                  <Tooltip formatter={(value) => Number(value)} labelFormatter={(label) => format(parseISO(label), 'dd/MM/yyyy')} />
+                  <Legend />
+                  <Bar dataKey="acessos" fill="#8884d8" name="Acessos" />
+                  <Bar dataKey="pedidos" fill="#82ca9d" name="Pedidos" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg">Total de Acessos: <span className="font-semibold">{totalAcessos}</span></p>
+              <p className="text-lg">Total de Pedidos: <span className="font-semibold">{totalPedidos}</span></p>
+              <p className="text-lg">Taxa de Conversão: <span className="font-semibold">{taxaConversaoGeral}%</span></p>
+              <Table className="mt-4">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Acessos</TableHead>
+                    <TableHead>Pedidos</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {acessosPedidosData.map((item) => (
+                    <TableRow key={item.data}>
+                      <TableCell>{format(parseISO(item.data), 'dd/MM')}</TableCell>
+                      <TableCell>{item.acessos}</TableCell>
+                      <TableCell>{item.pedidos}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
     </div>
   );
