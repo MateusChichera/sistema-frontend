@@ -66,6 +66,7 @@ const ConfiguracoesPage = () => {
     valor_inicial_caixa_padrao: '',
     exibir_valores_fechamento_caixa: false,
     usa_controle_caixa: false,
+    porcentagem_garcom: false,
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState(null);
@@ -115,6 +116,7 @@ const ConfiguracoesPage = () => {
           valor_inicial_caixa_padrao: empresa.valor_inicial_caixa_padrao || '',
           exibir_valores_fechamento_caixa: !!empresa.exibir_valores_fechamento_caixa,
           usa_controle_caixa: !!empresa.usa_controle_caixa,
+          porcentagem_garcom: !!empresa.porcentagem_garcom,
         });
         setPreviewLogoUrl(null);
         toast.success("Configurações carregadas com sucesso!");
@@ -183,6 +185,7 @@ const ConfiguracoesPage = () => {
         valor_inicial_caixa_padrao: parseFloat(formData.valor_inicial_caixa_padrao) || 0.00,
         exibir_valores_fechamento_caixa: formData.exibir_valores_fechamento_caixa ? 1 : 0,
         usa_controle_caixa: formData.usa_controle_caixa ? 1 : 0,
+        porcentagem_garcom: formData.porcentagem_garcom ? 1 : 0,
       };
 
       await api.put(`/gerencial/${empresa.slug}/config`, dataToSend, {
@@ -607,6 +610,16 @@ const ConfiguracoesPage = () => {
                   disabled={!canManage}
                 />
                 <Label htmlFor="usa_controle_caixa">Usar Controle de Caixa</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="porcentagem_garcom"
+                  checked={formData.porcentagem_garcom}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, porcentagem_garcom: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="porcentagem_garcom">Cobrar 10% (Garçom) em pedidos Mesa</Label>
               </div>
             </div>
           </TabsContent>
