@@ -59,6 +59,7 @@ const CaixaPage = () => {
     const [detalhesFechamento, setDetalhesFechamento] = useState([]);
     const [resumoCaixa, setResumoCaixa] = useState(null);
     const [totalizadoresFP, setTotalizadoresFP] = useState([]);
+    const [faturamentoFP, setFaturamentoFP] = useState({ total: 0, formas: [] });
 
     const [tipoMovimentacao, setTipoMovimentacao] = useState('Suprimento');
     const [valorMovimentacao, setValorMovimentacao] = useState('');
@@ -953,7 +954,7 @@ const CaixaPage = () => {
         win.onafterprint = () => win.close();
     }, [user]);
 
-    const printCaixaFechamento = useCallback((fechamentoResp, resumo, totFP) => {
+    const printCaixaFechamento = useCallback((fechamentoResp, resumo, totFP, fatObj) => {
         if (!fechamentoResp || !user) return;
         const win = window.open('', '_blank', 'width=300,height=500');
         if (!win) return;
@@ -978,6 +979,7 @@ const CaixaPage = () => {
              <p>Valor Informado: R$ ${parseFloat(fechamentoResp.valor_informado || 0).toFixed(2).replace('.', ',')}</p>
              <p>Diferença: R$ ${parseFloat(fechamentoResp.diferenca || 0).toFixed(2).replace('.', ',')}</p>
              ${totFP && totFP.length>0 ? `<table><thead><tr><th>Forma</th><th align="right">Valor</th></tr></thead><tbody>${totFP.map(fp=>`<tr><td>${fp.forma_pagamento_descricao}</td><td align="right">R$ ${parseFloat(fp.valor_sistema_calculado_por_forma||0).toFixed(2).replace('.', ',')}</td></tr>`).join('')}</tbody></table>`:''}
+             ${fatObj && fatObj.formas && fatObj.formas.length>0 ? `<table><thead><tr><th>Forma</th><th align="right">Faturamento</th></tr></thead><tbody>${fatObj.formas.map(fp=>`<tr><td>${fp.forma_pagamento_descricao}</td><td align="right">R$ ${parseFloat(fp.total_faturamento_por_forma||0).toFixed(2).replace('.', ',')}</td></tr>`).join('')}<tr><td><strong>Total</strong></td><td align="right"><strong>R$ ${parseFloat(fatObj.total||0).toFixed(2).replace('.', ',')}</strong></td></tr></tbody></table>`:''}
         </div></body></html>`;
         win.document.write(content);
         win.document.close();
@@ -1040,6 +1042,16 @@ const CaixaPage = () => {
                setResumoCaixa(resp.data.resumo_caixa || null);
                setTotalizadoresFP(resp.data.totalizadores_formas_pagamento || []);
             }
+
+            // carrega faturamento bruto por forma
+            try {
+               const fatResp = await api.get(`/gerencial/${empresa.slug}/caixas/${caixaInfo.id}/faturamento-formas`, { headers: { Authorization: `Bearer ${token}` }});
+               if(fatResp.data && fatResp.data.detalhado_por_forma){
+                  setFaturamentoFP({ total: fatResp.data.total_faturamento || 0, formas: fatResp.data.detalhado_por_forma });
+               } else {
+                  setFaturamentoFP({ total:0, formas: fatResp.data || []});
+               }
+            } catch(_) { setFaturamentoFP({ total:0, formas: []}); }
         } catch (e) {
             toast.error('Erro ao buscar detalhes de fechamento');
         }
@@ -1061,7 +1073,7 @@ const CaixaPage = () => {
             toast.success(resp.data.message || 'Caixa fechado com sucesso');
             setIsFechamentoModalOpen(false);
             setCaixaInfo(null);
-            setFechamentoPrintData({resp: resp.data, resumo: resumoCaixa, totalizadores: totalizadoresFP});
+            setFechamentoPrintData({resp: resp.data, resumo: resumoCaixa, totalizadores: totalizadoresFP, faturamento: faturamentoFP});
             setIsPrintFechamentoModalOpen(true);
             // Após fechar, força abertura novamente se controle ativo
             if (empresa.usa_controle_caixa) setIsAberturaModalOpen(true);
@@ -1624,7 +1636,7 @@ const CaixaPage = () => {
                                         <p>Total Pagamentos: <strong>R$ {parseFloat(resumoCaixa.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</strong></p>
                                         <p>Total Suprimentos: <strong>R$ {parseFloat(resumoCaixa.total_suprimentos||0).toFixed(2).replace('.', ',')}</strong></p>
                                         <p>Total Sangrias: <strong>R$ {parseFloat(resumoCaixa.total_sangrias||0).toFixed(2).replace('.', ',')}</strong></p>
-                                        <p className="font-semibold">Valor (Sistema): R$ {parseFloat(resumoCaixa.valor_fechamento_sistema_calculado||0).toFixed(2).replace('.', ',')}</p>
+                                        <p className="font-bold text-base">Valor (Sistema): R$ {parseFloat(resumoCaixa.valor_fechamento_sistema_calculado||0).toFixed(2).replace('.', ',')}</p>
                                     </CardContent>
                                 </Card>
 
@@ -1666,9 +1678,12 @@ const CaixaPage = () => {
                                             </Popover>
                                         </CardHeader>
                                         <CardContent className="text-sm space-y-1">
-                                            {totalizadoresFP.map(fp => (
-                                                <p key={fp.forma_pagamento_id}>{fp.forma_pagamento_descricao}: <strong>R$ {parseFloat(fp.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</strong></p>
+                                            {(faturamentoFP.formas.length>0 ? faturamentoFP.formas : totalizadoresFP).map(fp => (
+                                                <p key={fp.forma_pagamento_id}>{fp.forma_pagamento_descricao}: <strong>R$ {parseFloat(fp.total_faturamento_por_forma || fp.total_pagamentos_sistema || 0).toFixed(2).replace('.', ',')}</strong></p>
                                             ))}
+                                            {faturamentoFP.formas.length>0 && (
+                                                <p className="mt-2 font-bold text-base">Total: R$ {parseFloat(faturamentoFP.total||0).toFixed(2).replace('.', ',')}</p>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 )}
@@ -1752,7 +1767,7 @@ const CaixaPage = () => {
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={()=>setIsPrintFechamentoModalOpen(false)}>Não Imprimir</Button>
-                        <Button onClick={()=>{ if(fechamentoPrintData){ printCaixaFechamento(fechamentoPrintData.resp, fechamentoPrintData.resumo, fechamentoPrintData.totalizadores);} setIsPrintFechamentoModalOpen(false);} }>Sim, Imprimir</Button>
+                        <Button onClick={()=>{ if(fechamentoPrintData){ printCaixaFechamento(fechamentoPrintData.resp, fechamentoPrintData.resumo, fechamentoPrintData.totalizadores, fechamentoPrintData.faturamento);} setIsPrintFechamentoModalOpen(false);} }>Sim, Imprimir</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
