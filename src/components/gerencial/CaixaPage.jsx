@@ -33,7 +33,6 @@ const CaixaPage = () => {
 
     const [isPedidoDetailModalOpen, setIsPedidoDetailModalOpen] = useState(false);
     const [isItemDetailModalOpen, setIsItemDetailModalOpen] = useState(false);
-    const [isPrintConfirmationModalOpen, setIsPrintConfirmationModalOpen] = useState(false);
 
     const [selectedPedido, setSelectedPedido] = useState(null);
 
@@ -76,6 +75,15 @@ const CaixaPage = () => {
     const [isPrintMovModalOpen, setIsPrintMovModalOpen] = useState(false);
     const [movPrintData, setMovPrintData] = useState(null);
 
+    // Estados para confirmação de troco
+    const [isTrocoModalOpen, setIsTrocoModalOpen] = useState(false);
+    const [trocoData, setTrocoData] = useState(null);
+    const [trocoConfirmado, setTrocoConfirmado] = useState(false);
+
+    // Estados para confirmação de impressão de cupom
+    const [isPrintCupomModalOpen, setIsPrintCupomModalOpen] = useState(false);
+    const [pedidoParaImprimir, setPedidoParaImprimir] = useState(null);
+
     const printContentRef = useRef(null);
 
     const [filterStatus, setFilterStatus] = useState('Pendente,Preparando,Pronto');
@@ -90,6 +98,11 @@ const CaixaPage = () => {
     const filterTipoEntregaRef = useRef(filterTipoEntrega);
     const debouncedSearchTermRef = useRef(debouncedSearchTerm);
     const filterDateRef = useRef(filterDate);
+
+    // Adicione os estados:
+    const [valorPagoUltimaOperacao, setValorPagoUltimaOperacao] = useState(null);
+    const [formaPagamentoUltimaOperacao, setFormaPagamentoUltimaOperacao] = useState('');
+    const [valorRecebidoAntes, setValorRecebidoAntes] = useState(0);
 
     // Atualiza os refs dos filtros sempre que o estado correspondente muda
     useEffect(() => { filterStatusRef.current = filterStatus; }, [filterStatus]);
@@ -410,7 +423,8 @@ const CaixaPage = () => {
             const restanteParaPagarInicial = Math.max(0, totalGeral - valorJaRecebido);
 
             setValorCobrancaManual(restanteParaPagarInicial.toFixed(2));
-            setValorRecebidoInput(restanteParaPagarInicial.toFixed(2)); 
+            // Não preenche automaticamente o valor recebido, deixa o usuário digitar
+            setValorRecebidoInput(''); 
 
             setDividirContaAtivo(false);
             setNumPessoasDividir('');
@@ -503,11 +517,34 @@ const CaixaPage = () => {
         if (formaPagamento && formaPagamento.descricao.toLowerCase() !== 'dinheiro') {
             setValorRecebidoInput(valorComDesconto.toFixed(2));
         } else {
-            if (valorRecebidoInput === '' || parseFloat(valorRecebidoInput) === 0 || Math.abs(parseFloat(valorRecebidoInput) - valorComDesconto) > 0.01) {
+            // Para dinheiro, só preenche automaticamente se o campo estiver vazio
+            if (valorRecebidoInput === '' || parseFloat(valorRecebidoInput) === 0) {
                 setValorRecebidoInput(valorComDesconto.toFixed(2));
             }
+            // Se o usuário já digitou um valor, mantém o valor digitado
         }
     }, [valorComDesconto, selectedFormaPagamentoId, formasPagamento]);
+
+    // ATUALIZAÇÃO DO VALOR A COBRAR QUANDO O PEDIDO É ATUALIZADO
+    useEffect(() => {
+        if (selectedPedido) {
+            // Calcula o valor total do pedido incluindo taxa de entrega
+            let totalGeral = parseFloat(selectedPedido.valor_total || 0);
+            if (selectedPedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) {
+                totalGeral += parseFloat(empresa.taxa_entrega);
+            }
+
+            // Calcula o valor restante a pagar
+            const valorJaRecebido = parseFloat(selectedPedido.valor_recebido_parcial || 0);
+            const restanteParaPagar = Math.max(0, totalGeral - valorJaRecebido);
+
+            // Atualiza o valor a cobrar se estiver vazio, for zero, ou se o valor atual for maior que o restante
+            const valorAtual = parseFloat(valorCobrancaManual) || 0;
+            if (valorCobrancaManual === '' || valorCobrancaManual === '0.00' || valorAtual > restanteParaPagar) {
+                setValorCobrancaManual(restanteParaPagar.toFixed(2));
+            }
+        }
+    }, [selectedPedido, empresa?.taxa_entrega, valorCobrancaManual]);
 
 
     // VALOR A PAGAR NESTA OPERAÇÃO (COM DIVISÃO DE CONTA APLICADA)
@@ -561,31 +598,59 @@ const CaixaPage = () => {
             return;
         }
 
-        // --- CORREÇÃO DO PONTO FLUTUANTE PARA VALIDAÇÃO ---
-        // Compara os valores formatados para evitar problemas de precisão de ponto flutuante
+        // --- VALIDAÇÃO PARA RECEBIMENTO PARCIAL E TROCO ---
+        // Para recebimento, o valor recebido deve ser:
+        // 1. Maior que zero
+        // 2. Pode ser maior que o valor restante (para troco)
         const formattedValorRecebido = parseFloat(valorRecebido.toFixed(2));
-        const formattedValorAPagarNestaParcelaFinal = parseFloat(valorAPagarNestaParcelaFinal.toFixed(2));
+        const formattedValorRestanteTotal = parseFloat(valorRestanteTotalDoPedido.toFixed(2));
 
         console.log("Comparando formatado - Valor Recebido:", formattedValorRecebido);
-        console.log("Comparando formatado - Valor a Pagar:", formattedValorAPagarNestaParcelaFinal);
+        console.log("Comparando formatado - Valor Restante Total:", formattedValorRestanteTotal);
 
-        // Validação adicional: garante que o valor recebido não seja menor que o valor final a cobrar
-        if (formattedValorRecebido < formattedValorAPagarNestaParcelaFinal) {
-            toast.error('O valor recebido é menor que o valor a ser cobrado para esta operação (considerando centavos).');
-            console.log("Validação falhou: Valor recebido menor que o valor a pagar.");
+        // Validação: valor recebido deve ser maior que zero
+        if (formattedValorRecebido <= 0) {
+            toast.error('O valor recebido deve ser maior que zero.');
+            console.log("Validação falhou: Valor recebido menor ou igual a zero.");
             return;
         }
         console.log("Todas as validações iniciais passaram.");
 
+        // Verifica se há troco
+        const valorTroco = Math.max(0, formattedValorRecebido - formattedValorRestanteTotal);
+        
+        if (valorTroco > 0) {
+            // Se há troco, abre o modal de confirmação
+            setTrocoData({
+                valorRecebido: formattedValorRecebido,
+                valorConta: formattedValorRestanteTotal,
+                valorTroco: valorTroco,
+                pedidoId: selectedPedido.id,
+                formaPagamentoId: selectedFormaPagamentoId,
+                dividirConta: dividirContaAtivo ? parseInt(numPessoasDividir) || 1 : null,
+                observacoes: observacoesPagamento
+            });
+            setIsTrocoModalOpen(true);
+            setLoadingFinalizacao(false);
+            return;
+        }
+
+        // Se não há troco, finaliza diretamente
+        await finalizarPagamentoCompleto(valorRecebido, selectedFormaPagamentoId, dividirContaAtivo ? parseInt(numPessoasDividir) || 1 : null, observacoesPagamento);
+        setValorRecebidoAntes(selectedPedido.valor_recebido_parcial || 0);
+    };
+
+    // Função para finalizar o pagamento (usada tanto para pagamentos sem troco quanto após confirmação do troco)
+    const finalizarPagamentoCompleto = async (valorRecebido, formaPagamentoId, dividirConta, observacoes) => {
         setLoadingFinalizacao(true);
         try {
             // Realiza a chamada API para finalizar o pagamento
             const response = await api.post(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}/finalizar`, {
-                valor_pago: valorRecebido, // Usar o valorRecibido já parseado
-                forma_pagamento_id: parseInt(selectedFormaPagamentoId),
-                itens_cobrados_ids: selectedPedido.itens.map(item => item.id), // Envia todos os IDs dos itens
-                dividir_conta_qtd_pessoas: dividirContaAtivo ? parseInt(numPessoasDividir) || 1 : null,
-                observacoes_pagamento: observacoesPagamento
+                valor_pago: valorRecebido,
+                forma_pagamento_id: parseInt(formaPagamentoId),
+                itens_cobrados_ids: selectedPedido.itens.map(item => item.id),
+                dividir_conta_qtd_pessoas: dividirConta,
+                observacoes_pagamento: observacoes
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -593,14 +658,34 @@ const CaixaPage = () => {
             toast.success(`Pagamento de R$ ${valorRecebido.toFixed(2).replace('.', ',')} registrado para o Pedido #${selectedPedido.numero_pedido}!`);
             
             // Re-busca o pedido atualizado para garantir que todos os dados (incluindo pagamentos) estejam presentes
-            // antes de abrir o modal de impressão.
             const updatedPedidoData = await api.get(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setSelectedPedido(processPedidoData(updatedPedidoData.data)); // Atualiza o selectedPedido com os dados mais recentes
+            const pedidoAtualizado = processPedidoData(updatedPedidoData.data);
+            setSelectedPedido(pedidoAtualizado);
 
-            // Pergunta se deseja imprimir o cupom após finalizar o pagamento
-            setIsPrintConfirmationModalOpen(true);
+            // Salva o valor pago e a forma de pagamento da operação
+            setValorPagoUltimaOperacao(valorRecebido);
+            const forma = formasPagamento.find(fp => fp.id.toString() === formaPagamentoId?.toString());
+            setFormaPagamentoUltimaOperacao(forma ? forma.descricao : '');
+
+            // Calcula o novo valor restante a pagar após o pagamento
+            let novoTotalGeral = parseFloat(pedidoAtualizado.valor_total || 0);
+            if (pedidoAtualizado.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) {
+                novoTotalGeral += parseFloat(empresa.taxa_entrega);
+            }
+            const novoValorRestante = Math.max(0, novoTotalGeral - parseFloat(pedidoAtualizado.valor_recebido_parcial || 0));
+
+            // Limpa os campos do formulário para o próximo pagamento
+            setValorRecebidoInput('');
+            setValorCobrancaManual(novoValorRestante.toFixed(2));
+            setObservacoesPagamento('');
+            setDividirContaAtivo(false);
+            setNumPessoasDividir('');
+            
+            // Abre o modal de confirmação de impressão
+            setPedidoParaImprimir(pedidoAtualizado);
+            setIsPrintCupomModalOpen(true);
             
             // A atualização da lista de pedidos na tela principal virá via Socket.IO (orderUpdated / orderFinalized)
         } catch (err) {
@@ -614,7 +699,7 @@ const CaixaPage = () => {
     };
 
     // Lógica para imprimir cupom
-    const handlePrintCupom = useCallback((pedidoToPrint) => { // Tornar useCallback para evitar re-criação
+    const handlePrintCupom = useCallback((pedidoToPrint, valorPagoUltimaOperacao = 0) => { // Tornar useCallback para evitar re-criação
         if (!pedidoToPrint || !empresa) {
             toast.error("Nenhum pedido ou dados da empresa disponíveis para impressão.");
             return;
@@ -658,6 +743,18 @@ const CaixaPage = () => {
         // Recalcula o "Falta Pagar" usando o valorTotalComDescontoNoCupom
         const valorRestanteAPagarCupom = Math.max(0, parseFloat(totalGeralParaExibirNoCupom) - parseFloat(pedidoToPrint.valor_recebido_parcial || 0));
 
+        // Dentro da função handlePrintCupom, antes de gerar o cupomContent:
+        // Calcule o valor recebido considerando o valorPagoUltimaOperacao
+        let valorRecebidoCupom = parseFloat(pedidoToPrint.valor_recebido_parcial || 0);
+        if (valorRecebidoCupom === parseFloat(valorRecebidoAntes)) {
+            valorRecebidoCupom += parseFloat(valorPagoUltimaOperacao || 0);
+        }
+        const totalPedidoCupom = parseFloat(totalGeralParaExibirNoCupom);
+        let faltaPagarCupom = Math.max(0, totalPedidoCupom - valorRecebidoCupom);
+        if (valorRecebidoCupom >= totalPedidoCupom) {
+            valorRecebidoCupom = totalPedidoCupom;
+            faltaPagarCupom = 0;
+        }
 
         const cupomContent = `
             <!DOCTYPE html>
@@ -768,13 +865,12 @@ const CaixaPage = () => {
                     `).join('') : `<p>Nenhum pagamento registrado.</p>`}
                     <div class="total-row">
                         <span>RECEBIDO ATÉ AGORA:</span>
-                        <span>R$ ${parseFloat(pedidoToPrint.valor_recebido_parcial || 0).toFixed(2).replace('.', ',')}</span>
+                        <span>R$ ${valorRecebidoCupom.toFixed(2).replace('.', ',')}</span>
                     </div>
-                    ${valorRestanteAPagarCupom > 0 ? `
                     <div class="total-row" style="color: red;">
                         <span>FALTA PAGAR:</span>
-                        <span>R$ ${valorRestanteAPagarCupom.toFixed(2).replace('.', ',')}</span>
-                    </div>` : ''}
+                        <span>R$ ${faltaPagarCupom.toFixed(2).replace('.', ',')}</span>
+                    </div>
 
                     <div class="footer">
                         ${(pedidoToPrint.pagamentos_recebidos && pedidoToPrint.pagamentos_recebidos.length > 0) ? `
@@ -795,7 +891,7 @@ const CaixaPage = () => {
         printWindow.focus();
         printWindow.print();
         printWindow.onafterprint = () => printWindow.close();
-    }, [empresa, formasPagamento]);
+    }, [empresa, formasPagamento, valorRecebidoAntes]);
 
 
     const getStatusBadge = (status) => {
@@ -1101,6 +1197,48 @@ const CaixaPage = () => {
         } catch (e) {
             toast.error(e.response?.data?.message || 'Erro ao registrar movimentação');
         }
+    };
+
+    // Funções para lidar com a confirmação de troco
+    const handleConfirmarTroco = async () => {
+        if (!trocoData) return;
+        
+        setTrocoConfirmado(true);
+        toast.success(`Troco de R$ ${trocoData.valorTroco.toFixed(2).replace('.', ',')} confirmado!`);
+        
+        // Finaliza o pagamento após confirmar o troco
+        await finalizarPagamentoCompleto(
+            trocoData.valorRecebido,
+            trocoData.formaPagamentoId,
+            trocoData.dividirConta,
+            trocoData.observacoes
+        );
+        
+        // Fecha o modal e limpa os dados
+        setIsTrocoModalOpen(false);
+        setTrocoData(null);
+        setTrocoConfirmado(false);
+    };
+
+    const handleCancelarTroco = () => {
+        setIsTrocoModalOpen(false);
+        setTrocoData(null);
+        setTrocoConfirmado(false);
+        toast.info('Operação cancelada');
+    };
+
+    // Funções para lidar com a impressão de cupom
+    const handleImprimirCupom = () => {
+        if (pedidoParaImprimir) {
+            handlePrintCupom(pedidoParaImprimir, valorPagoUltimaOperacao);
+        }
+        setIsPrintCupomModalOpen(false);
+        setPedidoParaImprimir(null);
+    };
+
+    const handleNaoImprimirCupom = () => {
+        setIsPrintCupomModalOpen(false);
+        setPedidoParaImprimir(null);
     };
 
 
@@ -1469,7 +1607,7 @@ const CaixaPage = () => {
                                             value={valorRecebidoInput}
                                             onChange={(e) => setValorRecebidoInput(e.target.value)}
                                             placeholder="0.00"
-                                            disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado' || (formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId)?.descricao.toLowerCase() !== 'dinheiro')}
+                                            disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
                                         />
                                     </div>
 
@@ -1515,11 +1653,73 @@ const CaixaPage = () => {
                                         <Textarea id="obsPagamento" value={observacoesPagamento} onChange={(e) => setObservacoesPagamento(e.target.value)} rows={2} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'} />
                                     </div>
 
-                                    {/* Botão Finalizar Pagamento - Único botão de ação principal */}
+                                    {/* Título mostrando quanto falta receber */}
+                                    {valorRestanteTotalDoPedido > 0 && (
+                                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                                            <h4 className="text-lg font-bold text-red-800 text-center">
+                                                Falta Receber: R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}
+                                            </h4>
+                                            {(() => {
+                                                const valorRecebido = parseFloat(valorRecebidoInput) || 0;
+                                                const valorRestante = parseFloat(valorRestanteTotalDoPedido);
+                                                
+                                                if (valorRecebido >= valorRestante && valorRecebido > 0) {
+                                                    const troco = valorRecebido - valorRestante;
+                                                    if (troco > 0) {
+                                                        return (
+                                                            <p className="text-sm text-green-700 text-center mt-1 font-semibold">
+                                                                ✅ Pagamento total + Troco de R$ {troco.toFixed(2).replace('.', ',')}
+                                                            </p>
+                                                        );
+                                                    } else {
+                                                        return (
+                                                            <p className="text-sm text-green-700 text-center mt-1 font-semibold">
+                                                                ✅ Pagamento total será realizado
+                                                            </p>
+                                                        );
+                                                    }
+                                                } else if (valorRecebido > 0 && valorRecebido < valorRestante) {
+                                                    return (
+                                                        <p className="text-sm text-orange-700 text-center mt-1">
+                                                            💰 Recebimento parcial - ainda faltará R$ {(valorRestante - valorRecebido).toFixed(2).replace('.', ',')}
+                                                        </p>
+                                                    );
+                                                } else {
+                                                    return (
+                                                        <p className="text-sm text-red-700 text-center mt-1">
+                                                            Você pode receber qualquer valor (incluindo troco)
+                                                        </p>
+                                                    );
+                                                }
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {/* Botão Receber Parcial */}
                                     {selectedPedido.status !== 'Entregue' && selectedPedido.status !== 'Cancelado' && (
                                         <Button onClick={handleFinalizarPagamento} className="mt-4 w-full flex items-center" disabled={loadingFinalizacao}>
                                             {loadingFinalizacao ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
-                                            Finalizar Pagamento
+                                            {(() => {
+                                                const valorRecebido = parseFloat(valorRecebidoInput) || 0;
+                                                const valorRestante = parseFloat(valorRestanteTotalDoPedido);
+                                                
+                                                // Se vai receber o valor total restante ou mais (incluindo troco), mostra "Finalizar Pagamento"
+                                                if (valorRecebido >= valorRestante && valorRestante > 0) {
+                                                    return 'Finalizar Pagamento';
+                                                }
+                                                // Se vai receber um valor parcial, mostra "Receber Parcial"
+                                                else if (valorRecebido > 0 && valorRecebido < valorRestante) {
+                                                    return 'Receber Parcial';
+                                                }
+                                                // Se não há valor restante, mostra "Finalizar Pagamento"
+                                                else if (valorRestante <= 0) {
+                                                    return 'Finalizar Pagamento';
+                                                }
+                                                // Padrão
+                                                else {
+                                                    return 'Receber Parcial';
+                                                }
+                                            })()}
                                         </Button>
                                     )}
 
@@ -1530,6 +1730,31 @@ const CaixaPage = () => {
                                     {selectedPedido.status === 'Cancelado' && (
                                         <Badge className="bg-red-500 text-white text-center py-2 w-full mt-4">Pedido Cancelado</Badge>
                                     )}
+
+                                    {/* Seção de Pagamentos - Histórico dos pagamentos realizados */}
+                                    <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
+                                        <h4 className="font-semibold text-lg mb-3 text-gray-800">Pagamentos Realizados</h4>
+                                        
+                                        {(selectedPedido.pagamentos_recebidos && selectedPedido.pagamentos_recebidos.length > 0) ? (
+                                            <div className="space-y-2">
+                                                {selectedPedido.pagamentos_recebidos.map((pagamento, index) => (
+                                                    <div key={index} className="flex justify-between items-center p-2 bg-white border border-gray-200 rounded">
+                                                        <div>
+                                                            <span className="font-medium">{pagamento.forma_pagamento_descricao}</span>
+                                                            <span className="text-sm text-gray-500 ml-2">
+                                                                {format(parseISO(pagamento.data_pagamento), 'dd/MM HH:mm')}
+                                                            </span>
+                                                        </div>
+                                                        <span className="font-bold text-green-600">
+                                                            R$ {parseFloat(pagamento.valor_pago || 0).toFixed(2).replace('.', ',')}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-500">Nenhum pagamento registrado ainda.</p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <DialogFooter>
@@ -1544,33 +1769,6 @@ const CaixaPage = () => {
                             <Loader2 className="animate-spin h-8 w-8 mr-2" /> Carregando detalhes do pedido...
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Novo Modal de Confirmação de Impressão */}
-            <Dialog open={isPrintConfirmationModalOpen} onOpenChange={setIsPrintConfirmationModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Imprimir Cupom?</DialogTitle>
-                        <DialogDescription>
-                            Deseja imprimir o cupom para o Pedido #{selectedPedido?.numero_pedido}?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => {
-                            setIsPrintConfirmationModalOpen(false);
-                            closePedidoDetailModal(); // Fecha o modal de finalização também
-                        }}>
-                            Não Imprimir
-                        </Button>
-                        <Button onClick={() => {
-                            handlePrintCupom(selectedPedido);
-                            setIsPrintConfirmationModalOpen(false);
-                            closePedidoDetailModal(); // Fecha o modal de finalização também
-                        }}>
-                            Sim, Imprimir
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
@@ -1782,6 +1980,144 @@ const CaixaPage = () => {
                     <DialogFooter>
                         <Button variant="outline" onClick={()=>setIsPrintMovModalOpen(false)}>Não Imprimir</Button>
                         <Button onClick={()=>{ if(movPrintData) { printMovimentacaoCupom(movPrintData);} setIsPrintMovModalOpen(false);} }>Sim, Imprimir</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Confirmação de Troco */}
+            <Dialog open={isTrocoModalOpen} onOpenChange={setIsTrocoModalOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-center text-xl font-bold text-green-600">
+                            💰 Confirmação de Troco
+                        </DialogTitle>
+                        <DialogDescription className="text-center">
+                            Confirme que o troco foi entregue ao cliente
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    {trocoData && (
+                        <div className="py-4 space-y-4">
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-green-800 mb-2">
+                                    R$ {trocoData.valorTroco.toFixed(2).replace('.', ',')}
+                                </div>
+                                <p className="text-green-700 font-semibold">Valor do Troco</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div className="bg-gray-50 p-3 rounded">
+                                    <p className="font-semibold text-gray-700">Valor da Conta:</p>
+                                    <p className="text-lg">R$ {trocoData.valorConta.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded">
+                                    <p className="font-semibold text-gray-700">Valor Recebido:</p>
+                                    <p className="text-lg">R$ {trocoData.valorRecebido.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p className="text-yellow-800 text-center font-semibold">
+                                    ⚠️ Confirme que entregou R$ {trocoData.valorTroco.toFixed(2).replace('.', ',')} de troco ao cliente
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <DialogFooter className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            onClick={handleCancelarTroco}
+                            disabled={trocoConfirmado}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            onClick={handleConfirmarTroco}
+                            disabled={trocoConfirmado}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                            {trocoConfirmado ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Confirmando...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Confirmar Troco
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Confirmação de Impressão de Cupom */}
+            <Dialog open={isPrintCupomModalOpen} onOpenChange={setIsPrintCupomModalOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-center text-xl font-bold text-blue-600">
+                            🖨️ Imprimir Cupom?
+                        </DialogTitle>
+                        <DialogDescription className="text-center">
+                            Deseja imprimir o cupom do pedido?
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    {pedidoParaImprimir && (
+                        <div className="py-4 space-y-4">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                <div className="text-lg font-bold text-blue-800 mb-2">
+                                    Pedido #{pedidoParaImprimir.numero_pedido}
+                                </div>
+                                <p className="text-blue-700 font-semibold text-base">
+                                    Cliente: {pedidoParaImprimir.nome_cliente || pedidoParaImprimir.nome_cliente_convidado || 'Convidado'}
+                                </p>
+                                <div className="flex flex-col items-center mt-2 gap-1">
+                                    <span className="text-gray-700 text-sm">Valor total:</span>
+                                    <span className="text-2xl font-bold text-blue-900">R$ {(() => {
+                                        const baseTotal = parseFloat(pedidoParaImprimir.valor_total || 0);
+                                        const deliveryTax = (pedidoParaImprimir.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) ? parseFloat(empresa.taxa_entrega) : 0;
+                                        return (baseTotal + deliveryTax).toFixed(2).replace('.', ',');
+                                    })()}</span>
+                                </div>
+                                {valorPagoUltimaOperacao !== null && (
+                                    <div className="flex flex-col items-center mt-2 gap-1">
+                                        <span className="text-gray-700 text-sm">Valor pago nesta operação:</span>
+                                        <span className="text-xl font-bold text-green-700">R$ {parseFloat(valorPagoUltimaOperacao).toFixed(2).replace('.', ',')}</span>
+                                    </div>
+                                )}
+                                {formaPagamentoUltimaOperacao && (
+                                    <div className="flex flex-col items-center mt-2 gap-1">
+                                        <span className="text-gray-700 text-sm">Forma de pagamento:</span>
+                                        <span className="text-base font-semibold text-gray-800">{formaPagamentoUltimaOperacao}</span>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                <p className="text-gray-700 text-center">
+                                    O cupom será impresso com todos os detalhes do pedido e pagamentos realizados.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <DialogFooter className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            onClick={handleNaoImprimirCupom}
+                        >
+                            Não Imprimir
+                        </Button>
+                        <Button 
+                            onClick={handleImprimirCupom}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                            <Printer className="h-4 w-4 mr-2" />
+                            Sim, Imprimir
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
