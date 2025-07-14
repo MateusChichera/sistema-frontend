@@ -15,6 +15,7 @@ import { ShoppingCart, Home, Bike, CheckCircle, Utensils, Plus, Minus } from 'lu
 import FinalizarPedido from './FinalizarPedido';
 import LoginRegisterModal from './LoginRegisterModal';
 import PedidoTypeSelectionModal from './PedidoTypeSelectionModal';
+//corrigido merge
 
 const removeAccents = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
