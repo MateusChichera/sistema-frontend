@@ -255,10 +255,9 @@ const ConfiguracoesPage = () => {
 
       {/* Adicionado o componente Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="detalhes">Detalhes da Empresa</TabsTrigger>
           <TabsTrigger value="pedidosCardapio">Pedidos e Cardápio</TabsTrigger>
-          <TabsTrigger value="estoque">Estoque</TabsTrigger>
           <TabsTrigger value="caixa">Caixa</TabsTrigger>
         </TabsList>
 
@@ -464,6 +463,7 @@ const ConfiguracoesPage = () => {
                 />
               </div>
 
+              {/* Temporariamente oculto - funcionalidade em desenvolvimento
               <div className="flex items-center space-x-2">
                 <Switch
                   id="auto_aprovar_pedidos"
@@ -483,6 +483,7 @@ const ConfiguracoesPage = () => {
                 />
                 <Label htmlFor="enviar_email_confirmacao">Enviar Email de Confirmação de Pedido</Label>
               </div>
+              */}
 
               {/* CAMPO DE SELEÇÃO DE COR */}
               <div className="col-span-full">
@@ -546,7 +547,7 @@ const ConfiguracoesPage = () => {
             </div>
           </TabsContent>
 
-          {/* ABA 3: CONFIGURAÇÕES DE ESTOQUE */}
+          {/* ABA 3: CONFIGURAÇÕES DE ESTOQUE - TEMPORARIAMENTE OCULTA
           <TabsContent value="estoque" className="p-4 border rounded-lg bg-gray-50">
             <h3 className="text-xl font-semibold mb-4 text-gray-700">Configurações de Estoque</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -573,6 +574,7 @@ const ConfiguracoesPage = () => {
               </div>
             </div>
           </TabsContent>
+          */}
 
           {/* ABA 4: CONFIGURAÇÕES DE CAIXA */}
           <TabsContent value="caixa" className="p-4 border rounded-lg bg-gray-50">
