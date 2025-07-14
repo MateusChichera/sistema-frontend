@@ -387,9 +387,21 @@ const OrderStatusPage = () => {
                                                                 {/* Garante que item.id existe para a key, usa fallback idx para segurança */}
                                                                 {pedido.itens.map((item, idx) => ( 
                                                                     <li key={item.id || idx} className="text-xs">
-                                                                        {item.quantidade}x {item.nome_produto}
-                                                                        {/* CORRIGIDO: Exibição de observações do item (garantido string vazia se null) */}
-                                                                        {item.observacoes && item.observacoes.trim() !== '' ? <span className="italic text-gray-500"> ({item.observacoes})</span> : ''}
+                                                                        <div>
+                                                                            {item.quantidade}x {item.nome_produto}
+                                                                            {/* CORRIGIDO: Exibição de observações do item (garantido string vazia se null) */}
+                                                                            {item.observacoes && item.observacoes.trim() !== '' ? <span className="italic text-gray-500"> ({item.observacoes})</span> : ''}
+                                                                        </div>
+                                                                        {/* Exibir adicionais do item */}
+                                                                        {item.adicionais && item.adicionais.length > 0 && (
+                                                                            <div className="ml-4 mt-1">
+                                                                                {item.adicionais.map((adicional, adicIdx) => (
+                                                                                    <div key={adicIdx} className="text-xs text-blue-600">
+                                                                                        + {adicional.quantidade}x {adicional.nome}
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
                                                                     </li>
                                                                 ))}
                                                             </ul>

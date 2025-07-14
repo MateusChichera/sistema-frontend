@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Checkbox } from '../ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 const ProdutosPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa();
@@ -42,6 +44,9 @@ const ProdutosPage = () => {
   const [editAtivo, setEditAtivo] = useState(true);
   const [editFoto, setEditFoto] = useState(null);
   const [removerFotoExistente, setRemoverFotoExistente] = useState(false);
+  const [adicionais, setAdicionais] = useState([]);
+  const [produtoAdicionais, setProdutoAdicionais] = useState({});
+  const [editProdutoAdicionais, setEditProdutoAdicionais] = useState([]);
 
   const fetchProductsAndCategories = async () => {
     if (empresaLoading || !empresa || !empresa.slug || !user) {
@@ -66,6 +71,28 @@ const ProdutosPage = () => {
 
       const produtosResponse = await api.get(`/gerencial/${empresa.slug}/produtos`);
       setProdutos(produtosResponse.data);
+      
+      // Carregar adicionais disponíveis
+      try {
+        const adicionaisResponse = await api.get(`/gerencial/${empresa.slug}/adicionais`);
+        setAdicionais(adicionaisResponse.data || []);
+        
+        // Carregar adicionais de cada produto
+        const adicionaisPorProduto = {};
+        for (const produto of produtosResponse.data) {
+          try {
+            const produtoAdicionaisResponse = await api.get(`/gerencial/${empresa.slug}/produtos/${produto.id}/adicionais`);
+            adicionaisPorProduto[produto.id] = produtoAdicionaisResponse.data || [];
+          } catch (err) {
+            console.error(`Erro ao carregar adicionais do produto ${produto.id}:`, err);
+            adicionaisPorProduto[produto.id] = [];
+          }
+        }
+        setProdutoAdicionais(adicionaisPorProduto);
+      } catch (err) {
+        console.error("Erro ao carregar adicionais:", err);
+      }
+      
       toast.success("Produtos e Categorias carregados!");
 
     } catch (err) {
@@ -145,8 +172,23 @@ const ProdutosPage = () => {
     setEditAtivo(!!produto.ativo);
     setEditFoto(null);
     setRemoverFotoExistente(false);
+    
+    // Carregar adicionais do produto
+    fetchProdutoAdicionais(produto.id);
+    
     const editFotoInput = document.getElementById('editFotoInput');
     if (editFotoInput) editFotoInput.value = '';
+  };
+  
+  const fetchProdutoAdicionais = async (produtoId) => {
+    try {
+      const response = await api.get(`/gerencial/${empresa.slug}/produtos/${produtoId}/adicionais`);
+      const adicionaisIds = response.data.map(adicional => adicional.id);
+      setEditProdutoAdicionais(adicionaisIds);
+    } catch (err) {
+      console.error("Erro ao carregar adicionais do produto:", err);
+      setEditProdutoAdicionais([]);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -154,6 +196,7 @@ const ProdutosPage = () => {
     setEditIdCategoria(''); setEditNome(''); setEditDescricao(''); setEditPreco('');
     setEditPromocao(''); setEditPromoAtiva(false); setEditAtivo(true); setEditFoto(null);
     setRemoverFotoExistente(false);
+    setEditProdutoAdicionais([]);
     const editFotoInput = document.getElementById('editFotoInput');
     if (editFotoInput) editFotoInput.value = '';
   };
@@ -191,6 +234,9 @@ const ProdutosPage = () => {
         },
       });
 
+      // Atualizar adicionais do produto
+      await updateProdutoAdicionais(editandoProduto.id, editProdutoAdicionais);
+
       await fetchProductsAndCategories();
       handleCancelEdit();
       toast.success('Produto atualizado com sucesso!');
@@ -201,6 +247,26 @@ const ProdutosPage = () => {
       console.error("Erro ao atualizar produto:", err);
     } finally {
       setLoadingProdutos(false);
+    }
+  };
+  
+  const updateProdutoAdicionais = async (produtoId, adicionaisIds) => {
+    try {
+      // Primeiro, remover todos os adicionais atuais
+      const currentAdicionais = await api.get(`/gerencial/${empresa.slug}/produtos/${produtoId}/adicionais`);
+      for (const adicional of currentAdicionais.data) {
+        await api.delete(`/gerencial/${empresa.slug}/produtos/${produtoId}/adicionais/${adicional.id}`);
+      }
+      
+      // Adicionar os novos adicionais selecionados
+      for (const adicionalId of adicionaisIds) {
+        await api.post(`/gerencial/${empresa.slug}/produtos/${produtoId}/adicionais`, {
+          id_adicional: adicionalId
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar adicionais do produto:", err);
+      toast.error("Erro ao atualizar adicionais do produto.");
     }
   };
 
@@ -376,6 +442,55 @@ const ProdutosPage = () => {
               )}
             </div>
 
+            {/* Seção de Adicionais - Apenas na edição */}
+            {editandoProduto && adicionais.length > 0 && (
+              <div className="col-span-full">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Adicionais Disponíveis</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {adicionais.filter(adicional => adicional.ativo).map((adicional) => (
+                        <div key={adicional.id} className="flex items-center space-x-2 p-3 border rounded-lg">
+                          <Checkbox
+                            id={`adicional-${adicional.id}`}
+                            checked={editProdutoAdicionais.includes(adicional.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setEditProdutoAdicionais(prev => [...prev, adicional.id]);
+                              } else {
+                                setEditProdutoAdicionais(prev => prev.filter(id => id !== adicional.id));
+                              }
+                            }}
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                              {adicional.nome}
+                            </Label>
+                            {adicional.descricao && (
+                              <p className="text-sm text-gray-600">{adicional.descricao}</p>
+                            )}
+                            <p className="text-sm font-semibold text-green-600">
+                              R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {adicionais.filter(adicional => adicional.ativo).length === 0 && (
+                      <p className="text-gray-600 text-center py-4">
+                        Nenhum adicional ativo disponível. 
+                        <a href="/adicionais" className="text-blue-600 hover:underline ml-1">
+                          Criar adicionais
+                        </a>
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             <div className="flex gap-2 col-span-full justify-end">
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
                 {editandoProduto ? 'Salvar Edição' : 'Adicionar Produto'}
@@ -406,6 +521,7 @@ const ProdutosPage = () => {
                 <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Preço</TableHead>
                 <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Promoção</TableHead> {/* NOVA COLUNA */}
                 <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
+                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Adicionais</TableHead>
                 {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
               </TableRow>
             </TableHeader>
@@ -449,6 +565,24 @@ const ProdutosPage = () => {
                       <span className="ml-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                         Ativa
                       </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                    {produtoAdicionais[prod.id] && produtoAdicionais[prod.id].length > 0 ? (
+                      <div className="space-y-1">
+                        {produtoAdicionais[prod.id].slice(0, 2).map((adicional) => (
+                          <div key={adicional.id} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                            {adicional.nome} (+R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')})
+                          </div>
+                        ))}
+                        {produtoAdicionais[prod.id].length > 2 && (
+                          <div className="text-xs text-gray-500">
+                            +{produtoAdicionais[prod.id].length - 2} mais
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Nenhum</span>
                     )}
                   </TableCell>
                   {canManage && (

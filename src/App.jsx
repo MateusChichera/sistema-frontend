@@ -33,6 +33,7 @@ import CadastrosProdutosPage from './components/gerencial/ProdutosPage';
 import CadastrosFormasPagamentoPage from './components/gerencial/FormasPagamentoPage';
 import CadastrosFuncionariosPage from './components/gerencial/FuncionariosPage';
 import CadastrosMesasPage from './components/gerencial/MesasPage';
+import CadastrosAdicionaisPage from './components/gerencial/AdicionaisPage';
 import ConfiguracoesPage from './components/gerencial/ConfiguracoesPage';
 
 // IMPORTAR A PÁGINA DO ADMIN MASTER
@@ -136,6 +137,11 @@ function App() {
               <Route path="/gerencial/:slug/cadastros/mesas" element={
                 <LayoutGerencial>
                   <CadastrosMesasPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/adicionais" element={
+                <LayoutGerencial>
+                  <CadastrosAdicionaisPage />
                 </LayoutGerencial>
               } />
               

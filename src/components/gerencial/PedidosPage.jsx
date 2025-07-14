@@ -192,6 +192,19 @@ const PedidosPage = () => {
                     </tr>
                 `;
             }
+            // Exibir adicionais do item
+            if (item.adicionais && item.adicionais.length > 0) {
+                item.adicionais.forEach(adicional => {
+                    content += `
+                        <tr class="item-row" style="font-size: 8px; color: #0066cc;">
+                            <td>${adicional.quantidade}x</td>
+                            <td>+ ${adicional.nome}</td>
+                            <td style="text-align: right;">${parseFloat(adicional.preco_unitario_adicional || 0).toFixed(2).replace('.', ',')}</td>
+                            <td style="text-align: right;">R$ ${(parseFloat(adicional.quantidade || 0) * parseFloat(adicional.preco_unitario_adicional || 0)).toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                    `;
+                });
+            }
         });
 
         content += `
@@ -716,8 +729,20 @@ const PedidosPage = () => {
                                 <ul className="list-disc pl-5 space-y-1">
                                     {selectedPedido.itens && selectedPedido.itens.length > 0 ? selectedPedido.itens.map(item => (
                                         <li key={item.id}>
-                                            {item.quantidade}x {item.nome_produto} (R$ {parseFloat(item.preco_unitario).toFixed(2).replace('.', ',')}) - Total: R$ {(parseFloat(item.quantidade) * parseFloat(item.preco_unitario)).toFixed(2).replace('.', ',')}
-                                            {item.observacoes && item.observacoes.trim() !== '' && <span className="text-sm italic text-gray-600"> (Obs: {item.observacoes})</span>}
+                                            <div>
+                                                {item.quantidade}x {item.nome_produto} (R$ {parseFloat(item.preco_unitario).toFixed(2).replace('.', ',')}) - Total: R$ {(parseFloat(item.quantidade) * parseFloat(item.preco_unitario)).toFixed(2).replace('.', ',')}
+                                                {item.observacoes && item.observacoes.trim() !== '' && <span className="text-sm italic text-gray-600"> (Obs: {item.observacoes})</span>}
+                                            </div>
+                                            {/* Exibir adicionais do item */}
+                                            {item.adicionais && item.adicionais.length > 0 && (
+                                                <div className="ml-4 mt-1">
+                                                    {item.adicionais.map((adicional, adicIdx) => (
+                                                        <div key={adicIdx} className="text-sm text-blue-600">
+                                                            + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco_unitario_adicional).toFixed(2).replace('.', ',')})
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </li>
                                     )) : <p>Nenhum item listado para este pedido.</p>}
                                 </ul>
