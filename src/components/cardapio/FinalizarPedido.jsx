@@ -149,7 +149,11 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 itens: itens.map(item => ({
                     id_produto: item.id_produto,
                     quantidade: item.quantidade,
-                    observacoes: item.observacoes
+                    observacoes: item.observacoes,
+                    adicionais: item.adicionais ? item.adicionais.map(adicional => ({
+                        id_adicional: adicional.id,
+                        quantidade: adicional.quantidade
+                    })) : []
                 })),
                 id_forma_pagamento: parseInt(selectedFormaPagamento),
                 formapagamento: selectedPaymentMethod.descricao || null,
@@ -328,7 +332,23 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                     <TableBody>
                         {itens.map((item) => (
                             <TableRow key={`${item.id_produto}-${item.observacoes}`}>
-                                <TableCell>{item.nome} {item.observacoes && `(${item.observacoes})`}</TableCell>
+                                <TableCell>
+                                    <div>
+                                        <div>{item.nome}</div>
+                                        {item.observacoes && (
+                                            <div className="text-sm text-gray-600">Obs: {item.observacoes}</div>
+                                        )}
+                                        {item.adicionais && item.adicionais.length > 0 && (
+                                            <div className="text-sm text-blue-600 mt-1">
+                                                {item.adicionais.map((adicional, idx) => (
+                                                    <div key={idx}>
+                                                        + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')})
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </TableCell>
                                 <TableCell>{item.quantidade}</TableCell>
                                 <TableCell className="text-right">R$ {parseFloat(item.preco_unitario).toFixed(2).replace('.', ',')}</TableCell>
                                 <TableCell className="text-right">R$ {(item.quantidade * parseFloat(item.preco_unitario)).toFixed(2).replace('.', ',')}</TableCell>

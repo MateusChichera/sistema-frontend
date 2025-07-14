@@ -39,7 +39,7 @@ export const CarrinhoProvider = ({ children }) => {
 
 
     // Adicionar um novo item ou atualizar a quantidade de um item existente
-    // Agora aceita 'produto.observacoes' para diferenciar itens do mesmo produto
+    // Agora aceita 'produto.observacoes' e 'produto.adicionais' para diferenciar itens do mesmo produto
     const adicionarItem = useCallback((produto, quantidade = 1) => {
         setItens(prevItens => {
             // Calcula o preço final do produto no momento da adição, incluindo promoção
@@ -47,13 +47,22 @@ export const CarrinhoProvider = ({ children }) => {
                 ? parseFloat(produto.promocao)
                 : parseFloat(produto.preco);
 
-            // Tenta encontrar um item existente com o MESMO ID e a MESMA OBSERVAÇÃO
+            // Calcula o preço total dos adicionais
+            const precoAdicionais = produto.adicionais ? produto.adicionais.reduce((total, adicional) => {
+                return total + (parseFloat(adicional.preco) * adicional.quantidade);
+            }, 0) : 0;
+
+            // Tenta encontrar um item existente com o MESMO ID, MESMA OBSERVAÇÃO e MESMOS ADICIONAIS
             const itemIndex = prevItens.findIndex(
-                item => item.id_produto === produto.id && item.observacoes === (produto.observacoes || '')
+                item => {
+                    const mesmaObservacao = item.observacoes === (produto.observacoes || '');
+                    const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(produto.adicionais || []);
+                    return item.id_produto === produto.id && mesmaObservacao && mesmosAdicionais;
+                }
             );
 
             if (itemIndex > -1) {
-                // Se o item (com a mesma observação) já existe, atualiza a quantidade
+                // Se o item (com a mesma observação e adicionais) já existe, atualiza a quantidade
                 const newItens = [...prevItens];
                 newItens[itemIndex] = {
                     ...newItens[itemIndex],
@@ -67,10 +76,11 @@ export const CarrinhoProvider = ({ children }) => {
                     {
                         id_produto: produto.id, // Armazena o ID do produto original
                         nome: produto.nome,
-                        preco_unitario: precoAplicado, // Armazena o preço final já calculado
+                        preco_unitario: precoAplicado + precoAdicionais, // Armazena o preço final já calculado + adicionais
                         quantidade: quantidade,
                         observacoes: produto.observacoes || '', // Garante que observacoes exista
-                        foto_url: produto.foto_url // Para exibir no carrinho se necessário
+                        foto_url: produto.foto_url, // Para exibir no carrinho se necessário
+                        adicionais: produto.adicionais || [] // Armazena os adicionais selecionados
                     }
                 ];
             }
@@ -80,17 +90,29 @@ export const CarrinhoProvider = ({ children }) => {
     // Remover um item do carrinho
     // Se `quantidadeToRemove` for especificado, remove apenas essa quantidade.
     // Se não for especificado ou for `true` (para remover tudo), remove o item completamente.
-    const removerItem = useCallback((id_produto, quantidadeToRemove, observacoes = '') => {
+    const removerItem = useCallback((id_produto, quantidadeToRemove, observacoes = '', adicionais = []) => {
         setItens(prevItens => {
             if (quantidadeToRemove === true) { // Remover item completamente (comportamento para remover X do carrinho)
-                const itemToRemove = prevItens.find(item => item.id_produto === id_produto && item.observacoes === observacoes);
+                const itemToRemove = prevItens.find(item => {
+                    const mesmaObservacao = item.observacoes === observacoes;
+                    const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(adicionais);
+                    return item.id_produto === id_produto && mesmaObservacao && mesmosAdicionais;
+                });
                 if (itemToRemove) {
                     toast.info(`"${itemToRemove.nome}" removido do carrinho.`);
-                    return prevItens.filter(item => !(item.id_produto === id_produto && item.observacoes === observacoes));
+                    return prevItens.filter(item => {
+                        const mesmaObservacao = item.observacoes === observacoes;
+                        const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(adicionais);
+                        return !(item.id_produto === id_produto && mesmaObservacao && mesmosAdicionais);
+                    });
                 }
                 return prevItens;
             } else { // Remover uma quantidade específica (comportamento para botões +/-)
-                const itemIndex = prevItens.findIndex(item => item.id_produto === id_produto && item.observacoes === observacoes);
+                const itemIndex = prevItens.findIndex(item => {
+                    const mesmaObservacao = item.observacoes === observacoes;
+                    const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(adicionais);
+                    return item.id_produto === id_produto && mesmaObservacao && mesmosAdicionais;
+                });
                 if (itemIndex > -1) {
                     const newItens = [...prevItens];
                     const currentQuantity = newItens[itemIndex].quantidade;
@@ -111,23 +133,33 @@ export const CarrinhoProvider = ({ children }) => {
     }, []);
 
     // Atualizar a quantidade de um item no carrinho
-    const atualizarQuantidadeItem = useCallback((id_produto, novaQuantidade, observacoes = '') => {
+    const atualizarQuantidadeItem = useCallback((id_produto, novaQuantidade, observacoes = '', adicionais = []) => {
         setItens(prevItens => {
             if (novaQuantidade <= 0) {
-                return prevItens.filter(item => !(item.id_produto === id_produto && item.observacoes === observacoes));
+                return prevItens.filter(item => {
+                    const mesmaObservacao = item.observacoes === observacoes;
+                    const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(adicionais);
+                    return !(item.id_produto === id_produto && mesmaObservacao && mesmosAdicionais);
+                });
             }
-            return prevItens.map(item =>
-                (item.id_produto === id_produto && item.observacoes === observacoes)
+            return prevItens.map(item => {
+                const mesmaObservacao = item.observacoes === observacoes;
+                const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(adicionais);
+                return (item.id_produto === id_produto && mesmaObservacao && mesmosAdicionais)
                     ? { ...item, quantidade: novaQuantidade }
-                    : item
-            );
+                    : item;
+            });
         });
     }, []);
 
     // Adicionar/atualizar observação de um item no carrinho
-    const adicionarObservacaoItem = useCallback((id_produto, novaObservacao, oldObservacao = '') => {
+    const adicionarObservacaoItem = useCallback((id_produto, novaObservacao, oldObservacao = '', adicionais = []) => {
         setItens(prevItens => {
-            const originalItemIndex = prevItens.findIndex(item => item.id_produto === id_produto && item.observacoes === oldObservacao);
+            const originalItemIndex = prevItens.findIndex(item => {
+                const mesmaObservacao = item.observacoes === oldObservacao;
+                const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(adicionais);
+                return item.id_produto === id_produto && mesmaObservacao && mesmosAdicionais;
+            });
 
             if (originalItemIndex === -1) {
                 toast.error('Item não encontrado para atualizar observação.');
@@ -140,8 +172,12 @@ export const CarrinhoProvider = ({ children }) => {
                 return prevItens; // Nenhuma mudança na observação
             }
 
-            // Se a nova observação já existe para este produto, agrupa. Caso contrário, apenas atualiza.
-            const existingWithNewObsIndex = prevItens.findIndex(item => item.id_produto === id_produto && item.observacoes === novaObservacao);
+            // Se a nova observação já existe para este produto com os mesmos adicionais, agrupa. Caso contrário, apenas atualiza.
+            const existingWithNewObsIndex = prevItens.findIndex(item => {
+                const mesmaObservacao = item.observacoes === novaObservacao;
+                const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(adicionais);
+                return item.id_produto === id_produto && mesmaObservacao && mesmosAdicionais;
+            });
 
             let newItens = [...prevItens];
 

@@ -127,6 +127,8 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
   const [selectedProduct, setSelectedProduct] = useState(null); // Para o modal de observações
   const [productQuantity, setProductQuantity] = useState(1); // Quantidade no modal
   const [productObservation, setProductObservation] = useState(''); // Observação no modal
+  const [productAdicionais, setProductAdicionais] = useState([]); // Adicionais disponíveis do produto
+  const [selectedAdicionais, setSelectedAdicionais] = useState([]); // Adicionais selecionados no modal
 
   // Filtros
   const [selectedCategoryId, setSelectedCategoryId] = useState('all');
@@ -196,10 +198,33 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
 
         const produtosResponse = await api.get(`/${empresa.slug}/cardapio/produtos`);
         // Filtra apenas produtos ATIVOS para exibição no cardápio público
-        const fetchedProdutos = produtosResponse.data.filter(p => p.ativo); 
+        const fetchedProdutos = produtosResponse.data.filter(p => p.ativo);
+        
+        // Carregar adicionais de cada produto
+        const produtosComAdicionais = await Promise.all(
+          fetchedProdutos.map(async (produto) => {
+            try {
+              const adicionaisResponse = await api.get(`/${empresa.slug}/cardapio/produtos/${produto.id}/adicionais`);
+              console.log(`Adicionais do produto ${produto.id} (${produto.nome}):`, adicionaisResponse.data);
+              if (adicionaisResponse.data && adicionaisResponse.data.length > 0) {
+                console.log(`✅ Produto ${produto.nome} tem ${adicionaisResponse.data.length} adicionais`);
+              }
+              return {
+                ...produto,
+                adicionais: adicionaisResponse.data || []
+              };
+            } catch (err) {
+              console.error(`Erro ao carregar adicionais do produto ${produto.id}:`, err);
+              return {
+                ...produto,
+                adicionais: []
+              };
+            }
+          })
+        ); 
 
         let finalCategorias = [...fetchedCategorias];
-        let finalProdutos = [...fetchedProdutos];
+        let finalProdutos = [...produtosComAdicionais];
 
         const promoProducts = finalProdutos.filter(p => p.promo_ativa); // Filtra promos de produtos ativos
         if (promoProducts.length > 0 && empresa.mostrar_promocoes_na_home) {
@@ -208,6 +233,13 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
         }
         setCategorias(finalCategorias);
         setProdutos(finalProdutos);
+        console.log('Produtos com adicionais carregados:', finalProdutos);
+        // Verificar se há produtos com adicionais
+        const produtosComAdicionaisCount = finalProdutos.filter(prod => prod.adicionais && prod.adicionais.length > 0);
+        console.log(`📊 Total de produtos com adicionais: ${produtosComAdicionaisCount.length}`);
+        if (produtosComAdicionaisCount.length > 0) {
+          console.log('Produtos que têm adicionais:', produtosComAdicionaisCount.map(p => ({ id: p.id, nome: p.nome, adicionais: p.adicionais.length })));
+        }
 
         // Define os produtos filtrados iniciais (pode ser promoções se configurado)
         if (empresa.mostrar_promocoes_na_home) {
@@ -309,7 +341,7 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
 
 
   // Abre o modal de observações do produto
-  const openProductModal = (product) => {
+  const openProductModal = async (product) => {
     setSelectedProduct(product);
     // Para o modal de observações, o botão '+'/'Atualizar' deve adicionar a quantidade digitada com a observação.
     // Buscamos o item existente no carrinho (com ou sem observação) para pré-preencher
@@ -317,26 +349,41 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
     
     setProductQuantity(itemInCartForModal ? itemInCartForModal.quantidade : 1);
     setProductObservation(itemInCartForModal ? itemInCartForModal.observacoes : ''); // Preenche com a obs do item encontrado
+    setProductAdicionais([]);
+    setSelectedAdicionais(itemInCartForModal ? itemInCartForModal.adicionais || [] : []);
+    
+    // Carregar adicionais do produto
+    try {
+      const response = await api.get(`/${empresa.slug}/cardapio/produtos/${product.id}/adicionais`);
+      setProductAdicionais(response.data || []);
+    } catch (err) {
+      console.error("Erro ao carregar adicionais do produto:", err);
+      setProductAdicionais([]);
+    }
   };
 
   const closeProductModal = () => {
     setSelectedProduct(null);
     setProductQuantity(1);
     setProductObservation('');
+    setProductAdicionais([]);
+    setSelectedAdicionais([]);
   };
 
   // Adiciona/Atualiza item no carrinho via MODAL (com observações)
   const handleAddToCart = () => {
     if (selectedProduct) {
-      // Busca um item existente com a MESMA observação que está sendo passada (ou vazia)
-      const existingItemIndex = itens.findIndex(item => 
-          item.id_produto === selectedProduct.id && item.observacoes === (productObservation || '')
-      );
+      // Busca um item existente com a MESMA observação e MESMOS ADICIONAIS que estão sendo passados
+      const existingItemIndex = itens.findIndex(item => {
+          const mesmaObservacao = item.id_produto === selectedProduct.id && item.observacoes === (productObservation || '');
+          const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(selectedAdicionais);
+          return mesmaObservacao && mesmosAdicionais;
+      });
       
       if (existingItemIndex > -1) {
-          // Se já existe um item com a mesma observação, atualiza a quantidade
+          // Se já existe um item com a mesma observação e adicionais, atualiza a quantidade
           // Chama atualizarQuantidadeItem diretamente
-          atualizarQuantidadeItem(selectedProduct.id, productQuantity, productObservation || '');
+          atualizarQuantidadeItem(selectedProduct.id, productQuantity, productObservation || '', selectedAdicionais);
           toast.success(`Quantidade de ${selectedProduct.nome} atualizada.`);
       } else {
           // Se não existe um item com essa observação, adiciona como um novo item
@@ -347,7 +394,8 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
               promocao: selectedProduct.promocao,
               promo_ativa: selectedProduct.promo_ativa,
               foto_url: selectedProduct.foto_url,
-              observacoes: productObservation // Usa a observação do modal
+              observacoes: productObservation, // Usa a observação do modal
+              adicionais: selectedAdicionais // Inclui os adicionais selecionados
           }, productQuantity); // Usa a quantidade do modal
           toast.success(`${productQuantity}x ${selectedProduct.nome} adicionado(s) ao carrinho!`);
       }
@@ -604,6 +652,8 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
                       ) : (
                         <p className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
                       )}
+
+
                     </div>
                     {/* Botões +/- e contagem */}
                     {canMakeOnlineOrder && ( // Apenas mostra os botões se a empresa permite pedidos online no geral
@@ -690,9 +740,104 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
               <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center" disabled={!isCurrentlyOpenForOrders} />
               <Button onClick={() => setProductQuantity(prev => prev + 1)} disabled={!isCurrentlyOpenForOrders}>+</Button>
             </div>
+            {/* Seção de Adicionais */}
+            {productAdicionais.length > 0 && (
+              <div>
+                <Label className="text-base font-medium">Adicionais Disponíveis</Label>
+                <div className="space-y-2 mt-2">
+                  {productAdicionais.map((adicional) => (
+                    <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          id={`adicional-${adicional.id}`}
+                          checked={selectedAdicionais.some(sel => sel.id === adicional.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAdicionais(prev => [...prev, { ...adicional, quantidade: 1 }]);
+                            } else {
+                              setSelectedAdicionais(prev => prev.filter(sel => sel.id !== adicional.id));
+                            }
+                          }}
+                          disabled={!isCurrentlyOpenForOrders}
+                          className="h-4 w-4 text-blue-600"
+                        />
+                        <div>
+                          <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                            {adicional.nome}
+                          </Label>
+                          {adicional.descricao && (
+                            <p className="text-sm text-gray-600">{adicional.descricao}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-green-600">
+                          R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
+                        </span>
+                        {selectedAdicionais.some(sel => sel.id === adicional.id) && (
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedAdicionais(prev => prev.map(sel => 
+                                  sel.id === adicional.id 
+                                    ? { ...sel, quantidade: Math.max(1, sel.quantidade - 1) }
+                                    : sel
+                                ));
+                              }}
+                              disabled={!isCurrentlyOpenForOrders}
+                              className="h-6 w-6 p-0"
+                            >
+                              -
+                            </Button>
+                            <span className="text-sm font-medium w-4 text-center">
+                              {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedAdicionais(prev => prev.map(sel => 
+                                  sel.id === adicional.id 
+                                    ? { ...sel, quantidade: sel.quantidade + 1 }
+                                    : sel
+                                ));
+                              }}
+                              disabled={!isCurrentlyOpenForOrders}
+                              className="h-6 w-6 p-0"
+                            >
+                              +
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <Label htmlFor="observacao">Observações (opcional)</Label>
               <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} />
+            </div>
+            {/* Mostrar valor total atualizado */}
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">Valor total:</p>
+              <p className="text-lg font-bold text-green-600">
+                R$ {(() => {
+                  const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
+                    ? parseFloat(selectedProduct.promocao) 
+                    : parseFloat(selectedProduct?.preco || 0);
+                  const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
+                    return total + (parseFloat(adicional.preco) * adicional.quantidade);
+                  }, 0);
+                  return ((precoBase + precoAdicionais) * productQuantity).toFixed(2).replace('.', ',');
+                })()}
+              </p>
             </div>
           </div>
           <DialogFooter>

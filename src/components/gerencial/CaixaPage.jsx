@@ -836,6 +836,14 @@ const CaixaPage = () => {
                             <span class="item-price">R$ ${parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</span>
                             <span class="item-total">R$ ${(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</span>
                         </div>
+                        ${item.adicionais && item.adicionais.length > 0 ? item.adicionais.map(adicional => `
+                            <div class="item" style="margin-left: 10px; font-size: 10px; color: #0066cc;">
+                                <span class="item-name">+ ${adicional.quantidade}x ${adicional.nome}</span>
+                                <span class="item-qty"></span>
+                                <span class="item-price">R$ ${parseFloat(adicional.preco_unitario_adicional || 0).toFixed(2).replace('.', ',')}</span>
+                                <span class="item-total">R$ ${(parseFloat(adicional.quantidade || 0) * parseFloat(adicional.preco_unitario_adicional || 0)).toFixed(2).replace('.', ',')}</span>
+                            </div>
+                        `).join('') : ''}
                     `).join('') : '<p>Nenhum item.</p>'}
 
                     <div class="total-row">
@@ -1486,7 +1494,21 @@ const CaixaPage = () => {
                                     <TableBody>
                                         {(selectedPedido.itens || []).map(item => (
                                             <TableRow key={item.id}>
-                                                <TableCell>{item.nome_produto} {item.observacoes && `(${item.observacoes})`}</TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <div>{item.nome_produto} {item.observacoes && `(${item.observacoes})`}</div>
+                                                        {/* Exibir adicionais do item */}
+                                                        {item.adicionais && item.adicionais.length > 0 && (
+                                                            <div className="mt-1">
+                                                                {item.adicionais.map((adicional, adicIdx) => (
+                                                                    <div key={adicIdx} className="text-xs text-blue-600">
+                                                                        + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco_unitario_adicional).toFixed(2).replace('.', ',')})
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell className="text-right">{item.quantidade}</TableCell>
                                                 <TableCell className="text-right">R$ {parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</TableCell>
                                                 <TableCell className="text-right">R$ {(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</TableCell>

@@ -42,7 +42,10 @@ const CardapioPage = () => {
   // productQuantityInModal é a quantidade que será adicionada/atualizada via modal
   const [productQuantityInModal, setProductQuantityInModal] = useState(1); 
   // productObservationInModal é a observação digitada no modal
-  const [productObservationInModal, setProductObservationInModal] = useState(''); 
+  const [productObservationInModal, setProductObservationInModal] = useState('');
+  // Estados para adicionais no modal
+  const [productAdicionais, setProductAdicionais] = useState([]); // Adicionais disponíveis do produto
+  const [selectedAdicionais, setSelectedAdicionais] = useState([]); // Adicionais selecionados no modal 
 
 
   // Estado para a mesa selecionada para o pedido
@@ -104,10 +107,35 @@ const CardapioPage = () => {
         });
         const fetchedProdutos = produtosResponse.data;
         
+        // Carregar adicionais de cada produto
+        const produtosComAdicionais = await Promise.all(
+          fetchedProdutos.map(async (produto) => {
+            try {
+              const adicionaisResponse = await api.get(`/gerencial/${empresa.slug}/produtos/${produto.id}/adicionais`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              console.log(`Adicionais do produto ${produto.id} (${produto.nome}):`, adicionaisResponse.data);
+              if (adicionaisResponse.data && adicionaisResponse.data.length > 0) {
+                console.log(`✅ Produto ${produto.nome} tem ${adicionaisResponse.data.length} adicionais`);
+              }
+              return {
+                ...produto,
+                adicionais: adicionaisResponse.data || []
+              };
+            } catch (err) {
+              console.error(`Erro ao carregar adicionais do produto ${produto.id}:`, err);
+              return {
+                ...produto,
+                adicionais: []
+              };
+            }
+          })
+        );
+        
         let finalCategorias = [...fetchedCategorias];
-        let finalProdutos = [...fetchedProdutos];
+        let finalProdutos = [...produtosComAdicionais];
 
-        const promoProducts = fetchedProdutos.filter(p => p.promo_ativa && p.ativo);
+        const promoProducts = finalProdutos.filter(p => p.promo_ativa && p.ativo);
         if (promoProducts.length > 0) {
             const promoCategory = { id: 'promo', descricao: '🔥 Promoções', ativo: true };
             finalCategorias = [promoCategory, ...fetchedCategorias];
@@ -115,6 +143,13 @@ const CardapioPage = () => {
         setCategorias(finalCategorias);
         setProdutos(finalProdutos);
         setFilteredProdutos(finalProdutos);
+        console.log('Produtos com adicionais carregados (interno):', finalProdutos);
+        // Verificar se há produtos com adicionais
+        const produtosComAdicionaisCount = finalProdutos.filter(prod => prod.adicionais && prod.adicionais.length > 0);
+        console.log(`📊 Total de produtos com adicionais (interno): ${produtosComAdicionaisCount.length}`);
+        if (produtosComAdicionaisCount.length > 0) {
+          console.log('Produtos que têm adicionais (interno):', produtosComAdicionaisCount.map(p => ({ id: p.id, nome: p.nome, adicionais: p.adicionais.length })));
+        }
 
 
         const mesasResponse = await api.get(`/gerencial/${empresa.slug}/mesas`, {
@@ -159,19 +194,34 @@ const CardapioPage = () => {
 
 
   // FUNÇÕES PARA O MODAL DE OBSERVAÇÕES DE PRODUTO (ao clicar no card do produto)
-  const openProductObservationModal = (product) => {
+  const openProductObservationModal = async (product) => {
     setSelectedProduct(product);
     // Tenta encontrar o item no carrinho para pré-preencher quantidade e observação
     // Buscamos um item genérico (sem observação específica) ou o primeiro com esse ID de produto
     const itemInCart = itens.find(item => item.id_produto === product.id); 
     setProductQuantityInModal(itemInCart ? itemInCart.quantidade : 1);
     setProductObservationInModal(itemInCart ? itemInCart.observacoes : ''); // Pré-preenche com a obs do item encontrado (se houver)
+    setProductAdicionais([]);
+    setSelectedAdicionais(itemInCart ? itemInCart.adicionais || [] : []);
+    
+    // Carregar adicionais do produto
+    try {
+      const response = await api.get(`/gerencial/${empresa.slug}/produtos/${product.id}/adicionais`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProductAdicionais(response.data || []);
+    } catch (err) {
+      console.error("Erro ao carregar adicionais do produto:", err);
+      setProductAdicionais([]);
+    }
   };
 
   const closeProductObservationModal = () => {
     setSelectedProduct(null);
     setProductQuantityInModal(1);
     setProductObservationInModal('');
+    setProductAdicionais([]);
+    setSelectedAdicionais([]);
   };
 
   const handleAddProductToCartFromModal = () => {
@@ -186,9 +236,10 @@ const CardapioPage = () => {
             promocao: selectedProduct.promocao,
             promo_ativa: selectedProduct.promo_ativa,
             foto_url: selectedProduct.foto_url,
+            observacoes: productObservationInModal, // Passa a observação do modal
+            adicionais: selectedAdicionais // Inclui os adicionais selecionados
         }, 
-        productQuantityInModal, 
-        productObservationInModal // Passa a observação do modal
+        productQuantityInModal
       );
       closeProductObservationModal();
     }
@@ -216,20 +267,28 @@ const CardapioPage = () => {
 
   const handleIncrementOnCard = (product) => {
     // Busca o item no carrinho para saber qual observação atualizar, se já existir.
-    const itemInCart = itens.find(item => item.id_produto === product.id);
+    const itemInCart = itens.find(item => {
+      const mesmaObservacao = item.id_produto === product.id && (item.observacoes === undefined || item.observacoes === '');
+      const semAdicionais = !item.adicionais || item.adicionais.length === 0;
+      return mesmaObservacao && semAdicionais;
+    });
     if (itemInCart) { // Se já está no carrinho, só incrementa
-        atualizarQuantidadeItem(product.id, itemInCart.quantidade + 1, itemInCart.observacoes);
+        atualizarQuantidadeItem(product.id, itemInCart.quantidade + 1, itemInCart.observacoes, itemInCart.adicionais);
     } else { // Se não está no carrinho, adiciona 1 unidade, sem observação
-        adicionarItem(product, 1, '');
+        adicionarItem({ ...product, observacoes: '' }, 1);
     }
   };
 
   const handleDecrementOnCard = (product) => {
-    const itemInCart = itens.find(item => item.id_produto === product.id);
+    const itemInCart = itens.find(item => {
+      const mesmaObservacao = item.id_produto === product.id && (item.observacoes === undefined || item.observacoes === '');
+      const semAdicionais = !item.adicionais || item.adicionais.length === 0;
+      return mesmaObservacao && semAdicionais;
+    });
     if (itemInCart && itemInCart.quantidade > 1) {
-        atualizarQuantidadeItem(product.id, itemInCart.quantidade - 1, itemInCart.observacoes);
+        atualizarQuantidadeItem(product.id, itemInCart.quantidade - 1, itemInCart.observacoes, itemInCart.adicionais);
     } else if (itemInCart && itemInCart.quantidade === 1) {
-        removerItem(product.id, itemInCart.observacoes);
+        removerItem(product.id, true, itemInCart.observacoes, itemInCart.adicionais);
     }
   };
 
@@ -256,7 +315,11 @@ const CardapioPage = () => {
       const itensParaEnviar = itens.map(item => ({
         id_produto: item.id_produto,
         quantidade: item.quantidade,
-        observacoes: item.observacoes // Observação por item
+        observacoes: item.observacoes, // Observação por item
+        adicionais: item.adicionais ? item.adicionais.map(adicional => ({
+          id_adicional: adicional.id,
+          quantidade: adicional.quantidade
+        })) : []
       }));
 
       // Se existingOrderForMesa é um objeto de pedido (significa que já existe um pedido ativo para a mesa)
@@ -363,7 +426,7 @@ const CardapioPage = () => {
   const saveObservation = () => {
     if (itemToEditObservation) {
       // Passa o ID do produto, a nova observação e a observação antiga (para identificar o item corretamente)
-      adicionarObservacaoItem(itemToEditObservation.id_produto, currentObservation, itemToEditObservation.observacoes);
+      adicionarObservacaoItem(itemToEditObservation.id_produto, currentObservation, itemToEditObservation.observacoes, itemToEditObservation.adicionais);
       setIsEditingObservation(false);
       setItemToEditObservation(null);
       setCurrentObservation('');
@@ -561,6 +624,8 @@ const CardapioPage = () => {
                                         ) : (
                                             <p className="text-gray-800 font-bold text-lg mt-1">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
                                         )}
+
+
                                     </div>
                                     {/* Botões de quantidade * /}
                                     <div className="flex items-center space-x-2 mt-2 self-end md:self-auto">
@@ -648,10 +713,106 @@ const CardapioPage = () => {
               <Input type="number" value={productQuantityInModal} onChange={(e) => setProductQuantityInModal(parseInt(e.target.value) || 1)} className="w-16 text-center" />
               <Button onClick={() => setProductQuantityInModal(prev => prev + 1)}>+</Button>
             </div>
+            
+            {/* Seção de Adicionais */}
+            {productAdicionais.length > 0 && (
+              <div>
+                <Label className="text-base font-medium">Adicionais Disponíveis</Label>
+                <div className="space-y-2 mt-2">
+                  {productAdicionais.map((adicional) => (
+                    <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          id={`adicional-${adicional.id}`}
+                          checked={selectedAdicionais.some(sel => sel.id === adicional.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAdicionais(prev => [...prev, { ...adicional, quantidade: 1 }]);
+                            } else {
+                              setSelectedAdicionais(prev => prev.filter(sel => sel.id !== adicional.id));
+                            }
+                          }}
+                          className="h-4 w-4 text-blue-600"
+                        />
+                        <div>
+                          <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                            {adicional.nome}
+                          </Label>
+                          {adicional.descricao && (
+                            <p className="text-sm text-gray-600">{adicional.descricao}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-green-600">
+                          R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
+                        </span>
+                        {selectedAdicionais.some(sel => sel.id === adicional.id) && (
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedAdicionais(prev => prev.map(sel => 
+                                  sel.id === adicional.id 
+                                    ? { ...sel, quantidade: Math.max(1, sel.quantidade - 1) }
+                                    : sel
+                                ));
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              -
+                            </Button>
+                            <span className="text-sm font-medium w-4 text-center">
+                              {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedAdicionais(prev => prev.map(sel => 
+                                  sel.id === adicional.id 
+                                    ? { ...sel, quantidade: sel.quantidade + 1 }
+                                    : sel
+                                ));
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              +
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div>
               <Label htmlFor="observacao">Observações (opcional)</Label>
               <Textarea id="observacao" value={productObservationInModal} onChange={(e) => setProductObservationInModal(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." />
             </div>
+            
+            {/* Mostrar valor total atualizado */}
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">Valor total:</p>
+              <p className="text-lg font-bold text-green-600">
+                R$ {(() => {
+                  const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
+                    ? parseFloat(selectedProduct.promocao) 
+                    : parseFloat(selectedProduct?.preco || 0);
+                  const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
+                    return total + (parseFloat(adicional.preco) * adicional.quantidade);
+                  }, 0);
+                  return ((precoBase + precoAdicionais) * productQuantityInModal).toFixed(2).replace('.', ',');
+                })()}
+              </p>
+            </div>
+            
           </div>
           <DialogFooter>
             <Button onClick={handleAddProductToCartFromModal}>Adicionar ao Carrinho</Button>
@@ -686,13 +847,22 @@ const CardapioPage = () => {
                             <p className="font-semibold">{item.nome}</p>
                             <p className="text-sm text-gray-600">R$ {item.preco_unitario.toFixed(2).replace('.', ',')}</p>
                             {item.observacoes && <p className="text-xs italic text-gray-500">Obs: {item.observacoes}</p>}
+                            {item.adicionais && item.adicionais.length > 0 && (
+                                <div className="text-xs text-blue-600 mt-1">
+                                    {item.adicionais.map((adicional, idx) => (
+                                        <div key={idx}>
+                                            + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')})
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center space-x-1">
                             <Button 
                                 type="button" 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade - 1, item.observacoes)}
+                                onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade - 1, item.observacoes, item.adicionais)}
                                // disabled={item.quantidade <= 1}
                             >
                                 <Minus className="h-4 w-4" />
@@ -700,7 +870,7 @@ const CardapioPage = () => {
                             <Input 
                                 type="number" 
                                 value={item.quantidade} 
-                                onChange={(e) => atualizarQuantidadeItem(item.id_produto, parseInt(e.target.value) || 0, item.observacoes)} 
+                                onChange={(e) => atualizarQuantidadeItem(item.id_produto, parseInt(e.target.value) || 0, item.observacoes, item.adicionais)} 
                                 className="w-16 text-center" 
                                 min="1" 
                             />
@@ -708,7 +878,7 @@ const CardapioPage = () => {
                                 type="button" 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade + 1, item.observacoes)}
+                                onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade + 1, item.observacoes, item.adicionais)}
                             >
                                 <Plus className="h-4 w-4" />
                             </Button>
@@ -716,7 +886,7 @@ const CardapioPage = () => {
                                 type="button" 
                                 variant="destructive" 
                                 size="sm" 
-                                onClick={() => removerItem(item.id_produto,true, item.observacoes)}
+                                onClick={() => removerItem(item.id_produto, true, item.observacoes, item.adicionais)}
                             >
                                 <XCircle className="h-4 w-4" />
                             </Button>
