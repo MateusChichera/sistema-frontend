@@ -44,6 +44,9 @@ const CaixaPage = () => {
     const [dividirContaAtivo, setDividirContaAtivo] = useState(false);
     const [numPessoasDividir, setNumPessoasDividir] = useState('');
     const [loadingFinalizacao, setLoadingFinalizacao] = useState(false);
+    
+    // Estado para controlar a cobrança de porcentagem do garçom
+    const [cobrarPorcentagemGarcom, setCobrarPorcentagemGarcom] = useState(false);
 
     // FIRST_EDIT: estados para controle de caixa
     const [caixaInfo, setCaixaInfo] = useState(null);
@@ -430,6 +433,7 @@ const CaixaPage = () => {
             setNumPessoasDividir('');
             setObservacoesPagamento('');
             setSelectedFormaPagamentoId(formasPagamento.length > 0 ? formasPagamento[0].id.toString() : '');
+            setCobrarPorcentagemGarcom(false); // Reset da cobrança de porcentagem do garçom
 
 
             setIsPedidoDetailModalOpen(true);
@@ -450,6 +454,7 @@ const CaixaPage = () => {
         setObservacoesPagamento('');
         setDividirContaAtivo(false);
         setNumPessoasDividir('');
+        setCobrarPorcentagemGarcom(false); // Reset da cobrança de porcentagem do garçom
     };
 
     // FUNÇÃO QUE ATUALIZA O STATUS DO PEDIDO (APENAS CANCELAR A PARTIR daqui)
@@ -473,15 +478,24 @@ const CaixaPage = () => {
     };
 
 
-    // VALOR TOTAL DO PEDIDO (COM TAXA DE ENTREGA)
+    // VALOR TOTAL DO PEDIDO (COM TAXA DE ENTREGA E PORCENTAGEM DO GARÇOM)
     const totalGeralPedidoOriginal = useMemo(() => {
         if (!selectedPedido) return 0;
         let total = parseFloat(selectedPedido.valor_total || 0);
+        
+        // Adiciona taxa de entrega para delivery
         if (selectedPedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) {
             total += parseFloat(empresa.taxa_entrega);
         }
+        
+        // Adiciona 10% do garçom se habilitado e for pedido de mesa
+        if (cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom) {
+            const valorOriginal = parseFloat(selectedPedido.valor_total || 0);
+            total += valorOriginal * 0.10; // 10% do valor original do pedido
+        }
+        
         return total;
-    }, [selectedPedido, empresa?.taxa_entrega]);
+    }, [selectedPedido, empresa?.taxa_entrega, empresa?.porcentagem_garcom, cobrarPorcentagemGarcom]);
 
     // VALOR QUE AINDA FALTA PAGAR (DO TOTAL GERAL DO PEDIDO)
     const valorRestanteTotalDoPedido = useMemo(() => {
@@ -525,13 +539,21 @@ const CaixaPage = () => {
         }
     }, [valorComDesconto, selectedFormaPagamentoId, formasPagamento]);
 
-    // ATUALIZAÇÃO DO VALOR A COBRAR QUANDO O PEDIDO É ATUALIZADO
+    // ATUALIZAÇÃO DO VALOR A COBRAR QUANDO O PEDIDO É ATUALIZADO OU COBRANÇA DE GARÇOM MUDAR
     useEffect(() => {
         if (selectedPedido) {
-            // Calcula o valor total do pedido incluindo taxa de entrega
+            // Calcula o valor total do pedido incluindo taxa de entrega e porcentagem do garçom
             let totalGeral = parseFloat(selectedPedido.valor_total || 0);
+            
+            // Adiciona taxa de entrega para delivery
             if (selectedPedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) {
                 totalGeral += parseFloat(empresa.taxa_entrega);
+            }
+            
+            // Adiciona 10% do garçom se habilitado e for pedido de mesa
+            if (cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom) {
+                const valorOriginal = parseFloat(selectedPedido.valor_total || 0);
+                totalGeral += valorOriginal * 0.10; // 10% do valor original do pedido
             }
 
             // Calcula o valor restante a pagar
@@ -544,7 +566,26 @@ const CaixaPage = () => {
                 setValorCobrancaManual(restanteParaPagar.toFixed(2));
             }
         }
-    }, [selectedPedido, empresa?.taxa_entrega, valorCobrancaManual]);
+    }, [selectedPedido, empresa?.taxa_entrega, empresa?.porcentagem_garcom, cobrarPorcentagemGarcom, valorCobrancaManual]);
+
+    // ATUALIZAÇÃO ESPECÍFICA DO VALOR A COBRAR QUANDO A COBRANÇA DE GARÇOM MUDAR
+    useEffect(() => {
+        if (selectedPedido && selectedPedido.tipo_entrega === 'Mesa') {
+            // Calcula o valor total incluindo a porcentagem do garçom se habilitada
+            let totalGeral = parseFloat(selectedPedido.valor_total || 0);
+            
+            if (cobrarPorcentagemGarcom && empresa?.porcentagem_garcom) {
+                totalGeral += totalGeral * 0.10; // 10% do valor original
+            }
+            
+            // Calcula o valor restante a pagar
+            const valorJaRecebido = parseFloat(selectedPedido.valor_recebido_parcial || 0);
+            const restanteParaPagar = Math.max(0, totalGeral - valorJaRecebido);
+            
+            // Atualiza o valor a cobrar
+            setValorCobrancaManual(restanteParaPagar.toFixed(2));
+        }
+    }, [cobrarPorcentagemGarcom, selectedPedido, empresa?.porcentagem_garcom]);
 
 
     // VALOR A PAGAR NESTA OPERAÇÃO (COM DIVISÃO DE CONTA APLICADA)
@@ -650,12 +691,15 @@ const CaixaPage = () => {
                 forma_pagamento_id: parseInt(formaPagamentoId),
                 itens_cobrados_ids: selectedPedido.itens.map(item => item.id),
                 dividir_conta_qtd_pessoas: dividirConta,
-                observacoes_pagamento: observacoes
+                observacoes_pagamento: observacoes,
+                cobrar_porcentagem_garcom: cobrarPorcentagemGarcom // Inclui informação sobre cobrança de garçom
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            toast.success(`Pagamento de R$ ${valorRecebido.toFixed(2).replace('.', ',')} registrado para o Pedido #${selectedPedido.numero_pedido}!`);
+            const mensagemBase = `Pagamento de R$ ${valorRecebido.toFixed(2).replace('.', ',')} registrado para o Pedido #${selectedPedido.numero_pedido}!`;
+            const mensagemGarcom = cobrarPorcentagemGarcom ? ' (Incluindo 10% do garçom)' : '';
+            toast.success(mensagemBase + mensagemGarcom);
             
             // Re-busca o pedido atualizado para garantir que todos os dados (incluindo pagamentos) estejam presentes
             const updatedPedidoData = await api.get(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}`, {
@@ -671,9 +715,18 @@ const CaixaPage = () => {
 
             // Calcula o novo valor restante a pagar após o pagamento
             let novoTotalGeral = parseFloat(pedidoAtualizado.valor_total || 0);
+            
+            // Adiciona taxa de entrega para delivery
             if (pedidoAtualizado.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) {
                 novoTotalGeral += parseFloat(empresa.taxa_entrega);
             }
+            
+            // Adiciona 10% do garçom se ainda estiver habilitado e for pedido de mesa
+            if (cobrarPorcentagemGarcom && pedidoAtualizado.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom) {
+                const valorOriginal = parseFloat(pedidoAtualizado.valor_total || 0);
+                novoTotalGeral += valorOriginal * 0.10; // 10% do valor original do pedido
+            }
+            
             const novoValorRestante = Math.max(0, novoTotalGeral - parseFloat(pedidoAtualizado.valor_recebido_parcial || 0));
 
             // Limpa os campos do formulário para o próximo pagamento
@@ -1526,6 +1579,9 @@ const CaixaPage = () => {
                                 )}
                                 <p className="text-right font-bold text-lg mt-2">
                                     Total Geral do Pedido: R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}
+                                    {cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && (
+                                        <span className="text-sm text-orange-600 ml-2">(inclui 10% garçom)</span>
+                                    )}
                                 </p>
                             </div>
                             <DialogFooter>
@@ -1594,6 +1650,26 @@ const CaixaPage = () => {
                                             </SelectContent>
                                         </Select>
                                     </div>
+
+                                    {/* Cobrança de Porcentagem do Garçom - Apenas para pedidos de Mesa */}
+                                    {selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom && (
+                                        <div className="flex items-center space-x-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                                            <Switch
+                                                id="cobrarPorcentagemGarcom"
+                                                checked={cobrarPorcentagemGarcom}
+                                                onCheckedChange={setCobrarPorcentagemGarcom}
+                                                disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                            />
+                                            <Label htmlFor="cobrarPorcentagemGarcom" className="text-orange-800 font-medium">
+                                                Cobrar 10% (Garçom)
+                                            </Label>
+                                            {cobrarPorcentagemGarcom && (
+                                                <span className="text-sm text-orange-700 ml-2">
+                                                    + R$ {(parseFloat(selectedPedido.valor_total || 0) * 0.10).toFixed(2).replace('.', ',')}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Valor a Cobrar */}
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
