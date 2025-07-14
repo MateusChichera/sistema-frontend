@@ -583,15 +583,15 @@ const PublicCardapioPage = ({ user: userProp }) => {
 
 {hasItemsInCart && isCurrentlyOpenForOrders && (
   <div
-    className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-3 z-50 transition-all duration-300 ease-in-out"
-    style={{ background: empresa?.cor_primaria_cardapio || '#d32f2f', backgroundColor: empresa?.cor_primaria_cardapio || '#d32f2f', color: '#ffffff', opacity: 1 }}
+    className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-3 z-50 transition-all duration-300 ease-in-out bg-primary"
+    style={{ color: '#fff', opacity: 1 }}
   >
     <ShoppingCart className="h-6 w-6 flex-shrink-0 text-white" />
     <span className="text-lg font-bold whitespace-nowrap">Total: R$ {total.toFixed(2).replace('.', ',')}</span>
 
     <Button
       onClick={handleOpenFinalizarPedidoModal}
-      className={"ml-auto bg-white " + (empresa?.cor_primaria_cardapio ? "text-["+empresa.cor_primaria_cardapio+"]" : "text-primary") + " border border-white font-semibold rounded-full px-5 py-2 text-sm transition-colors duration-200 hover:bg-gray-100"}
+      className="ml-auto bg-white text-primary border border-white font-semibold rounded-full px-5 py-2 text-sm transition-colors duration-200 hover:bg-gray-100"
     >
       <CheckCircle className="mr-2 h-4 w-4" /> Finalizar Pedido
     </Button>
