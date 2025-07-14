@@ -141,6 +141,10 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
   // Estes states controlam a abertura dos modais diretamente desta página
   const [isLoginRegisterModalOpen, setIsLoginRegisterModalOpen] = useState(false);
 
+  // 1. Adicione os estados:
+  const [isMinimoDeliveryModalOpen, setIsMinimoDeliveryModalOpen] = useState(false);
+  const [valorFaltanteDelivery, setValorFaltanteDelivery] = useState(0);
+
 
   // Definindo essas variáveis aqui, no escopo principal do componente, para que sejam sempre acessíveis no JSX e callbacks.
   const canMakeOnlineOrder = empresa?.permitir_pedido_online === 1; // Transforma em booleano explícito
@@ -396,22 +400,33 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
   }, [itens]); // Dependência em 'itens' para reatividade
 
 
+  // 2. Ajuste a função de finalizar pedido:
   const handleOpenFinalizarPedidoModal = () => {
     if (itens.length === 0) {
       toast.error('O carrinho está vazio para finalizar o pedido!');
       return;
     }
-    if (!isCurrentlyOpenForOrders) { // Desabilita o botão se a empresa não está aceitando pedidos
+    if (!isCurrentlyOpenForOrders) {
       toast.error("A empresa não está aceitando pedidos online no momento.");
       return;
     }
-    setIsPedidoTypeSelectionModalOpen(true);
+    setIsPedidoTypeSelectionModalOpen(true); // Sempre abre a seleção de tipo
   };
 
   const handlePedidoTypeSelected = (type) => {
     setSelectedPedidoType(type);
     setIsPedidoTypeSelectionModalOpen(false);
-    setIsFinalizarPedidoModalOpen(true);
+
+    if (
+      type === 'Delivery' &&
+      (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 &&
+      total < parseFloat(empresa.pedido_minimo_delivery)
+    ) {
+      setValorFaltanteDelivery(parseFloat(empresa.pedido_minimo_delivery) - total);
+      setIsMinimoDeliveryModalOpen(true);
+      return; // Não abre o modal de finalização!
+    }
+    setIsFinalizarPedidoModalOpen(true); // Só abre se passou na validação
   };
 
   const handleCloseFinalizarPedidoModal = () => {
@@ -456,7 +471,6 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
       </div>
     );
   }
-
 
   const hasItemsInCart = itens.length > 0;
   const primaryColor = empresa?.cor_primaria_cardapio || '#FF5733';
@@ -526,8 +540,8 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
         </div>
       )}
 
-      {/* Exibe valor mínimo de delivery se for Delivery e tiver valor configurado */}
-      {selectedPedidoType === 'Delivery' && (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 && (
+      {/* Aviso de valor mínimo para delivery - agora abaixo dos ícones, só na home ou aba Delivery */}
+      {(!selectedPedidoType || selectedPedidoType === 'Delivery') && (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 && (
         <p className="text-center text-gray-700 mb-4">
           Valor mínimo para delivery: <span className="font-semibold">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
         </p>
@@ -713,6 +727,8 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
             total={total}
             itens={itens}
             onAddMoreItems={handleAddMoreItems}
+            setIsMinimoDeliveryModalOpen={setIsMinimoDeliveryModalOpen}
+            setValorFaltanteDelivery={setValorFaltanteDelivery}
           />
         </DialogContent>
       </Dialog>
@@ -730,6 +746,46 @@ const PublicCardapioPage = ({ user }) => { // Recebe 'user' como prop do compone
             onClose={() => setIsPedidoTypeSelectionModalOpen(false)}
             empresa={empresa}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Adicione o modal ao JSX (no final do return): */}
+      <Dialog open={isMinimoDeliveryModalOpen} onOpenChange={setIsMinimoDeliveryModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogDescription>
+              <div style={{
+                background: '#e0edff',
+                border: '1px solid #93c5fd',
+                borderRadius: 8,
+                padding: 16,
+                margin: '16px 0',
+                textAlign: 'center'
+              }}>
+                <span style={{ fontWeight: 'bold', fontSize: 18 }}>O valor mínimo para delivery</span> é de <b style={{ color: '#2563eb', fontSize: 18 }}>
+                  R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}
+                </b>.<br />
+                <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: 15 }}>
+                  Faltam R$ {valorFaltanteDelivery.toFixed(2).replace('.', ',')}
+                </span> para você conseguir finalizar seu pedido.
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setIsMinimoDeliveryModalOpen(false)}
+              style={{
+                background: '#2563eb',
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: 16,
+                borderRadius: 8,
+                padding: '10px 24px'
+              }}
+            >
+              OK, voltar ao cardápio
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

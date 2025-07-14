@@ -14,7 +14,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { IMaskInput } from 'react-imask';
 import { Switch } from '../ui/switch';
 
-const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, itens, onAddMoreItems }) => {
+const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, itens, onAddMoreItems, setIsMinimoDeliveryModalOpen, setValorFaltanteDelivery }) => {
     const { user, token } = useAuth(); 
 
     const [loading, setLoading] = useState(false);
@@ -129,7 +129,12 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
 
         const pedidoMinimoDelivery = parseFloat(empresa?.pedido_minimo_delivery || 0);
         if (pedidoType === 'Delivery' && total < pedidoMinimoDelivery) {
-            toast.error(`Valor mínimo para Delivery é de R$ ${pedidoMinimoDelivery.toFixed(2).replace('.', ',')}.`);
+            if (typeof setValorFaltanteDelivery === 'function' && typeof setIsMinimoDeliveryModalOpen === 'function') {
+                setValorFaltanteDelivery(pedidoMinimoDelivery - total);
+                setIsMinimoDeliveryModalOpen(true);
+            } else {
+                toast.error(`Valor mínimo para Delivery é de R$ ${pedidoMinimoDelivery.toFixed(2).replace('.', ',')}.`);
+            }
             setLoading(false);
             return;
         }
