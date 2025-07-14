@@ -33,16 +33,17 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
 
     const savedData = loadSavedData();
 
-    const [nomeCliente, setNomeCliente] = useState(savedData?.nomeCliente || user?.nome || '');
-    const [emailCliente, setEmailCliente] = useState(savedData?.emailCliente || user?.email || '');
-    const [telefoneCliente, setTelefoneCliente] = useState(savedData?.telefoneCliente || user?.telefone || '');
+    // Sempre iniciar os campos em branco para o público
+    const [nomeCliente, setNomeCliente] = useState(savedData?.nomeCliente || '');
+    const [emailCliente, setEmailCliente] = useState(savedData?.emailCliente || '');
+    const [telefoneCliente, setTelefoneCliente] = useState(savedData?.telefoneCliente || '');
 
-    const [ruaCliente, setRuaCliente] = useState(savedData?.ruaCliente || user?.endereco?.rua || '');
-    const [numeroCliente, setNumeroCliente] = useState(savedData?.numeroCliente || user?.endereco?.numero || '');
-    const [bairroCliente, setBairroCliente] = useState(savedData?.bairroCliente || user?.endereco?.bairro || '');
-    const [cepCliente, setCepCliente] = useState(savedData?.cepCliente || user?.endereco?.cep || '');
-    const [cidadeCliente, setCidadeCliente] = useState(savedData?.cidadeCliente || user?.endereco?.cidade || '');
-    const [estadoCliente, setEstadoCliente] = useState(savedData?.estadoCliente || user?.endereco?.estado || '');
+    const [ruaCliente, setRuaCliente] = useState(savedData?.ruaCliente || '');
+    const [numeroCliente, setNumeroCliente] = useState(savedData?.numeroCliente || '');
+    const [bairroCliente, setBairroCliente] = useState(savedData?.bairroCliente || '');
+    const [cepCliente, setCepCliente] = useState(savedData?.cepCliente || '');
+    const [cidadeCliente, setCidadeCliente] = useState(savedData?.cidadeCliente || '');
+    const [estadoCliente, setEstadoCliente] = useState(savedData?.estadoCliente || '');
     const [precisaTroco, setPrecisaTroco] = useState(savedData?.precisaTroco || false);
     const [valorPagoCliente, setValorPagoCliente] = useState(savedData?.valorPagoCliente || '');
 
@@ -77,6 +78,32 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
         precisaTroco, valorPagoCliente, obsPedido, selectedFormaPagamento, wantsToRegister, passwordRegister
     ]);
 
+    // Preencher automaticamente se usuário logado for cliente
+    useEffect(() => {
+        if (user && user.role === 'cliente') {
+            if (!nomeCliente) setNomeCliente(user.nome || '');
+            if (!emailCliente) setEmailCliente(user.email || '');
+            if (!telefoneCliente) setTelefoneCliente(user.telefone || '');
+            if (user.endereco) {
+                // Tenta extrair rua, número, bairro, cep, cidade, estado do campo endereco (string)
+                const endereco = user.endereco;
+                // Exemplo: Rua José Bongiovani, 151, Vila Liberdade, CEP: 19050-680, Presidente Prudente - SP
+                const ruaMatch = endereco.match(/^([^,]+)/);
+                const numeroMatch = endereco.match(/,\s*(\d+)/);
+                const bairroMatch = endereco.match(/,\s*([^,]+),\s*CEP:/);
+                const cepMatch = endereco.match(/CEP:\s*([\d-]+)/);
+                const cidadeMatch = endereco.match(/,\s*([^,]+)\s*-\s*[A-Z]{2}$/);
+                const estadoMatch = endereco.match(/-\s*([A-Z]{2})$/);
+                if (!ruaCliente && ruaMatch) setRuaCliente(ruaMatch[1]);
+                if (!numeroCliente && numeroMatch) setNumeroCliente(numeroMatch[1]);
+                if (!bairroCliente && bairroMatch) setBairroCliente(bairroMatch[1]);
+                if (!cepCliente && cepMatch) setCepCliente(cepMatch[1]);
+                if (!cidadeCliente && cidadeMatch) setCidadeCliente(cidadeMatch[1]);
+                if (!estadoCliente && estadoMatch) setEstadoCliente(estadoMatch[1]);
+            }
+        }
+    }, [user]);
+
     useEffect(() => {
         const fetchFormasPagamento = async () => {
             if (!empresa || !empresa.slug) return;
@@ -108,6 +135,28 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
         e.preventDefault();
         setLoading(true); 
         setSubmitError(null); 
+
+        // Garantir preenchimento dos campos se usuário logado for cliente
+        if (user && user.role === 'cliente') {
+            if (!nomeCliente) setNomeCliente(user.nome || '');
+            if (!emailCliente) setEmailCliente(user.email || '');
+            if (!telefoneCliente) setTelefoneCliente(user.telefone || '');
+            if (user.endereco) {
+                const endereco = user.endereco;
+                const ruaMatch = endereco.match(/^([^,]+)/);
+                const numeroMatch = endereco.match(/,\s*(\d+)/);
+                const bairroMatch = endereco.match(/,\s*([^,]+),\s*CEP:/);
+                const cepMatch = endereco.match(/CEP:\s*([\d-]+)/);
+                const cidadeMatch = endereco.match(/,\s*([^,]+)\s*-\s*[A-Z]{2}$/);
+                const estadoMatch = endereco.match(/-\s*([A-Z]{2})$/);
+                if (!ruaCliente && ruaMatch) setRuaCliente(ruaMatch[1]);
+                if (!numeroCliente && numeroMatch) setNumeroCliente(numeroMatch[1]);
+                if (!bairroCliente && bairroMatch) setBairroCliente(bairroMatch[1]);
+                if (!cepCliente && cepMatch) setCepCliente(cepMatch[1]);
+                if (!cidadeCliente && cidadeMatch) setCidadeCliente(cidadeMatch[1]);
+                if (!estadoCliente && estadoMatch) setEstadoCliente(estadoMatch[1]);
+            }
+        }
 
         if (itens.length === 0) {
             toast.error('O carrinho está vazio!');
@@ -164,40 +213,21 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 formapagamento: selectedPaymentMethod.descricao || null,
                 troco: parseFloat(trocoCalculado.toFixed(2)) || 0,
                 taxa_entrega: pedidoType === 'Delivery' ? parseFloat(empresa?.taxa_entrega || 0) : 0,
+                nome_cliente_convidado: nomeCliente,
+                email_cliente_convidado: emailCliente,
+                telefone_cliente_convidado: telefoneCliente.replace(/\D/g, ''),
             };
 
-            if (user?.id) {
-                pedidoData.id_cliente = user.id;
-            } else {
-                if (!nomeCliente || !telefoneCliente) {
-                    toast.error('Nome e Telefone são obrigatórios para convidados.');
-                    setLoading(false);
-                    return;
-                }
-                pedidoData.nome_cliente_convidado = nomeCliente;
-                pedidoData.email_cliente_convidado = emailCliente;
-                pedidoData.telefone_cliente_convidado = telefoneCliente.replace(/\D/g, '');
-            }
-
             if (pedidoType === 'Delivery') {
-                if (!ruaCliente || !numeroCliente || !bairroCliente) {
-                    toast.error('Rua, Número e Bairro são obrigatórios para entrega.');
-                    setLoading(false);
-                    return;
-                }
                 let endereco = `${ruaCliente}, ${numeroCliente}, ${bairroCliente}`;
                 if (cepCliente) endereco += `, CEP: ${cepCliente}`;
                 if (cidadeCliente) endereco += `, ${cidadeCliente}`;
                 if (estadoCliente) endereco += ` - ${estadoCliente}`;
                 pedidoData.endereco_entrega = endereco;
             }
-
-            const headers = {};
-            if (token) {
-                headers.Authorization = `Bearer ${token}`;
+            if (user?.id) {
+                pedidoData.id_cliente = user.id;
             }
-
-            await api.post(`/${empresa.slug}/pedidos`, pedidoData, { headers });
 
             if (wantsToRegister && !user?.id) {
                 try {
@@ -215,6 +245,13 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 }
             }
 
+            const headers = {};
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            await api.post(`/${empresa.slug}/pedidos`, pedidoData, { headers });
+
             toast.success('Pedido enviado com sucesso! Aguarde a confirmação.');
             limparCarrinho();
             localStorage.removeItem('finalizarPedidoFormData'); // Limpa dados após finalizar
@@ -230,34 +267,18 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
     };
 
     const renderCustomerDetails = () => {
-        if (user?.id) {
-            return (
-                <div className="mt-4">
-                    <h4 className="text-lg font-semibold border-b pb-2">Seus Dados</h4>
-                    <p className="text-gray-700">Nome: {user.nome}</p>
-                    <p className="text-gray-700">Email: {user.email || 'Não informado'}</p>
-                    <p className="text-gray-700">Telefone: {user.telefone || 'Não informado'}</p>
-                </div>
-            );
-        }
-
         return (
             <div className="grid grid-cols-1 gap-4 mt-4">
                 <h4 className="text-lg font-semibold border-b pb-2">Dados do Cliente</h4>
                 <div>
                     <Label htmlFor="nomeCliente">Nome Completo</Label>
-                    <Input id="nomeCliente" value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} required />
+                    <Input id="nomeCliente" value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} required autoComplete="off"
+                        onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                    />
                 </div>
                 <div>
                     <Label htmlFor="telefoneCliente">Telefone</Label>
-                    <IMaskInput
-                        mask="(00) 00000-0000"
-                        value={telefoneCliente}
-                        onAccept={value => setTelefoneCliente(value)}
-                        required
-                        className="input"
-                        placeholder="(00) 00000-0000"
-                    />
+                    <Input id="telefoneCliente" value={telefoneCliente} onChange={e => setTelefoneCliente(e.target.value)} required placeholder="(00) 00000-0000" maxLength={15} />
                 </div>
                 <div>
                     <Label htmlFor="emailCliente">Email (opcional)</Label>
@@ -283,12 +304,30 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
         return (
             <div className="grid grid-cols-1 gap-4 mt-4">
                 <h4 className="text-lg font-semibold border-b pb-2">Endereço de Entrega</h4>
-                <Input placeholder="Rua" value={ruaCliente} onChange={e => setRuaCliente(e.target.value)} required />
-                <Input placeholder="Número" value={numeroCliente} onChange={e => setNumeroCliente(e.target.value)} required />
-                <Input placeholder="Bairro" value={bairroCliente} onChange={e => setBairroCliente(e.target.value)} required />
-                <IMaskInput mask="00000-000" value={cepCliente} onAccept={value => setCepCliente(value)} className="input" placeholder="CEP" />
-                <Input placeholder="Cidade" value={cidadeCliente} onChange={e => setCidadeCliente(e.target.value)} />
-                <Input placeholder="Estado (UF)" value={estadoCliente} onChange={e => setEstadoCliente(e.target.value)} maxLength="2" />
+                <div>
+                    <Label htmlFor="ruaCliente">Rua</Label>
+                    <Input id="ruaCliente" placeholder="Rua" value={ruaCliente} onChange={e => setRuaCliente(e.target.value)} required />
+                </div>
+                <div>
+                    <Label htmlFor="numeroCliente">Número</Label>
+                    <Input id="numeroCliente" placeholder="Número" value={numeroCliente} onChange={e => setNumeroCliente(e.target.value)} required />
+                </div>
+                <div>
+                    <Label htmlFor="bairroCliente">Bairro</Label>
+                    <Input id="bairroCliente" placeholder="Bairro" value={bairroCliente} onChange={e => setBairroCliente(e.target.value)} required />
+                </div>
+                <div>
+                    <Label htmlFor="cepCliente">CEP</Label>
+                    <Input id="cepCliente" placeholder="CEP" value={cepCliente} onChange={e => setCepCliente(e.target.value)} maxLength={9} />
+                </div>
+                <div>
+                    <Label htmlFor="cidadeCliente">Cidade</Label>
+                    <Input id="cidadeCliente" placeholder="Cidade" value={cidadeCliente} onChange={e => setCidadeCliente(e.target.value)} />
+                </div>
+                <div>
+                    <Label htmlFor="estadoCliente">Estado (UF)</Label>
+                    <Input id="estadoCliente" placeholder="Estado (UF)" value={estadoCliente} onChange={e => setEstadoCliente(e.target.value)} maxLength={2} />
+                </div>
             </div>
         );
     };

@@ -28,6 +28,12 @@ const LoginRegisterModal = ({ onClose }) => {
   const [errorRegister, setErrorRegister] = useState('');
   
   const [loading, setLoading] = useState(false);
+  const [ruaRegister, setRuaRegister] = useState('');
+  const [numeroRegister, setNumeroRegister] = useState('');
+  const [bairroRegister, setBairroRegister] = useState('');
+  const [cepRegister, setCepRegister] = useState('');
+  const [cidadeRegister, setCidadeRegister] = useState('');
+  const [estadoRegister, setEstadoRegister] = useState('');
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -59,7 +65,8 @@ const LoginRegisterModal = ({ onClose }) => {
         nome: nomeRegister,
         email: emailRegister,
         telefone: cleanedTelefone,
-        senha: passwordRegister
+        senha: passwordRegister,
+        endereco: `${ruaRegister}, ${numeroRegister}, ${bairroRegister}, CEP: ${cepRegister}, ${cidadeRegister} - ${estadoRegister}`
       });
       if (response.data.clienteId) {
         toast.success('Cadastro realizado com sucesso! Agora você pode fazer login.');
@@ -83,8 +90,8 @@ const LoginRegisterModal = ({ onClose }) => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="login">Entrar</TabsTrigger>
-          <TabsTrigger value="register">Cadastrar</TabsTrigger>
+          <TabsTrigger value="login" className={activeTab === 'login' ? 'bg-blue-100 border-b-2 border-blue-600 font-bold' : ''}>Entrar</TabsTrigger>
+          <TabsTrigger value="register" className={activeTab === 'register' ? 'bg-blue-100 border-b-2 border-blue-600 font-bold' : ''}>Cadastrar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="login" className="py-4">
@@ -140,6 +147,30 @@ const LoginRegisterModal = ({ onClose }) => {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 required
               />
+            </div>
+            <div>
+              <Label htmlFor="ruaRegister">Rua</Label>
+              <Input id="ruaRegister" value={ruaRegister} onChange={e => setRuaRegister(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="numeroRegister">Número</Label>
+              <Input id="numeroRegister" value={numeroRegister} onChange={e => setNumeroRegister(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="bairroRegister">Bairro</Label>
+              <Input id="bairroRegister" value={bairroRegister} onChange={e => setBairroRegister(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="cepRegister">CEP</Label>
+              <Input id="cepRegister" value={cepRegister} onChange={e => setCepRegister(e.target.value)} maxLength={9} required />
+            </div>
+            <div>
+              <Label htmlFor="cidadeRegister">Cidade</Label>
+              <Input id="cidadeRegister" value={cidadeRegister} onChange={e => setCidadeRegister(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="estadoRegister">Estado (UF)</Label>
+              <Input id="estadoRegister" value={estadoRegister} onChange={e => setEstadoRegister(e.target.value)} maxLength={2} required />
             </div>
             <div>
               <Label htmlFor="passwordRegister">Senha</Label>

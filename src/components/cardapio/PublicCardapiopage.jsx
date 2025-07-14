@@ -15,6 +15,7 @@ import { ShoppingCart, Home, Bike, CheckCircle, Utensils, Plus, Minus } from 'lu
 import FinalizarPedido from './FinalizarPedido';
 import LoginRegisterModal from './LoginRegisterModal';
 import PedidoTypeSelectionModal from './PedidoTypeSelectionModal';
+import { useAuth } from '../../contexts/AuthContext';
 //corrigido merge
 
 const removeAccents = (str) => {
@@ -100,9 +101,10 @@ const isRestaurantOpen = (horarioFuncionamento) => {
   }
 };
 
-const PublicCardapioPage = ({ user }) => {
+const PublicCardapioPage = ({ user: userProp }) => {
   const { empresa, loading: empresaLoading, isReady } = useEmpresa();
   const { adicionarItem, total, itens, removerItem, limparCarrinho, atualizarQuantidadeItem } = useCarrinho();
+  const { user, logout } = useAuth();
 
   const [loadingContent, setLoadingContent] = useState(true);
   const [error, setError] = useState(null); 
@@ -430,378 +432,377 @@ const PublicCardapioPage = ({ user }) => {
 
   const hasItemsInCart = itens.length > 0;
   const primaryColor = empresa?.cor_primaria_cardapio || '#FF5733';
+  const corPrimaria = empresa?.cor_primaria_cardapio || '#d32f2f';
 
   return (
-    <div className="container mx-auto p-4 relative">
-      <p className={`text-center font-semibold text-lg mb-4 ${restaurantStatus.open ? 'text-green-600' : 'text-red-600'}`}>
-        {restaurantStatus.message}
-      </p>
-      
-      {!isCurrentlyOpenForOrders && ( 
-          <div className="text-center text-orange-600 mb-6 p-4 border border-orange-300 bg-orange-50 rounded-md">
-            <p className="font-semibold">⚠️ Pedidos Online Temporariamente Indisponíveis!</p>
-            <p>{restaurantStatus.message}</p> 
-            {empresa.permitir_pedido_online === 0 && <p>Os pedidos online estão desativados pela empresa.</p>}
-            {empresa.tempo_corte_pedido_online && (
-              new Date().getHours() * 60 + new Date().getMinutes() >
-              parseInt(empresa.tempo_corte_pedido_online.split(':')[0]) * 60 +
-              parseInt(empresa.tempo_corte_pedido_online.split(':')[1])
-            ) && (
-              <p>Último pedido online até: {empresa.tempo_corte_pedido_online}</p>
-            )}
-            <p className="mt-2">Você pode visualizar o cardápio, mas não poderá adicionar itens ao carrinho ou finalizar o pedido.</p>
-          </div>
-      )}
-
-      {canMakeOnlineOrder && ( 
-        <div className="mb-6 flex justify-center space-x-4">
-          <Button
-            variant={selectedPedidoType === 'Delivery' ? 'default' : 'outline'}
-            onClick={() => setSelectedPedidoType('Delivery')}
-            disabled={empresa.desativar_entrega || !isCurrentlyOpenForOrders} 
-            className={empresa.desativar_entrega || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
-          >
-            <Bike className="mr-2" /> Delivery
-          </Button>
-          <Button
-            variant={selectedPedidoType === 'Retirada' ? 'default' : 'outline'}
-            onClick={() => setSelectedPedidoType('Retirada')}
-            disabled={empresa.desativar_retirada || !isCurrentlyOpenForOrders} 
-            className={empresa.desativar_retirada || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
-          >
-            <Home className="mr-2" /> Retirada
-          </Button>
-          <Button
-            variant={selectedPedidoType === 'Mesa' ? 'default' : 'outline'}
-            onClick={() => setSelectedPedidoType('Mesa')}
-            disabled={true} 
-            className={'opacity-50 cursor-not-allowed'}
-          >
-            <Utensils className="mr-2" /> Mesa
-          </Button>
+    <>
+      <div className="container mx-auto p-4 relative">
+        <div className="flex justify-end mb-4 items-center gap-2">
+          {user && user.role === 'cliente' ? (
+            <>
+              <span className="font-semibold text-base mr-2">Olá, {user.nome.split(' ')[0]}</span>
+              <Button variant="outline" onClick={() => toast.info('Em breve!')}>Meus pedidos</Button>
+              <Button variant="ghost" onClick={logout}>Sair</Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={() => setIsLoginRegisterModalOpen(true)}>
+              Entrar ou Cadastrar
+            </Button>
+          )}
         </div>
-      )}
-
-      {(!selectedPedidoType || selectedPedidoType === 'Delivery') && (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 && (
-        <p className="text-center text-gray-700 mb-4">
-          Valor mínimo para delivery: <span className="font-semibold">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
+        <p className={`text-center font-semibold text-lg mb-4 ${restaurantStatus.open ? 'text-green-600' : 'text-red-600'}`}>
+          {restaurantStatus.message}
         </p>
-      )}
-
-      <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-        <div>
-          <Label htmlFor="categoryFilter">Categoria</Label>
-          <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-            <SelectTrigger id="categoryFilter"><SelectValue placeholder="Todas as Categorias" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {categorias.some(c => c.id === 'promo') && (
-                <SelectItem value="promo">🔥 Promoções</SelectItem>
+        
+        {!isCurrentlyOpenForOrders && ( 
+            <div className="text-center text-orange-600 mb-6 p-4 border border-orange-300 bg-orange-50 rounded-md flex flex-col items-center justify-center">
+              <div className="flex items-center justify-center mb-2">
+                <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='orange' strokeWidth='2' className='w-8 h-8 mr-2'><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01M21 20H3a1 1 0 01-.87-1.5l9-16a1 1 0 011.74 0l9 16A1 1 0 0121 20z' /></svg>
+                <p className="font-bold text-xl text-orange-700">⚠️ Pedidos Online Temporariamente Indisponíveis!</p>
+              </div>
+              <p className="font-semibold text-lg">{restaurantStatus.message}</p>
+              {empresa.permitir_pedido_online === 0 && <p className="text-lg">Os pedidos online estão desativados pela empresa.</p>}
+              {empresa.tempo_corte_pedido_online && (
+                <p className="text-lg">Horário limite para pedidos: {empresa.tempo_corte_pedido_online}</p>
               )}
-              {categorias.filter(c => c.id !== 'promo').map(cat => (
-                <SelectItem key={cat.id} value={cat.id.toString()}>{cat.descricao}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="productSearch">Buscar Produto</Label>
-          <Input
-            id="productSearch"
-            placeholder="Nome ou descrição..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-          />
-        </div>
-      </div>
+            </div>
+        )}
 
-      <div className="space-y-8">
-        {categorias.map(categoria => {
-          const produtosParaExibir = categoria.id === 'promo' 
-            ? filteredProdutos.filter(p => p.promo_ativa && p.ativo) 
-            : filteredProdutos.filter(prod => prod.id_categoria === categoria.id && prod.ativo);
-          if (produtosParaExibir.length === 0) return null;
-          return (
-            <div key={categoria.id} className="bg-white p-4 rounded-lg shadow-md">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700 border-b pb-2">{categoria.descricao}</h2>
-              <div className={`grid gap-4 ${empresa?.layout_cardapio === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                {produtosParaExibir.map(prod => (
-                  <div
-                    key={prod.id}
-                    className="border p-4 rounded-lg flex items-center space-x-4 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => (isCurrentlyOpenForOrders) ? openProductModal(prod) : toast.info("A empresa não está aceitando pedidos online no momento.")}
-                    style={{ opacity: (isCurrentlyOpenForOrders) ? 1 : 0.6 }} 
-                  >
-                    {prod.foto_url && (
-                      <img
-                        src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`}
-                        alt={prod.nome}
-                        className="w-24 h-24 object-cover rounded-md"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-800">{prod.nome}</h3>
-                      <p className="text-gray-600 text-sm">{prod.descricao}</p>
-                      {prod.promo_ativa && prod.promocao ? (
-                        <p className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
-                          <span className="line-through text-gray-500 mr-2">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</span>
-                          <span style={{ color: '#22C55E' }}>R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
-                        </p>
-                      ) : (
-                        <p className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
+        {canMakeOnlineOrder && ( 
+          <div className="mb-6 flex justify-center space-x-4">
+            <Button
+              variant={selectedPedidoType === 'Delivery' ? 'default' : 'outline'}
+              onClick={() => setSelectedPedidoType('Delivery')}
+              disabled={empresa.desativar_entrega || !isCurrentlyOpenForOrders} 
+              className={empresa.desativar_entrega || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              <Bike className="mr-2" /> Delivery
+            </Button>
+            <Button
+              variant={selectedPedidoType === 'Retirada' ? 'default' : 'outline'}
+              onClick={() => setSelectedPedidoType('Retirada')}
+              disabled={empresa.desativar_retirada || !isCurrentlyOpenForOrders} 
+              className={empresa.desativar_retirada || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              <Home className="mr-2" /> Retirada
+            </Button>
+            <Button
+              variant={selectedPedidoType === 'Mesa' ? 'default' : 'outline'}
+              onClick={() => setSelectedPedidoType('Mesa')}
+              disabled={true} 
+              className={'opacity-50 cursor-not-allowed'}
+            >
+              <Utensils className="mr-2" /> Mesa
+            </Button>
+          </div>
+        )}
+
+        {(!selectedPedidoType || selectedPedidoType === 'Delivery') && (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 && (
+          <p className="text-center text-gray-700 mb-4">
+            Valor mínimo para delivery: <span className="font-semibold">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
+          </p>
+        )}
+
+        <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <div>
+            <Label htmlFor="categoryFilter">Categoria</Label>
+            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+              <SelectTrigger id="categoryFilter"><SelectValue placeholder="Todas as Categorias" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {categorias.some(c => c.id === 'promo') && (
+                  <SelectItem value="promo">🔥 Promoções</SelectItem>
+                )}
+                {categorias.filter(c => c.id !== 'promo').map(cat => (
+                  <SelectItem key={cat.id} value={cat.id.toString()}>{cat.descricao}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="productSearch">Buscar Produto</Label>
+            <Input
+              id="productSearch"
+              placeholder="Nome ou descrição..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          {categorias.map(categoria => {
+            const produtosParaExibir = categoria.id === 'promo' 
+              ? filteredProdutos.filter(p => p.promo_ativa && p.ativo) 
+              : filteredProdutos.filter(prod => prod.id_categoria === categoria.id && prod.ativo);
+            if (produtosParaExibir.length === 0) return null;
+            return (
+              <div key={categoria.id} className="bg-white p-4 rounded-lg shadow-md">
+                <h2 className="text-2xl font-semibold mb-4 text-gray-700 border-b pb-2">{categoria.descricao}</h2>
+                <div className={`grid gap-4 ${empresa?.layout_cardapio === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                  {produtosParaExibir.map(prod => (
+                    <div
+                      key={prod.id}
+                      className="border p-4 rounded-lg flex items-center space-x-4 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => (isCurrentlyOpenForOrders) ? openProductModal(prod) : toast.info("A empresa não está aceitando pedidos online no momento.")}
+                      style={{ opacity: (isCurrentlyOpenForOrders) ? 1 : 0.6 }} 
+                    >
+                      {prod.foto_url && (
+                        <img
+                          src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`}
+                          alt={prod.nome}
+                          className="w-24 h-24 object-cover rounded-md"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-800">{prod.nome}</h3>
+                        <p className="text-gray-600 text-sm">{prod.descricao}</p>
+                        {prod.promo_ativa && prod.promocao ? (
+                          <p className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
+                            <span className="line-through text-gray-500 mr-2">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</span>
+                            <span style={{ color: '#22C55E' }}>R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
+                          </p>
+                        ) : (
+                          <p className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
+                        )}
+                      </div>
+                      {canMakeOnlineOrder && ( 
+                        <div className="flex items-center space-x-1 flex-shrink-0">
+                          {/* Botões +/- e contagem */}
+                          {/* Nenhuma exibição de quantidade nos cards */}
+                        </div>
                       )}
                     </div>
-                    {canMakeOnlineOrder && ( 
-                      <div className="flex items-center space-x-1 flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => handleQuickRemoveFromCart(e, prod)}
-                          disabled={getProductCountInCart(prod.id) === 0 || !isCurrentlyOpenForOrders} 
-                          className="h-8 w-8"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="text-md font-medium w-6 text-center">
-                          {getProductCountInCart(prod.id)}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => handleQuickAddToCart(e, prod)}
-                          disabled={!isCurrentlyOpenForOrders} 
-                          className="h-8 w-8"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
 {hasItemsInCart && isCurrentlyOpenForOrders && (
   <div
     className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-3 z-50 transition-all duration-300 ease-in-out"
-    style={{ backgroundColor: '#d32f2f', color: '#ffffff' }} 
+    style={{ background: empresa?.cor_primaria_cardapio || '#d32f2f', backgroundColor: empresa?.cor_primaria_cardapio || '#d32f2f', color: '#ffffff', opacity: 1 }}
   >
     <ShoppingCart className="h-6 w-6 flex-shrink-0 text-white" />
     <span className="text-lg font-bold whitespace-nowrap">Total: R$ {total.toFixed(2).replace('.', ',')}</span>
+
     <Button
       onClick={handleOpenFinalizarPedidoModal}
-      variant="ghost"
-      className="ml-auto border border-white text-sm font-semibold"
-      style={{
-        backgroundColor: 'white',
-        color: '#d32f2f',
-        padding: '0.5rem 1rem',
-        borderRadius: '9999px',
-        display: 'flex',
-        alignItems: 'center',
-      }}
+      className={"ml-auto bg-white " + (empresa?.cor_primaria_cardapio ? "text-["+empresa.cor_primaria_cardapio+"]" : "text-primary") + " border border-white font-semibold rounded-full px-5 py-2 text-sm transition-colors duration-200 hover:bg-gray-100"}
     >
       <CheckCircle className="mr-2 h-4 w-4" /> Finalizar Pedido
     </Button>
   </div>
 )}
-      <Dialog open={!!selectedProduct} onOpenChange={closeProductModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedProduct?.nome}</DialogTitle>
-            <DialogDescription>
-              {selectedProduct?.descricao}
-              {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
-                <span className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
-                  <span className="line-through text-gray-500 mr-2">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
-                  <span style={{ color: '#22C55E' }}>R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
-                </span>
-              ) : (
-                <span className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center space-x-2">
-              <Button onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} disabled={!isCurrentlyOpenForOrders}>-</Button>
-              <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center" disabled={!isCurrentlyOpenForOrders} />
-              <Button onClick={() => setProductQuantity(prev => prev + 1)} disabled={!isCurrentlyOpenForOrders}>+</Button>
-            </div>
-            {productAdicionais.length > 0 && (
-              <div>
-                <Label className="text-base font-medium">Adicionais Disponíveis</Label>
-                <div className="space-y-2 mt-2">
-                  {productAdicionais.map((adicional) => (
-                    <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          id={`adicional-${adicional.id}`}
-                          checked={selectedAdicionais.some(sel => sel.id === adicional.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedAdicionais(prev => [...prev, { ...adicional, quantidade: 1 }]);
-                            } else {
-                              setSelectedAdicionais(prev => prev.filter(sel => sel.id !== adicional.id));
-                            }
-                          }}
-                          disabled={!isCurrentlyOpenForOrders}
-                          className="h-4 w-4 text-blue-600"
-                        />
-                        <div>
-                          <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
-                            {adicional.nome}
-                          </Label>
-                          {adicional.descricao && (
-                            <p className="text-sm text-gray-600">{adicional.descricao}</p>
+        <Dialog open={!!selectedProduct} onOpenChange={closeProductModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedProduct?.nome}</DialogTitle>
+              <DialogDescription>
+                {selectedProduct?.descricao}
+                {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
+                  <span className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
+                    <span className="line-through text-gray-500 mr-2">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
+                    <span style={{ color: '#22C55E' }}>R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
+                  </span>
+                ) : (
+                  <span className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center space-x-2">
+                <Button onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} disabled={!isCurrentlyOpenForOrders}>-</Button>
+                <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center" min={1} disabled={!isCurrentlyOpenForOrders} />
+                <Button onClick={() => setProductQuantity(prev => prev + 1)} disabled={!isCurrentlyOpenForOrders}>+</Button>
+              </div>
+              {productAdicionais.length > 0 && (
+                <div>
+                  <Label className="text-base font-medium">Adicionais Disponíveis</Label>
+                  <div className="space-y-2 mt-2">
+                    {productAdicionais.map((adicional) => (
+                      <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id={`adicional-${adicional.id}`}
+                            checked={selectedAdicionais.some(sel => sel.id === adicional.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedAdicionais(prev => [...prev, { ...adicional, quantidade: 1 }]);
+                              } else {
+                                setSelectedAdicionais(prev => prev.filter(sel => sel.id !== adicional.id));
+                              }
+                            }}
+                            disabled={!isCurrentlyOpenForOrders}
+                            className="h-4 w-4 text-blue-600"
+                          />
+                          <div>
+                            <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                              {adicional.nome}
+                            </Label>
+                            {adicional.descricao && (
+                              <p className="text-sm text-gray-600">{adicional.descricao}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-semibold text-green-600">
+                            R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
+                          </span>
+                          {selectedAdicionais.some(sel => sel.id === adicional.id) && (
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedAdicionais(prev => prev.map(sel => 
+                                    sel.id === adicional.id 
+                                      ? { ...sel, quantidade: Math.max(1, sel.quantidade - 1) }
+                                      : sel
+                                  ));
+                                }}
+                                disabled={!isCurrentlyOpenForOrders}
+                                className="h-6 w-6 p-0"
+                              >
+                                -
+                              </Button>
+                              <span className="text-sm font-medium w-4 text-center">
+                                {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedAdicionais(prev => prev.map(sel => 
+                                    sel.id === adicional.id 
+                                      ? { ...sel, quantidade: sel.quantidade + 1 }
+                                      : sel
+                                  ));
+                                }}
+                                disabled={!isCurrentlyOpenForOrders}
+                                className="h-6 w-6 p-0"
+                              >
+                                +
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-green-600">
-                          R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
-                        </span>
-                        {selectedAdicionais.some(sel => sel.id === adicional.id) && (
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedAdicionais(prev => prev.map(sel => 
-                                  sel.id === adicional.id 
-                                    ? { ...sel, quantidade: Math.max(1, sel.quantidade - 1) }
-                                    : sel
-                                ));
-                              }}
-                              disabled={!isCurrentlyOpenForOrders}
-                              className="h-6 w-6 p-0"
-                            >
-                              -
-                            </Button>
-                            <span className="text-sm font-medium w-4 text-center">
-                              {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
-                            </span>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedAdicionais(prev => prev.map(sel => 
-                                  sel.id === adicional.id 
-                                    ? { ...sel, quantidade: sel.quantidade + 1 }
-                                    : sel
-                                ));
-                              }}
-                              disabled={!isCurrentlyOpenForOrders}
-                              className="h-6 w-6 p-0"
-                            >
-                              +
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+              )}
+              <div>
+                <Label htmlFor="observacao">Observações (opcional)</Label>
+                <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} />
               </div>
-            )}
-            <div>
-              <Label htmlFor="observacao">Observações (opcional)</Label>
-              <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} />
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">Valor total:</p>
-              <p className="text-lg font-bold text-green-600">
-                R$ {(() => {
-                  const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
-                    ? parseFloat(selectedProduct.promocao) 
-                    : parseFloat(selectedProduct?.preco || 0);
-                  const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
-                    return total + (parseFloat(adicional.preco) * adicional.quantidade);
-                  }, 0);
-                  return ((precoBase + precoAdicionais) * productQuantity).toFixed(2).replace('.', ',');
-                })()}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders}>Adicionar ao Carrinho</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isFinalizarPedidoModalOpen} onOpenChange={setIsFinalizarPedidoModalOpen}>
-        <DialogContent>
-          <FinalizarPedido
-            pedidoType={selectedPedidoType}
-            onClose={handleCloseFinalizarPedidoModal}
-            empresa={empresa}
-            limparCarrinho={limparCarrinho}
-            total={total}
-            itens={itens}
-            onAddMoreItems={handleAddMoreItems}
-            setIsMinimoDeliveryModalOpen={setIsMinimoDeliveryModalOpen}
-            setValorFaltanteDelivery={setValorFaltanteDelivery}
-          />
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isLoginRegisterModalOpen} onOpenChange={setIsLoginRegisterModalOpen}>
-        <DialogContent>
-          <LoginRegisterModal onClose={() => setIsLoginRegisterModalOpen(false)} />
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isPedidoTypeSelectionModalOpen} onOpenChange={setIsPedidoTypeSelectionModalOpen}>
-        <DialogContent>
-          <PedidoTypeSelectionModal
-            onSelectType={handlePedidoTypeSelected}
-            onClose={() => setIsPedidoTypeSelectionModalOpen(false)}
-            empresa={empresa}
-          />
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isMinimoDeliveryModalOpen} onOpenChange={setIsMinimoDeliveryModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogDescription>
-              <div style={{
-                background: '#e0edff',
-                border: '1px solid #93c5fd',
-                borderRadius: 8,
-                padding: 16,
-                margin: '16px 0',
-                textAlign: 'center'
-              }}>
-                <span style={{ fontWeight: 'bold', fontSize: 18 }}>O valor mínimo para delivery</span> é de <b style={{ color: '#2563eb', fontSize: 18 }}>
-                  R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}
-                </b>.<br />
-                <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: 15 }}>
-                  Faltam R$ {valorFaltanteDelivery.toFixed(2).replace('.', ',')}
-                </span> para você conseguir finalizar seu pedido.
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">Valor total:</p>
+                <p className="text-lg font-bold text-green-600">
+                  R$ {(() => {
+                    const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
+                      ? parseFloat(selectedProduct.promocao) 
+                      : parseFloat(selectedProduct?.preco || 0);
+                    const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
+                      return total + (parseFloat(adicional.preco) * adicional.quantidade);
+                    }, 0);
+                    return ((precoBase + precoAdicionais) * productQuantity).toFixed(2).replace('.', ',');
+                  })()}
+                </p>
               </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              onClick={() => setIsMinimoDeliveryModalOpen(false)}
-              style={{
-                background: '#2563eb',
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: 16,
-                borderRadius: 8,
-                padding: '10px 24px'
-              }}
-            >
-              OK, voltar ao cardápio
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders}>Adicionar ao Carrinho</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isFinalizarPedidoModalOpen} onOpenChange={setIsFinalizarPedidoModalOpen}>
+          <DialogContent>
+            <FinalizarPedido
+              pedidoType={selectedPedidoType}
+              onClose={handleCloseFinalizarPedidoModal}
+              empresa={empresa}
+              limparCarrinho={limparCarrinho}
+              total={total}
+              itens={itens}
+              onAddMoreItems={handleAddMoreItems}
+              setIsMinimoDeliveryModalOpen={setIsMinimoDeliveryModalOpen}
+              setValorFaltanteDelivery={setValorFaltanteDelivery}
+            />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isLoginRegisterModalOpen} onOpenChange={setIsLoginRegisterModalOpen}>
+          <DialogContent>
+            <LoginRegisterModal onClose={() => setIsLoginRegisterModalOpen(false)} />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isPedidoTypeSelectionModalOpen} onOpenChange={setIsPedidoTypeSelectionModalOpen}>
+          <DialogContent>
+            <PedidoTypeSelectionModal
+              onSelectType={handlePedidoTypeSelected}
+              onClose={() => setIsPedidoTypeSelectionModalOpen(false)}
+              empresa={empresa}
+            />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isMinimoDeliveryModalOpen} onOpenChange={setIsMinimoDeliveryModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogDescription>
+                <div style={{
+                  background: '#e0edff',
+                  border: '1px solid #93c5fd',
+                  borderRadius: 8,
+                  padding: 16,
+                  margin: '16px 0',
+                  textAlign: 'center'
+                }}>
+                  <span style={{ fontWeight: 'bold', fontSize: 18 }}>O valor mínimo para delivery</span> é de <b style={{ color: '#2563eb', fontSize: 18 }}>
+                    R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}
+                  </b>.<br />
+                  <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: 15 }}>
+                    Faltam R$ {valorFaltanteDelivery.toFixed(2).replace('.', ',')}
+                  </span> para você conseguir finalizar seu pedido.
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                onClick={() => setIsMinimoDeliveryModalOpen(false)}
+                style={{
+                  background: '#2563eb',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                  borderRadius: 8,
+                  padding: '10px 24px'
+                }}
+              >
+                OK, voltar ao cardápio
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <style>{`.botao-flutuante-finalizar {
+        background: #fff !important;
+        color: ${corPrimaria} !important;
+        border: 2px solid #fff !important;
+        border-radius: 9999px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
+        font-weight: bold !important;
+        opacity: 1 !important;
+        padding: 0.5rem 1rem !important;
+        display: flex !important;
+        align-items: center !important;
+      }`}</style>
+    </>
   );
 };
 export default PublicCardapioPage;
