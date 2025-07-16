@@ -129,6 +129,8 @@ const PublicCardapioPage = ({ user: userProp }) => {
   const [isMinimoDeliveryModalOpen, setIsMinimoDeliveryModalOpen] = useState(false);
   const [valorFaltanteDelivery, setValorFaltanteDelivery] = useState(0);
 
+  const [lojaFechadaParaPedidosOnline, setLojaFechadaParaPedidosOnline] = useState(false);
+
   const canMakeOnlineOrder = empresa?.permitir_pedido_online === 1;
   const restaurantStatus = isRestaurantOpen(empresa?.horario_funcionamento);
   const isCurrentlyOpenForOrders = canMakeOnlineOrder && restaurantStatus.open;
@@ -225,6 +227,31 @@ const PublicCardapioPage = ({ user: userProp }) => {
     fetchCardapioData();
   }, [empresa, isReady]); 
 
+  useEffect(() => {
+    if (empresa && empresa.tempo_corte_pedido_online) {
+      let horaCorte = 0, minCorte = 0;
+      if (empresa.tempo_corte_pedido_online.includes(':')) {
+        [horaCorte, minCorte] = empresa.tempo_corte_pedido_online.split(':').map(Number);
+      } else {
+        horaCorte = Number(empresa.tempo_corte_pedido_online);
+        minCorte = 0;
+      }
+      const agora = new Date();
+      const horaAtual = agora.getHours();
+      const minAtual = agora.getMinutes();
+      if (
+        (horaAtual > horaCorte) ||
+        (horaAtual === horaCorte && minAtual >= (minCorte || 0))
+      ) {
+        setLojaFechadaParaPedidosOnline(true);
+      } else {
+        setLojaFechadaParaPedidosOnline(false);
+      }
+    } else {
+      setLojaFechadaParaPedidosOnline(false);
+    }
+  }, [empresa]);
+
   const acessoRegistradoRef = useRef(false);
   useEffect(() => {
     if (!isReady) return;
@@ -312,6 +339,10 @@ const PublicCardapioPage = ({ user: userProp }) => {
   };
 
   const handleAddToCart = () => {
+    if (lojaFechadaParaPedidosOnline) {
+      toast.error('Pedidos online encerrados. Apenas visualização do cardápio está disponível.');
+      return;
+    }
     if (selectedProduct) {
       const existingItemIndex = itens.findIndex(item => {
           const mesmaObservacao = item.id_produto === selectedProduct.id && item.observacoes === (productObservation || '');
@@ -369,6 +400,10 @@ const PublicCardapioPage = ({ user: userProp }) => {
   }, [itens]); 
 
   const handleOpenFinalizarPedidoModal = () => {
+    if (lojaFechadaParaPedidosOnline) {
+      toast.error('Pedidos online encerrados. Apenas visualização do cardápio está disponível.');
+      return;
+    }
     if (itens.length === 0) {
       toast.error('O carrinho está vazio para finalizar o pedido!');
       return;
@@ -454,6 +489,14 @@ const PublicCardapioPage = ({ user: userProp }) => {
           {restaurantStatus.message}
         </p>
         
+        {lojaFechadaParaPedidosOnline && (
+          <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded mb-4 text-center">
+            <strong>Loja fechada para pedidos de delivery no momento.</strong><br />
+            Você ainda pode consultar nosso cardápio normalmente.<br />
+            Agradecemos a compreensão! 😊
+          </div>
+        )}
+
         {!isCurrentlyOpenForOrders && ( 
             <div className="text-center text-orange-600 mb-6 p-4 border border-orange-300 bg-orange-50 rounded-md flex flex-col items-center justify-center">
               <div className="flex items-center justify-center mb-2">
@@ -545,8 +588,10 @@ const PublicCardapioPage = ({ user: userProp }) => {
                     <div
                       key={prod.id}
                       className="border p-4 rounded-lg flex items-center space-x-4 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => (isCurrentlyOpenForOrders) ? openProductModal(prod) : toast.info("A empresa não está aceitando pedidos online no momento.")}
-                      style={{ opacity: (isCurrentlyOpenForOrders) ? 1 : 0.6 }} 
+                      onClick={() => {
+                        if (!lojaFechadaParaPedidosOnline) openProductModal(prod);
+                      }}
+                      style={lojaFechadaParaPedidosOnline ? { cursor: 'default', opacity: 0.7 } : {}}
                     >
                       {prod.foto_url && (
                         <img
