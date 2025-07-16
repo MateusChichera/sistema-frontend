@@ -149,7 +149,13 @@ const ProdutosPage = () => {
       await fetchProductsAndCategories();
       setNovoIdCategoria(''); setNovoNome(''); setNovaDescricao(''); setNovoPreco('');
       setNovoPromocao(''); setNovoPromoAtiva(false); setNovoAtivo(true); setNovaFoto(null);
-      document.getElementById('novaFotoInput').value = '';
+      
+      // Limpar o input de foto de forma segura
+      const novaFotoInput = document.getElementById('novaFotoInput');
+      if (novaFotoInput) {
+        novaFotoInput.value = '';
+      }
+      
       toast.success('Produto adicionado com sucesso!');
 
     } catch (err) {
