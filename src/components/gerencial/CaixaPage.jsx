@@ -655,25 +655,39 @@ const CaixaPage = () => {
             console.log("Validação falhou: Valor recebido menor ou igual a zero.");
             return;
         }
-        console.log("Todas as validações iniciais passaram.");
 
-        // Verifica se há troco
-        const valorTroco = Math.max(0, formattedValorRecebido - formattedValorRestanteTotal);
+        // Verifica se há troco apenas para pagamentos em dinheiro
+        const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
+        const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
         
-        if (valorTroco > 0) {
-            // Se há troco, abre o modal de confirmação
-            setTrocoData({
-                valorRecebido: formattedValorRecebido,
-                valorConta: formattedValorRestanteTotal,
-                valorTroco: valorTroco,
-                pedidoId: selectedPedido.id,
-                formaPagamentoId: selectedFormaPagamentoId,
-                dividirConta: dividirContaAtivo ? parseInt(numPessoasDividir) || 1 : null,
-                observacoes: observacoesPagamento
-            });
-            setIsTrocoModalOpen(true);
-            setLoadingFinalizacao(false);
-            return;
+        // Validação: Para formas de pagamento que não são dinheiro, não permite receber valor maior que o total
+       if (!isPagamentoDinheiro && formattedValorRecebido > formattedValorRestanteTotal) {
+    toast.error(`Para pagamentos que não sejam em dinheiro, o valor recebido não pode ser maior do que o valor total do pedido: R$ ${formattedValorRestanteTotal.toFixed(2).replace('.', ',')}`);
+    console.log("Validação falhou: Valor recebido maior que o total para forma de pagamento não-dinheiro.");
+    return;
+}
+
+
+        console.log("Todas as validações iniciais passaram.");
+        
+        if (isPagamentoDinheiro) {
+            const valorTroco = Math.max(0, formattedValorRecebido - formattedValorRestanteTotal);
+            
+            if (valorTroco > 0) {
+                // Se há troco, abre o modal de confirmação
+                setTrocoData({
+                    valorRecebido: formattedValorRecebido,
+                    valorConta: formattedValorRestanteTotal,
+                    valorTroco: valorTroco,
+                    pedidoId: selectedPedido.id,
+                    formaPagamentoId: selectedFormaPagamentoId,
+                    dividirConta: dividirContaAtivo ? parseInt(numPessoasDividir) || 1 : null,
+                    observacoes: observacoesPagamento
+                });
+                setIsTrocoModalOpen(true);
+                setLoadingFinalizacao(false);
+                return;
+            }
         }
 
         // Se não há troco, finaliza diretamente
@@ -729,6 +743,9 @@ const CaixaPage = () => {
             
             const novoValorRestante = Math.max(0, novoTotalGeral - parseFloat(pedidoAtualizado.valor_recebido_parcial || 0));
 
+            // Verifica se o pagamento foi total (valor restante = 0)
+            const pagamentoFoiTotal = novoValorRestante <= 0;
+
             // Limpa os campos do formulário para o próximo pagamento
             setValorRecebidoInput('');
             setValorCobrancaManual(novoValorRestante.toFixed(2));
@@ -739,6 +756,11 @@ const CaixaPage = () => {
             // Abre o modal de confirmação de impressão
             setPedidoParaImprimir(pedidoAtualizado);
             setIsPrintCupomModalOpen(true);
+            
+            // Se o pagamento foi total, fecha o modal de detalhes do pedido
+            if (pagamentoFoiTotal) {
+                closePedidoDetailModal();
+            }
             
             // A atualização da lista de pedidos na tela principal virá via Socket.IO (orderUpdated / orderFinalized)
         } catch (err) {
@@ -1295,11 +1317,19 @@ const CaixaPage = () => {
         }
         setIsPrintCupomModalOpen(false);
         setPedidoParaImprimir(null);
+        // Garante que o modal de detalhes do pedido também seja fechado
+        if (isPedidoDetailModalOpen) {
+            closePedidoDetailModal();
+        }
     };
 
     const handleNaoImprimirCupom = () => {
         setIsPrintCupomModalOpen(false);
         setPedidoParaImprimir(null);
+        // Garante que o modal de detalhes do pedido também seja fechado
+        if (isPedidoDetailModalOpen) {
+            closePedidoDetailModal();
+        }
     };
 
 
@@ -1707,6 +1737,22 @@ const CaixaPage = () => {
                                             placeholder="0.00"
                                             disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
                                         />
+                                        {(() => {
+                                            const valorRecebido = parseFloat(valorRecebidoInput) || 0;
+                                            const valorRestante = parseFloat(valorRestanteTotalDoPedido);
+                                            const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
+                                            const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
+                                            
+                                            // Mostra aviso se o valor recebido for maior que o total para formas que não são dinheiro
+                                            if (!isPagamentoDinheiro && valorRecebido > valorRestante && valorRecebido > 0 && valorRestante > 0) {
+                                                return (
+                                                    <p className="text-sm text-red-600 mt-1 font-semibold">
+                                                        ⚠️ Para pagamentos que não sejam em dinheiro, o valor recebido não pode ser maior do que o valor total do pedido: R$ {valorRestante.toFixed(2).replace('.', ',')}
+                                                    </p>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
 
                                     {/* Troco */}
@@ -1760,10 +1806,12 @@ const CaixaPage = () => {
                                             {(() => {
                                                 const valorRecebido = parseFloat(valorRecebidoInput) || 0;
                                                 const valorRestante = parseFloat(valorRestanteTotalDoPedido);
+                                                const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
+                                                const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
                                                 
                                                 if (valorRecebido >= valorRestante && valorRecebido > 0) {
                                                     const troco = valorRecebido - valorRestante;
-                                                    if (troco > 0) {
+                                                    if (troco > 0 && isPagamentoDinheiro) {
                                                         return (
                                                             <p className="text-sm text-green-700 text-center mt-1 font-semibold">
                                                                 ✅ Pagamento total + Troco de R$ {troco.toFixed(2).replace('.', ',')}
@@ -1785,7 +1833,7 @@ const CaixaPage = () => {
                                                 } else {
                                                     return (
                                                         <p className="text-sm text-red-700 text-center mt-1">
-                                                            Você pode receber qualquer valor (incluindo troco)
+                                                            {isPagamentoDinheiro ? 'Você pode receber qualquer valor (incluindo troco)' : 'Você pode receber qualquer valor'}
                                                         </p>
                                                     );
                                                 }
