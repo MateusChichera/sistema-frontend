@@ -1317,17 +1317,38 @@ const CaixaPage = () => {
         }
         setIsPrintCupomModalOpen(false);
         setPedidoParaImprimir(null);
-        // Garante que o modal de detalhes do pedido também seja fechado
-        if (isPedidoDetailModalOpen) {
-            closePedidoDetailModal();
+        
+        // Só fecha o modal de detalhes do pedido se o pagamento for total
+        if (isPedidoDetailModalOpen && selectedPedido) {
+            // Calcula se ainda há valor restante a pagar
+            let totalGeral = parseFloat(selectedPedido.valor_total || 0);
+            
+            // Adiciona taxa de entrega para delivery
+            if (selectedPedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) {
+                totalGeral += parseFloat(empresa.taxa_entrega);
+            }
+            
+            // Adiciona 10% do garçom se ainda estiver habilitado e for pedido de mesa
+            if (cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom) {
+                const valorOriginal = parseFloat(selectedPedido.valor_total || 0);
+                totalGeral += valorOriginal * 0.10; // 10% do valor original do pedido
+            }
+            
+            const valorRestante = Math.max(0, totalGeral - parseFloat(selectedPedido.valor_recebido_parcial || 0));
+            
+            // Só fecha se não há mais valor restante (pagamento total)
+            if (valorRestante <= 0) {
+                closePedidoDetailModal();
+            }
         }
     };
 
     const handleNaoImprimirCupom = () => {
         setIsPrintCupomModalOpen(false);
         setPedidoParaImprimir(null);
-        // Garante que o modal de detalhes do pedido também seja fechado
-        if (isPedidoDetailModalOpen) {
+        
+        // Só fecha o modal de detalhes do pedido se o status for 'Entregue'
+        if (isPedidoDetailModalOpen && selectedPedido && selectedPedido.status === 'Entregue') {
             closePedidoDetailModal();
         }
     };
