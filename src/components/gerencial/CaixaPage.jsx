@@ -528,15 +528,15 @@ const CaixaPage = () => {
     // ATUALIZAÇÃO DO VALOR RECEBIDO INPUT COM DESCONTO (AO MUDAR FORMA DE PAGAMENTO/VALOR A COBRAR)
     useEffect(() => {
         const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
-        if (formaPagamento && formaPagamento.descricao.toLowerCase() !== 'dinheiro') {
-            setValorRecebidoInput(valorComDesconto.toFixed(2));
-        } else {
-            // Para dinheiro, só preenche automaticamente se o campo estiver vazio
-            if (valorRecebidoInput === '' || parseFloat(valorRecebidoInput) === 0) {
+        // Só atualiza automaticamente se o campo estiver vazio ou zero
+        if (valorRecebidoInput === '' || parseFloat(valorRecebidoInput) === 0) {
+            if (formaPagamento && formaPagamento.descricao.toLowerCase() !== 'dinheiro') {
+                setValorRecebidoInput(valorComDesconto.toFixed(2));
+            } else {
                 setValorRecebidoInput(valorComDesconto.toFixed(2));
             }
-            // Se o usuário já digitou um valor, mantém o valor digitado
         }
+        // Se o usuário já digitou um valor, não sobrescreve
     }, [valorComDesconto, selectedFormaPagamentoId, formasPagamento]);
 
     // ATUALIZAÇÃO DO VALOR A COBRAR QUANDO O PEDIDO É ATUALIZADO OU COBRANÇA DE GARÇOM MUDAR
@@ -1653,7 +1653,7 @@ const CaixaPage = () => {
 
             {/* Modal de Finalização de Pagamento (Principal) */}
             <Dialog open={isPedidoDetailModalOpen} onOpenChange={closePedidoDetailModal}>
-                <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
+                <DialogContent className="max-w-4xl w-full overflow-visible" style={{ maxWidth: '1000px' }}>
                     {selectedPedido ? (
                         <div className="flex flex-col h-full">
                             <DialogHeader>
@@ -1664,267 +1664,222 @@ const CaixaPage = () => {
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="flex-grow overflow-y-auto py-4">
-                                {loadingFinalizacao && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50 rounded-lg">
-                                        <Loader2 className="animate-spin text-primary h-8 w-8" />
-                                        <span className="ml-2 text-primary">Processando...</span>
-                                    </div>
-                                )}
-                                <div className="grid gap-4">
-                                    {/* Resumo do Pedido - Visão geral */}
-                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                        <h5 className="font-bold text-xl text-blue-800">Total Geral do Pedido: R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}</h5>
-                                        <p className="text-blue-700 text-sm">Recebido até agora: R$ {parseFloat(selectedPedido.valor_recebido_parcial || 0).toFixed(2).replace('.', ',')}</p>
-                                        <p className="text-blue-800 font-semibold mt-1">
-                                            Falta Pagar: <span className="font-bold text-red-600">R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}</span>
-                                        </p>
-                                    </div>
-
-                                    {/* Botão para DETALHAR ITENS DENTRO DO MODAL DE FINALIZAÇÃO */}
-                                    <Button onClick={() => openItemDetailModal(selectedPedido)} size="sm" variant="secondary" className="w-full">
-                                        Ver Detalhes dos Itens
-                                    </Button>
-
-                                    {/* Forma de Pagamento */}
-                                    <div>
-                                        <Label htmlFor="formaPagamentoCaixa">Forma de Pagamento</Label>
-                                        <Select value={selectedFormaPagamentoId} onValueChange={setSelectedFormaPagamentoId} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}>
-                                            <SelectTrigger id="formaPagamentoCaixa"><SelectValue placeholder="Selecione a forma" /></SelectTrigger>
-                                            <SelectContent>
-                                                {formasPagamento.length === 0 && <SelectItem disabled value="">Nenhuma forma disponível</SelectItem>}
-                                                {formasPagamento.map(fp => (
-                                                    <SelectItem key={fp.id} value={fp.id.toString()}>
-                                                        {fp.descricao} {fp.porcentagem_desconto_geral > 0 && `(${parseFloat(fp.porcentagem_desconto_geral).toFixed(0)}% desconto)`}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    {/* Cobrança de Porcentagem do Garçom - Apenas para pedidos de Mesa */}
-                                    {selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom && (
-                                        <div className="flex items-center space-x-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
-                                            <Switch
-                                                id="cobrarPorcentagemGarcom"
-                                                checked={cobrarPorcentagemGarcom}
-                                                onCheckedChange={setCobrarPorcentagemGarcom}
-                                                disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                            />
-                                            <Label htmlFor="cobrarPorcentagemGarcom" className="text-orange-800 font-medium">
-                                                Cobrar 10% (Garçom)
-                                            </Label>
-                                            {cobrarPorcentagemGarcom && (
-                                                <span className="text-sm text-orange-700 ml-2">
-                                                    + R$ {(parseFloat(selectedPedido.valor_total || 0) * 0.10).toFixed(2).replace('.', ',')}
-                                                </span>
+                            {/* Grid assimétrico para melhor proporção visual */}
+                            <div className="flex-grow py-4">
+                                <div className="grid grid-cols-1 md:grid-cols-[1fr_1.5fr] gap-8">
+                                    {/* Coluna 1: Resumo do Pedido e Pagamentos */}
+                                    <div className="space-y-4">
+                                        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+                                            <h5 className="font-bold text-lg md:text-xl text-blue-800 mb-2">Resumo do Pedido</h5>
+                                            <div className="flex flex-col gap-1 text-sm">
+                                                <span><b>Total Geral:</b> R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}</span>
+                                                <span><b>Recebido:</b> R$ {parseFloat(selectedPedido.valor_recebido_parcial || 0).toFixed(2).replace('.', ',')}</span>
+                                                <span><b>Falta Pagar:</b> <span className="text-red-600 font-bold">R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}</span></span>
+                                            </div>
+                                            <Button onClick={() => openItemDetailModal(selectedPedido)} size="sm" variant="secondary" className="w-full mt-3">
+                                                Ver Detalhes dos Itens
+                                            </Button>
+                                        </div>
+                                        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+                                            <h5 className="font-semibold text-base mb-2 text-gray-800">Pagamentos Realizados</h5>
+                                            {(selectedPedido.pagamentos_recebidos && selectedPedido.pagamentos_recebidos.length > 0) ? (
+                                                <div className="space-y-1">
+                                                    {selectedPedido.pagamentos_recebidos.map((pagamento, index) => (
+                                                        <div key={index} className="grid grid-cols-3 gap-2 items-center text-xs">
+                                                            <span className="truncate">{pagamento.forma_pagamento_descricao}</span>
+                                                            <span className="text-center whitespace-nowrap">{format(parseISO(pagamento.data_pagamento), 'dd/MM HH:mm')}</span>
+                                                            <span className="font-bold text-green-600 text-right">R$ {parseFloat(pagamento.valor_pago || 0).toFixed(2).replace('.', ',')}</span>
+                                                            {/* Se houver observação extra, exibe abaixo ocupando as 3 colunas */}
+                                                            {pagamento.observacao && (
+                                                                <span className="col-span-3 text-[10px] text-gray-500 italic">{pagamento.observacao}</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-gray-400 text-xs">Nenhum pagamento registrado ainda.</p>
                                             )}
                                         </div>
-                                    )}
-
-                                    {/* Valor a Cobrar */}
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                                        <Label htmlFor="valorCobrancaManual" className="text-yellow-800">Valor a Cobrar (R$)</Label>
-                                        <Input
-                                            id="valorCobrancaManual"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            value={valorCobrancaManual}
-                                            onChange={(e) => {
-                                                const newValue = e.target.value;
-                                                setValorCobrancaManual(newValue);
-                                            }}
-                                            placeholder="0.00"
-                                            disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                        />
-                                        {valorComDesconto.toFixed(2) !== parseFloat(valorCobrancaManual || '0').toFixed(2) && (
-                                            <p className="text-sm text-yellow-700 mt-1">
-                                                Valor com Desconto: <span className="font-bold">R$ {valorComDesconto.toFixed(2).replace('.', ',')}</span>
-                                            </p>
-                                        )}
                                     </div>
 
-                                    {/* Valor Recebido */}
-                                    <div>
-                                        <Label htmlFor="valorRecebidoInput">Valor Recebido (R$)</Label>
-                                        <Input
-                                            id="valorRecebidoInput"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            value={valorRecebidoInput}
-                                            onChange={(e) => setValorRecebidoInput(e.target.value)}
-                                            placeholder="0.00"
-                                            disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                        />
-                                        {(() => {
-                                            const valorRecebido = parseFloat(valorRecebidoInput) || 0;
-                                            const valorRestante = parseFloat(valorRestanteTotalDoPedido);
-                                            const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
-                                            const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
-                                            
-                                            // Mostra aviso se o valor recebido for maior que o total para formas que não são dinheiro
-                                            if (!isPagamentoDinheiro && valorRecebido > valorRestante && valorRecebido > 0 && valorRestante > 0) {
-                                                return (
-                                                    <p className="text-sm text-red-600 mt-1 font-semibold">
-                                                        ⚠️ Para pagamentos que não sejam em dinheiro, o valor recebido não pode ser maior do que o valor total do pedido: R$ {valorRestante.toFixed(2).replace('.', ',')}
+                                    {/* Coluna 2: Formulário de Pagamento */}
+                                    <div className="space-y-4">
+                                        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm flex flex-col gap-3">
+                                            <div>
+                                                <Label htmlFor="formaPagamentoCaixa" className="text-xs">Forma de Pagamento</Label>
+                                                <Select value={selectedFormaPagamentoId} onValueChange={setSelectedFormaPagamentoId} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}>
+                                                    <SelectTrigger id="formaPagamentoCaixa"><SelectValue placeholder="Selecione a forma" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {formasPagamento.length === 0 && <SelectItem disabled value="">Nenhuma forma disponível</SelectItem>}
+                                                        {formasPagamento.map(fp => (
+                                                            <SelectItem key={fp.id} value={fp.id.toString()}>
+                                                                {fp.descricao} {fp.porcentagem_desconto_geral > 0 && `(${parseFloat(fp.porcentagem_desconto_geral).toFixed(0)}% desc)`}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            {selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom && (
+                                                <div className="flex items-center gap-2">
+                                                    <Switch
+                                                        id="cobrarPorcentagemGarcom"
+                                                        checked={cobrarPorcentagemGarcom}
+                                                        onCheckedChange={setCobrarPorcentagemGarcom}
+                                                        disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                                    />
+                                                    <Label htmlFor="cobrarPorcentagemGarcom" className="text-orange-800 font-medium text-xs">
+                                                        Cobrar 10% (Garçom)
+                                                    </Label>
+                                                    {cobrarPorcentagemGarcom && (
+                                                        <span className="text-xs text-orange-700 ml-2">
+                                                            + R$ {(parseFloat(selectedPedido.valor_total || 0) * 0.10).toFixed(2).replace('.', ',')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <Label htmlFor="valorCobrancaManual" className="text-xs">Valor a Cobrar (R$)</Label>
+                                                <Input
+                                                    id="valorCobrancaManual"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={valorCobrancaManual}
+                                                    readOnly
+                                                    placeholder="0.00"
+                                                    disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                                    className="text-xs"
+                                                />
+                                                {valorComDesconto.toFixed(2) !== parseFloat(valorCobrancaManual || '0').toFixed(2) && (
+                                                    <p className="text-xs text-yellow-700 mt-1">
+                                                        Valor com Desconto: <span className="font-bold">R$ {valorComDesconto.toFixed(2).replace('.', ',')}</span>
                                                     </p>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
-                                    </div>
-
-                                    {/* Troco */}
-                                    {selectedFormaPagamentoId && formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId)?.descricao.toLowerCase() === 'dinheiro' && (
-                                        <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                                            <p className="text-lg font-semibold text-green-800">Troco: <span className="text-blue-600">R$ {troco.toFixed(2).replace('.', ',')}</span></p>
-                                        </div>
-                                    )}
-
-                                    {/* Dividir Conta */}
-                                    <div className="flex items-center space-x-2">
-                                        <Switch
-                                            id="dividirConta"
-                                            checked={dividirContaAtivo}
-                                            onCheckedChange={setDividirContaAtivo}
-                                            disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                        />
-                                        <Label htmlFor="dividirConta">Dividir Conta</Label>
-                                    </div>
-
-                                    {dividirContaAtivo && (
-                                        <div>
-                                            <Label htmlFor="numPessoasDividir">Dividir por (Pessoas)</Label>
-                                            <Input
-                                                id="numPessoasDividir"
-                                                type="number"
-                                                min="1"
-                                                value={numPessoasDividir}
-                                                onChange={(e) => setNumPessoasDividir(parseInt(e.target.value) || '')}
-                                                placeholder="Ex: 2"
-                                                disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                            />
-                                            {numPessoasDividir && parseInt(numPessoasDividir) > 1 && (
-                                                <p className="text-sm text-gray-600 mt-1">Valor por pessoa: <span className="font-bold">R$ {valorAPagarNestaParcelaFinal.toFixed(2).replace('.', ',')}</span></p>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Observações do Pagamento */}
-                                    <div>
-                                        <Label htmlFor="obsPagamento">Observações do Pagamento</Label>
-                                        <Textarea id="obsPagamento" value={observacoesPagamento} onChange={(e) => setObservacoesPagamento(e.target.value)} rows={2} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'} />
-                                    </div>
-
-                                    {/* Título mostrando quanto falta receber */}
-                                    {valorRestanteTotalDoPedido > 0 && (
-                                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                                            <h4 className="text-lg font-bold text-red-800 text-center">
-                                                Falta Receber: R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}
-                                            </h4>
-                                            {(() => {
-                                                const valorRecebido = parseFloat(valorRecebidoInput) || 0;
-                                                const valorRestante = parseFloat(valorRestanteTotalDoPedido);
-                                                const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
-                                                const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
-                                                
-                                                if (valorRecebido >= valorRestante && valorRecebido > 0) {
-                                                    const troco = valorRecebido - valorRestante;
-                                                    if (troco > 0 && isPagamentoDinheiro) {
+                                                )}
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="valorRecebidoInput" className="text-xs">Valor Recebido (R$)</Label>
+                                                <Input
+                                                    id="valorRecebidoInput"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={valorRecebidoInput}
+                                                    onChange={(e) => setValorRecebidoInput(e.target.value)}
+                                                    placeholder="0.00"
+                                                    disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                                    className="text-xs"
+                                                />
+                                                {(() => {
+                                                    const valorRecebido = parseFloat(valorRecebidoInput) || 0;
+                                                    const valorRestante = parseFloat(valorRestanteTotalDoPedido);
+                                                    const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
+                                                    const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
+                                                    if (!isPagamentoDinheiro && valorRecebido > valorRestante && valorRecebido > 0 && valorRestante > 0) {
                                                         return (
-                                                            <p className="text-sm text-green-700 text-center mt-1 font-semibold">
-                                                                ✅ Pagamento total + Troco de R$ {troco.toFixed(2).replace('.', ',')}
-                                                            </p>
-                                                        );
-                                                    } else {
-                                                        return (
-                                                            <p className="text-sm text-green-700 text-center mt-1 font-semibold">
-                                                                ✅ Pagamento total será realizado
+                                                            <p className="text-xs text-red-600 mt-1 font-semibold">
+                                                                ⚠️ Para pagamentos que não sejam em dinheiro, o valor recebido não pode ser maior do que o valor total do pedido: R$ {valorRestante.toFixed(2).replace('.', ',')}
                                                             </p>
                                                         );
                                                     }
-                                                } else if (valorRecebido > 0 && valorRecebido < valorRestante) {
-                                                    return (
-                                                        <p className="text-sm text-orange-700 text-center mt-1">
-                                                            💰 Recebimento parcial - ainda faltará R$ {(valorRestante - valorRecebido).toFixed(2).replace('.', ',')}
-                                                        </p>
-                                                    );
-                                                } else {
-                                                    return (
-                                                        <p className="text-sm text-red-700 text-center mt-1">
-                                                            {isPagamentoDinheiro ? 'Você pode receber qualquer valor (incluindo troco)' : 'Você pode receber qualquer valor'}
-                                                        </p>
-                                                    );
-                                                }
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* Botão Receber Parcial */}
-                                    {selectedPedido.status !== 'Entregue' && selectedPedido.status !== 'Cancelado' && (
-                                        <Button onClick={handleFinalizarPagamento} className="mt-4 w-full flex items-center" disabled={loadingFinalizacao}>
-                                            {loadingFinalizacao ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
-                                            {(() => {
-                                                const valorRecebido = parseFloat(valorRecebidoInput) || 0;
-                                                const valorRestante = parseFloat(valorRestanteTotalDoPedido);
-                                                
-                                                // Se vai receber o valor total restante ou mais (incluindo troco), mostra "Finalizar Pagamento"
-                                                if (valorRecebido >= valorRestante && valorRestante > 0) {
-                                                    return 'Finalizar Pagamento';
-                                                }
-                                                // Se vai receber um valor parcial, mostra "Receber Parcial"
-                                                else if (valorRecebido > 0 && valorRecebido < valorRestante) {
-                                                    return 'Receber Parcial';
-                                                }
-                                                // Se não há valor restante, mostra "Finalizar Pagamento"
-                                                else if (valorRestante <= 0) {
-                                                    return 'Finalizar Pagamento';
-                                                }
-                                                // Padrão
-                                                else {
-                                                    return 'Receber Parcial';
-                                                }
-                                            })()}
-                                        </Button>
-                                    )}
-
-                                    {/* MANTIDO PARA EXIBIR STATUS APÓS FINALIZAÇÃO/CANCELAMENTO (apenas visual) */}
-                                    {selectedPedido.status === 'Entregue' && (
-                                        <Badge className="bg-green-500 text-white text-center py-2 w-full mt-4">Pedido Finalizado</Badge>
-                                    )}
-                                    {selectedPedido.status === 'Cancelado' && (
-                                        <Badge className="bg-red-500 text-white text-center py-2 w-full mt-4">Pedido Cancelado</Badge>
-                                    )}
-
-                                    {/* Seção de Pagamentos - Histórico dos pagamentos realizados */}
-                                    <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
-                                        <h4 className="font-semibold text-lg mb-3 text-gray-800">Pagamentos Realizados</h4>
-                                        
-                                        {(selectedPedido.pagamentos_recebidos && selectedPedido.pagamentos_recebidos.length > 0) ? (
-                                            <div className="space-y-2">
-                                                {selectedPedido.pagamentos_recebidos.map((pagamento, index) => (
-                                                    <div key={index} className="flex justify-between items-center p-2 bg-white border border-gray-200 rounded">
-                                                        <div>
-                                                            <span className="font-medium">{pagamento.forma_pagamento_descricao}</span>
-                                                            <span className="text-sm text-gray-500 ml-2">
-                                                                {format(parseISO(pagamento.data_pagamento), 'dd/MM HH:mm')}
-                                                            </span>
-                                                        </div>
-                                                        <span className="font-bold text-green-600">
-                                                            R$ {parseFloat(pagamento.valor_pago || 0).toFixed(2).replace('.', ',')}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                                                    return null;
+                                                })()}
                                             </div>
-                                        ) : (
-                                            <p className="text-gray-500">Nenhum pagamento registrado ainda.</p>
-                                        )}
+                                            {selectedFormaPagamentoId && formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId)?.descricao.toLowerCase() === 'dinheiro' && (
+                                                <div className="rounded bg-green-50 border border-green-100 p-2 text-xs">
+                                                    Troco: <span className="text-blue-600 font-bold">R$ {troco.toFixed(2).replace('.', ',')}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    id="dividirConta"
+                                                    checked={dividirContaAtivo}
+                                                    onCheckedChange={setDividirContaAtivo}
+                                                    disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                                />
+                                                <Label htmlFor="dividirConta" className="text-xs">Dividir Conta</Label>
+                                            </div>
+                                            {dividirContaAtivo && (
+                                                <div>
+                                                    <Label htmlFor="numPessoasDividir" className="text-xs">Dividir por (Pessoas)</Label>
+                                                    <Input
+                                                        id="numPessoasDividir"
+                                                        type="number"
+                                                        min="1"
+                                                        value={numPessoasDividir}
+                                                        onChange={(e) => setNumPessoasDividir(parseInt(e.target.value) || '')}
+                                                        placeholder="Ex: 2"
+                                                        disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                                        className="text-xs"
+                                                    />
+                                                    {numPessoasDividir && parseInt(numPessoasDividir) > 1 && (
+                                                        <p className="text-xs text-gray-600 mt-1">Valor por pessoa: <span className="font-bold">R$ {valorAPagarNestaParcelaFinal.toFixed(2).replace('.', ',')}</span></p>
+                                                    )}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <Label htmlFor="obsPagamento" className="text-xs">Observações</Label>
+                                                <Textarea id="obsPagamento" value={observacoesPagamento} onChange={(e) => setObservacoesPagamento(e.target.value)} rows={2} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'} className="text-xs" />
+                                            </div>
+                                            {valorRestanteTotalDoPedido > 0 && (
+                                                <div className="rounded bg-red-50 border border-red-100 p-2 text-xs mt-2">
+                                                    <b>Falta Receber:</b> R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}
+                                                    {(() => {
+                                                        const valorRecebido = parseFloat(valorRecebidoInput) || 0;
+                                                        const valorRestante = parseFloat(valorRestanteTotalDoPedido);
+                                                        const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
+                                                        const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
+                                                        if (valorRecebido >= valorRestante && valorRecebido > 0) {
+                                                            const troco = valorRecebido - valorRestante;
+                                                            if (troco > 0 && isPagamentoDinheiro) {
+                                                                return (
+                                                                    <span className="text-green-700 ml-2 font-semibold">✅ Troco de R$ {troco.toFixed(2).replace('.', ',')}</span>
+                                                                );
+                                                            } else {
+                                                                return (
+                                                                    <span className="text-green-700 ml-2 font-semibold">✅ Pagamento total</span>
+                                                                );
+                                                            }
+                                                        } else if (valorRecebido > 0 && valorRecebido < valorRestante) {
+                                                            return (
+                                                                <span className="text-orange-700 ml-2">💰 Recebimento parcial</span>
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <span className="text-red-700 ml-2">{isPagamentoDinheiro ? 'Qualquer valor (inclui troco)' : 'Qualquer valor'}</span>
+                                                            );
+                                                        }
+                                                    })()}
+                                                </div>
+                                            )}
+                                            {selectedPedido.status !== 'Entregue' && selectedPedido.status !== 'Cancelado' && (
+                                                <Button onClick={handleFinalizarPagamento} className="w-full flex items-center mt-2" disabled={loadingFinalizacao} size="sm">
+                                                    {loadingFinalizacao ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
+                                                    {(() => {
+                                                        const valorRecebido = parseFloat(valorRecebidoInput) || 0;
+                                                        const valorRestante = parseFloat(valorRestanteTotalDoPedido);
+                                                        if (valorRecebido >= valorRestante && valorRestante > 0) {
+                                                            return 'Finalizar Pagamento';
+                                                        } else if (valorRecebido > 0 && valorRecebido < valorRestante) {
+                                                            return 'Receber Parcial';
+                                                        } else if (valorRestante <= 0) {
+                                                            return 'Finalizar Pagamento';
+                                                        } else {
+                                                            return 'Receber Parcial';
+                                                        }
+                                                    })()}
+                                                </Button>
+                                            )}
+                                            {selectedPedido.status === 'Entregue' && (
+                                                <Badge className="bg-green-500 text-white text-center py-2 w-full mt-2">Pedido Finalizado</Badge>
+                                            )}
+                                            {selectedPedido.status === 'Cancelado' && (
+                                                <Badge className="bg-red-500 text-white text-center py-2 w-full mt-2">Pedido Cancelado</Badge>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex flex-wrap gap-2 justify-end mt-2">
                                 <Button onClick={closePedidoDetailModal} variant="outline">Fechar</Button>
                                 <Button onClick={() => handlePrintCupom(selectedPedido)} size="sm" variant="ghost" className="flex items-center">
                                     <Printer className="h-4 w-4 mr-1"/> Imprimir Cupom
