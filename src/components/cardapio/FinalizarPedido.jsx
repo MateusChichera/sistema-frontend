@@ -6,13 +6,14 @@ import { toast } from 'sonner';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription} from '../ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'; 
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Loader2, Plus } from 'lucide-react';
 import { IMaskInput } from 'react-imask';
 import { Switch } from '../ui/switch';
+import { useCarrinho } from '../../contexts/CarrinhoContext';
 
 const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, itens, onAddMoreItems, setIsMinimoDeliveryModalOpen, setValorFaltanteDelivery }) => {
     const { user, token } = useAuth(); 
@@ -20,6 +21,35 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
     const [loading, setLoading] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [formasPagamento, setFormasPagamento] = useState([]);
+    const [step, setStep] = useState(1); // 1: Revisão do carrinho, 2: Dados do cliente
+
+    // Funções para edição/exclusão de itens do carrinho
+    const [editingItemIndex, setEditingItemIndex] = useState(null);
+    const [editingObservation, setEditingObservation] = useState('');
+    const [editingQuantity, setEditingQuantity] = useState(1);
+    const { atualizarQuantidadeItem, removerItem } = useCarrinho();
+
+    const handleEditObservation = (idx) => {
+        setEditingItemIndex(idx);
+        setEditingObservation(itens[idx].observacoes || '');
+        setEditingQuantity(itens[idx].quantidade);
+    };
+    const handleSaveObservation = () => {
+        if (editingItemIndex !== null) {
+            atualizarQuantidadeItem(itens[editingItemIndex].id_produto, editingQuantity, editingObservation, itens[editingItemIndex].adicionais);
+            setEditingItemIndex(null);
+            setEditingObservation('');
+            setEditingQuantity(1);
+        }
+    };
+    const handleRemoveItem = (idx) => {
+        removerItem(itens[idx].id_produto, true, itens[idx].observacoes, itens[idx].adicionais);
+    };
+
+    // Responsividade: classes utilitárias
+    const containerClass = "p-2 sm:p-4 overflow-y-auto max-h-[90vh]";
+    const tableClass = "min-w-full text-xs sm:text-sm";
+    const buttonClass = "h-9 sm:h-10 text-xs sm:text-sm";
 
     // Carrega dados salvos do localStorage ou usa valores padrão
     const loadSavedData = () => {
@@ -338,13 +368,158 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
     const totalWithDelivery = total + (pedidoType === 'Delivery' ? parseFloat(empresa?.taxa_entrega || 0) : 0);
     const finalTotal = totalWithDelivery * (1 - discountPercentage);
 
+    // Etapa 1: Revisão do carrinho
+    if (step === 1) {
+        return (
+            <div className={containerClass}>
+                <DialogHeader>
+                    <DialogTitle>Revisar Pedido</DialogTitle>
+                    <DialogDescription>Confira, edite ou exclua itens do seu carrinho antes de continuar.</DialogDescription>
+                </DialogHeader>
+                {/* Layout responsivo: cards no mobile, tabela no desktop */}
+                <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+                  {/* Mobile: Cards */}
+                  <div className="sm:hidden space-y-2">
+                    {itens.map((item, idx) => (
+                      <div key={idx} className="bg-white border border-gray-200 rounded-lg p-3 flex flex-col gap-2">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-800">{item.nome}</div>
+                            <div className="text-xs text-gray-500">Qtd: {item.quantidade}</div>
+                            {item.adicionais && item.adicionais.length > 0 && (
+                              <div className="text-xs text-blue-700 mt-1">
+                                {item.adicionais.map((ad, i) => (
+                                  <span key={i} className="inline-block mr-2 bg-blue-50 px-2 py-1 rounded">
+                                    +{ad.quantidade}x {ad.nome} (R$ {parseFloat(ad.preco).toFixed(2).replace('.', ',')})
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {item.observacoes && (
+                              <div className="text-xs text-gray-600 mt-1">Obs: {item.observacoes}</div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1 items-end">
+                            <span className="font-bold text-sm">R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}</span>
+                            <div className="flex gap-1 mt-2">
+                              <Button size="sm" variant="outline" className={buttonClass} onClick={() => handleEditObservation(idx)}>Editar</Button>
+                              <Button size="sm" variant="destructive" className={buttonClass} onClick={() => handleRemoveItem(idx)}>Excluir</Button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Modal de edição do item (reutilizar modal de produto) */}
+                        {editingItemIndex === idx && (
+                          <Dialog open={true} onOpenChange={() => setEditingItemIndex(null)}>
+                            <DialogContent className="max-w-md w-[95vw] sm:w-full">
+                              <DialogHeader>
+                                <DialogTitle>Editar {item.nome}</DialogTitle>
+                                <DialogDescription>Edite a quantidade, observação ou adicionais deste item.</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-2">
+                                <Label>Quantidade</Label>
+                                <div className="flex items-center gap-2">
+                                  <Button type="button" size="sm" variant="outline" onClick={() => setEditingQuantity(q => Math.max(1, q - 1))}>-</Button>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="w-12 text-center border rounded h-9"
+                                    value={editingQuantity}
+                                    onChange={e => {
+                                      const val = e.target.value.replace(/\D/g, '');
+                                      setEditingQuantity(val ? parseInt(val) : 1);
+                                    }}
+                                  />
+                                  <Button type="button" size="sm" variant="outline" onClick={() => setEditingQuantity(q => q + 1)}>+</Button>
+                                </div>
+                                <Label>Observação</Label>
+                                <Textarea
+                                  value={editingObservation}
+                                  onChange={e => setEditingObservation(e.target.value)}
+                                />
+                                {item.adicionais && item.adicionais.length > 0 && (
+                                  <div>
+                                    <Label>Adicionais</Label>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                      {item.adicionais.map((ad, i) => (
+                                        <span key={i} className="inline-block bg-blue-50 px-2 py-1 rounded text-xs">
+                                          +{ad.quantidade}x {ad.nome} (R$ {parseFloat(ad.preco).toFixed(2).replace('.', ',')})
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <DialogFooter className="mt-4 flex gap-2">
+                                <Button variant="outline" onClick={() => setEditingItemIndex(null)}>Cancelar</Button>
+                                <Button onClick={handleSaveObservation}>Salvar</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                      </div>
+                    ))}
+                    <div className="text-right font-bold mt-2">Total: R$ {total.toFixed(2).replace('.', ',')}</div>
+                  </div>
+                  {/* Desktop: Tabela */}
+                  <div className="hidden sm:block">
+                    <Table className={tableClass}>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          <TableHead>Qtd</TableHead>
+                          <TableHead>Adicionais</TableHead>
+                          <TableHead>Obs.</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {itens.map((item, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{item.nome}</TableCell>
+                            <TableCell>{item.quantidade}</TableCell>
+                            <TableCell>
+                              {item.adicionais && item.adicionais.length > 0 ? (
+                                <div className="flex flex-col gap-1">
+                                  {item.adicionais.map((ad, i) => (
+                                    <span key={i} className="inline-block bg-blue-50 px-2 py-1 rounded text-xs">
+                                      +{ad.quantidade}x {ad.nome} (R$ {parseFloat(ad.preco).toFixed(2).replace('.', ',')})
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : <span className="text-xs text-gray-400">-</span>}
+                            </TableCell>
+                            <TableCell className="text-xs text-gray-600">{item.observacoes || <span className="italic text-gray-400">(vazio)</span>}</TableCell>
+                            <TableCell className="text-right">R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="outline" className={buttonClass} onClick={() => handleEditObservation(idx)}>Editar</Button>
+                                <Button size="sm" variant="destructive" className={buttonClass} onClick={() => handleRemoveItem(idx)}>Excluir</Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <div className="text-right font-bold mt-2">Total: R$ {total.toFixed(2).replace('.', ',')}</div>
+                  </div>
+                </div>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-end">
+                    <Button variant="outline" className={buttonClass} onClick={onClose}>Cancelar</Button>
+                    <Button className={buttonClass} onClick={() => setStep(2)} disabled={itens.length === 0}>Continuar</Button>
+                </DialogFooter>
+            </div>
+        );
+    }
+
+    // Etapa 2: Dados do cliente e pagamento (mantém o restante do seu código, mas com responsividade)
     return (
-        <div className="p-4 overflow-y-auto max-h-[90vh]">
+        <div className={containerClass}>
             <DialogHeader>
                 <DialogTitle>Finalizar Pedido</DialogTitle>
-                <DialogDescription>Confirme seu pedido e selecione a forma de pagamento.</DialogDescription>
+                <DialogDescription>Preencha seus dados e selecione a forma de pagamento.</DialogDescription>
             </DialogHeader>
-
             <form onSubmit={handleFinalizarPedido}>
                 <h3 className="text-xl font-semibold mb-3 mt-6 border-b pb-2">Forma de Pagamento - Pagamento na entrega</h3>
                 <Select value={selectedFormaPagamento} onValueChange={setSelectedFormaPagamento} required>
@@ -364,62 +539,69 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                     </SelectContent>
                 </Select>
                 <h3 className="text-xl font-semibold mb-3 mt-6 border-b pb-2">Seu Pedido</h3>
-                <Table>
+                {/* Mobile: Cards */}
+                <div className="sm:hidden space-y-2 mb-4">
+                  {itens.map((item, idx) => (
+                    <div key={idx} className="bg-white border border-gray-200 rounded-lg p-3 flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-800">{item.nome}</div>
+                          <div className="text-xs text-gray-500">Qtd: {item.quantidade}</div>
+                          {item.adicionais && item.adicionais.length > 0 && (
+                            <div className="text-xs text-blue-700 mt-1">
+                              {item.adicionais.map((ad, i) => (
+                                <span key={i} className="inline-block mr-2 bg-blue-50 px-2 py-1 rounded">
+                                  +{ad.quantidade}x {ad.nome} (R$ {parseFloat(ad.preco).toFixed(2).replace('.', ',')})
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {item.observacoes && (
+                            <div className="text-xs text-gray-600 mt-1">Obs: {item.observacoes}</div>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1 items-end">
+                          <span className="font-bold text-sm">R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop: Tabela */}
+                <div className="hidden sm:block mb-4">
+                  <Table className={tableClass}>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>Produto</TableHead>
-                            <TableHead>Qtd</TableHead>
-                            <TableHead className="text-right">Preço Unit.</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                        </TableRow>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>Qtd</TableHead>
+                        <TableHead>Adicionais</TableHead>
+                        <TableHead>Obs.</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {itens.map((item) => (
-                            <TableRow key={`${item.id_produto}-${item.observacoes}`}>
-                                <TableCell>
-                                    <div>
-                                        <div>{item.nome}</div>
-                                        {item.observacoes && (
-                                            <div className="text-sm text-gray-600">Obs: {item.observacoes}</div>
-                                        )}
-                                        {item.adicionais && item.adicionais.length > 0 && (
-                                            <div className="text-sm text-blue-600 mt-1">
-                                                {item.adicionais.map((adicional, idx) => (
-                                                    <div key={idx}>
-                                                        + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')})
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </TableCell>
-                                <TableCell>{item.quantidade}</TableCell>
-                                <TableCell className="text-right">R$ {parseFloat(item.preco_unitario).toFixed(2).replace('.', ',')}</TableCell>
-                                <TableCell className="text-right">R$ {(item.quantidade * parseFloat(item.preco_unitario)).toFixed(2).replace('.', ',')}</TableCell>
-                            </TableRow>
-                        ))}
-                        <TableRow className="font-bold">
-                            <TableCell colSpan={3} className="text-right">Subtotal:</TableCell>
-                            <TableCell className="text-right">R$ {total.toFixed(2).replace('.', ',')}</TableCell>
+                      {itens.map((item, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{item.nome}</TableCell>
+                          <TableCell>{item.quantidade}</TableCell>
+                          <TableCell>
+                            {item.adicionais && item.adicionais.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                {item.adicionais.map((ad, i) => (
+                                  <span key={i} className="inline-block bg-blue-50 px-2 py-1 rounded text-xs">
+                                    +{ad.quantidade}x {ad.nome} (R$ {parseFloat(ad.preco).toFixed(2).replace('.', ',')})
+                                  </span>
+                                ))}
+                              </div>
+                            ) : <span className="text-xs text-gray-400">-</span>}
+                          </TableCell>
+                          <TableCell className="text-xs text-gray-600">{item.observacoes || <span className="italic text-gray-400">(vazio)</span>}</TableCell>
+                          <TableCell className="text-right">R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}</TableCell>
                         </TableRow>
-                        {pedidoType === 'Delivery' && empresa?.taxa_entrega && (
-                            <TableRow className="text-sm">
-                                <TableCell colSpan={3} className="text-right">Taxa de Entrega:</TableCell>
-                                <TableCell className="text-right">R$ {parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}</TableCell>
-                            </TableRow>
-                        )}
-                        {discountPercentage > 0 && (
-                            <TableRow className="text-green-600 text-sm font-bold">
-                                <TableCell colSpan={3} className="text-right">Desconto:</TableCell>
-                                <TableCell className="text-right">-R$ {(totalWithDelivery * discountPercentage).toFixed(2).replace('.', ',')}</TableCell>
-                            </TableRow>
-                        )}
-                        <TableRow className="font-bold" style={{ backgroundColor: primaryColor }}>
-                        <TableCell colSpan={3} className="text-right text-black">TOTAL GERAL:</TableCell>
-                        <TableCell className="text-right text-black">R$ {finalTotal.toFixed(2).replace('.', ',')}</TableCell>
-                        </TableRow>
+                      ))}
                     </TableBody>
-                </Table>
+                  </Table>
+                </div>
                 {/* Se a forma de pagamento for dinheiro, mostrar switch para troco */}
                 {selectedPaymentMethod?.descricao?.toLowerCase().includes("dinheiro") && (
                 <div className="mt-4 space-y-2">
@@ -459,30 +641,9 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 {submitError && <p className="text-red-500 text-sm mt-3">{submitError}</p>}
 
                     
-                <DialogFooter className="mt-6 flex justify-end gap-2
-                ">
-                    <Button 
-                        type="button" 
-                        onClick={() => {
-                            localStorage.removeItem('finalizarPedidoFormData'); // Limpa dados ao cancelar
-                            onClose();
-                        }}
-                        style={{ backgroundColor: '#d32f2f', color: 'white', border: 'none' }}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button 
-                        type="button" 
-                        onClick={onAddMoreItems}
-                        className="flex items-center"
-                        style={{ backgroundColor: '#E4AF24', color: 'white', border: 'none'}}
-                    >
-                        <Plus className="mr-2 h-4 w-4" color="white" />
-                        Adicionar mais itens
-                    </Button>
-                    <Button type="submit" disabled={loading} className="flex items-center" style={{ backgroundColor: primaryColor, color: 'white' }}>
-                        {loading && <Loader2 className="animate-spin mr-2" />} Finalizar Pedido
-                    </Button>
+                <DialogFooter className="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+                    <Button type="button" variant="outline" className={buttonClass} onClick={() => setStep(1)}>Voltar</Button>
+                    <Button type="submit" className={buttonClass} disabled={loading}>Finalizar Pedido</Button>
                 </DialogFooter>
             </form>
         </div>
