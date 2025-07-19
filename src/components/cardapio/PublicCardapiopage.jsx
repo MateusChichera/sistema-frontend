@@ -471,26 +471,26 @@ const PublicCardapioPage = ({ user: userProp }) => {
 
   return (
     <>
-      <div className="container mx-auto p-4 relative">
-        <div className="flex justify-end mb-4 items-center gap-2">
+      <div className="container mx-auto p-2 sm:p-4 relative">
+        <div className="flex flex-col sm:flex-row justify-end mb-4 items-center gap-2">
           {user && user.role === 'cliente' ? (
             <>
-              <span className="font-semibold text-base mr-2">Olá, {user.nome.split(' ')[0]}</span>
-              <Button variant="outline" onClick={() => toast.info('Em breve!')}>Meus pedidos</Button>
-              <Button variant="ghost" onClick={logout}>Sair</Button>
+              <span className="font-semibold text-sm sm:text-base mr-2">Olá, {user.nome.split(' ')[0]}</span>
+              <Button variant="outline" onClick={() => toast.info('Em breve!')} className="text-xs sm:text-sm h-8 sm:h-9">Meus pedidos</Button>
+              <Button variant="ghost" onClick={logout} className="text-xs sm:text-sm h-8 sm:h-9">Sair</Button>
             </>
           ) : (
-            <Button variant="outline" onClick={() => setIsLoginRegisterModalOpen(true)}>
+            <Button variant="outline" onClick={() => setIsLoginRegisterModalOpen(true)} className="text-xs sm:text-sm h-8 sm:h-9">
               Entrar ou Cadastrar
             </Button>
           )}
         </div>
-        <p className={`text-center font-semibold text-lg mb-4 ${restaurantStatus.open ? 'text-green-600' : 'text-red-600'}`}>
+        <p className={`text-center font-semibold text-base sm:text-lg mb-4 ${restaurantStatus.open ? 'text-green-600' : 'text-red-600'}`}>
           {restaurantStatus.message}
         </p>
         
         {lojaFechadaParaPedidosOnline && (
-          <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded mb-4 text-center">
+          <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-3 sm:p-4 rounded mb-4 text-center text-sm sm:text-base">
             <strong>Loja fechada para pedidos de delivery no momento.</strong><br />
             Você ainda pode consultar nosso cardápio normalmente.<br />
             Agradecemos a compreensão! 😊
@@ -498,59 +498,61 @@ const PublicCardapioPage = ({ user: userProp }) => {
         )}
 
         {!isCurrentlyOpenForOrders && ( 
-            <div className="text-center text-orange-600 mb-6 p-4 border border-orange-300 bg-orange-50 rounded-md flex flex-col items-center justify-center">
+            <div className="text-center text-orange-600 mb-6 p-3 sm:p-4 border border-orange-300 bg-orange-50 rounded-md flex flex-col items-center justify-center">
               <div className="flex items-center justify-center mb-2">
-                <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='orange' strokeWidth='2' className='w-8 h-8 mr-2'><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01M21 20H3a1 1 0 01-.87-1.5l9-16a1 1 0 011.74 0l9 16A1 1 0 0121 20z' /></svg>
-                <p className="font-bold text-xl text-orange-700">⚠️ Pedidos Online Temporariamente Indisponíveis!</p>
+                <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='orange' strokeWidth='2' className='w-6 h-6 sm:w-8 sm:h-8 mr-2'><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01M21 20H3a1 1 0 01-.87-1.5l9-16a1 1 0 011.74 0l9 16A1 1 0 0121 20z' /></svg>
+                <p className="font-bold text-lg sm:text-xl text-orange-700">⚠️ Pedidos Online Temporariamente Indisponíveis!</p>
               </div>
-              <p className="font-semibold text-lg">{restaurantStatus.message}</p>
-              {empresa.permitir_pedido_online === 0 && <p className="text-lg">Os pedidos online estão desativados pela empresa.</p>}
+              <p className="font-semibold text-base sm:text-lg">{restaurantStatus.message}</p>
+              {empresa.permitir_pedido_online === 0 && <p className="text-base sm:text-lg">Os pedidos online estão desativados pela empresa.</p>}
               {empresa.tempo_corte_pedido_online && (
-                <p className="text-lg">Horário limite para pedidos: {empresa.tempo_corte_pedido_online}</p>
+                <p className="text-base sm:text-lg">Horário limite para pedidos: {empresa.tempo_corte_pedido_online}</p>
               )}
             </div>
         )}
 
         {canMakeOnlineOrder && ( 
-          <div className="mb-6 flex justify-center space-x-4">
+          <div className="mb-6 flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
             <Button
               variant={selectedPedidoType === 'Delivery' ? 'default' : 'outline'}
               onClick={() => setSelectedPedidoType('Delivery')}
               disabled={empresa.desativar_entrega || !isCurrentlyOpenForOrders} 
-              className={empresa.desativar_entrega || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
+              className={`text-xs sm:text-sm h-8 sm:h-9 ${empresa.desativar_entrega || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Bike className="mr-2" /> Delivery
+              <Bike className="mr-2 h-4 w-4" /> Delivery
             </Button>
             <Button
               variant={selectedPedidoType === 'Retirada' ? 'default' : 'outline'}
               onClick={() => setSelectedPedidoType('Retirada')}
               disabled={empresa.desativar_retirada || !isCurrentlyOpenForOrders} 
-              className={empresa.desativar_retirada || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}
+              className={`text-xs sm:text-sm h-8 sm:h-9 ${empresa.desativar_retirada || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Home className="mr-2" /> Retirada
+              <Home className="mr-2 h-4 w-4" /> Retirada
             </Button>
             <Button
               variant={selectedPedidoType === 'Mesa' ? 'default' : 'outline'}
               onClick={() => setSelectedPedidoType('Mesa')}
               disabled={true} 
-              className={'opacity-50 cursor-not-allowed'}
+              className={'opacity-50 cursor-not-allowed text-xs sm:text-sm h-8 sm:h-9'}
             >
-              <Utensils className="mr-2" /> Mesa
+              <Utensils className="mr-2 h-4 w-4" /> Mesa
             </Button>
           </div>
         )}
 
         {(!selectedPedidoType || selectedPedidoType === 'Delivery') && (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 && (
-          <p className="text-center text-gray-700 mb-4">
+          <p className="text-center text-gray-700 mb-4 text-sm sm:text-base">
             Valor mínimo para delivery: <span className="font-semibold">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
           </p>
         )}
 
-        <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+        <div className="mb-6 p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-end">
           <div>
-            <Label htmlFor="categoryFilter">Categoria</Label>
+            <Label htmlFor="categoryFilter" className="text-sm">Categoria</Label>
             <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-              <SelectTrigger id="categoryFilter"><SelectValue placeholder="Todas as Categorias" /></SelectTrigger>
+              <SelectTrigger id="categoryFilter" className="h-9 sm:h-10">
+                <SelectValue placeholder="Todas as Categorias" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
                 {categorias.some(c => c.id === 'promo') && (
@@ -563,31 +565,31 @@ const PublicCardapioPage = ({ user: userProp }) => {
             </Select>
           </div>
           <div>
-            <Label htmlFor="productSearch">Buscar Produto</Label>
+            <Label htmlFor="productSearch" className="text-sm">Buscar Produto</Label>
             <Input
               id="productSearch"
               placeholder="Nome ou descrição..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
+              className="w-full h-9 sm:h-10 text-sm"
             />
           </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {categorias.map(categoria => {
             const produtosParaExibir = categoria.id === 'promo' 
               ? filteredProdutos.filter(p => p.promo_ativa && p.ativo) 
               : filteredProdutos.filter(prod => prod.id_categoria === categoria.id && prod.ativo);
             if (produtosParaExibir.length === 0) return null;
             return (
-              <div key={categoria.id} className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-700 border-b pb-2">{categoria.descricao}</h2>
-                <div className={`grid gap-4 ${empresa?.layout_cardapio === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+              <div key={categoria.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
+                <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2">{categoria.descricao}</h2>
+                <div className={`grid gap-3 sm:gap-4 ${empresa?.layout_cardapio === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                   {produtosParaExibir.map(prod => (
                     <div
                       key={prod.id}
-                      className="border p-4 rounded-lg flex items-center space-x-4 hover:bg-gray-50 cursor-pointer"
+                      className="border p-3 sm:p-4 rounded-lg flex items-center space-x-3 sm:space-x-4 hover:bg-gray-50 cursor-pointer"
                       onClick={() => {
                         if (!lojaFechadaParaPedidosOnline) openProductModal(prod);
                       }}
@@ -597,19 +599,19 @@ const PublicCardapioPage = ({ user: userProp }) => {
                         <img
                           src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`}
                           alt={prod.nome}
-                          className="w-24 h-24 object-cover rounded-md"
+                          className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-800">{prod.nome}</h3>
-                        <p className="text-gray-600 text-sm">{prod.descricao}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">{prod.nome}</h3>
+                        <p className="text-gray-600 text-xs sm:text-sm line-clamp-2">{prod.descricao}</p>
                         {prod.promo_ativa && prod.promocao ? (
-                          <p className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
+                          <p className="font-bold text-base sm:text-lg mt-1" style={{ color: primaryColor }}>
                             <span className="line-through text-gray-500 mr-2">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</span>
                             <span style={{ color: '#22C55E' }}>R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
                           </p>
                         ) : (
-                          <p className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
+                          <p className="text-gray-800 font-bold text-base sm:text-lg mt-1">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
                         )}
                       </div>
                       {canMakeOnlineOrder && ( 
@@ -628,25 +630,25 @@ const PublicCardapioPage = ({ user: userProp }) => {
 
 {hasItemsInCart && isCurrentlyOpenForOrders && (
   <div
-    className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-4 rounded-full shadow-lg flex items-center space-x-3 z-50 transition-all duration-300 ease-in-out bg-primary"
+    className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-3 sm:p-4 rounded-full shadow-lg flex items-center space-x-2 sm:space-x-3 z-50 transition-all duration-300 ease-in-out bg-primary"
     style={{ color: '#fff', opacity: 1 }}
   >
-    <ShoppingCart className="h-6 w-6 flex-shrink-0 text-white" />
-    <span className="text-lg font-bold whitespace-nowrap">Total: R$ {total.toFixed(2).replace('.', ',')}</span>
+    <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 text-white" />
+    <span className="text-sm sm:text-lg font-bold whitespace-nowrap">Total: R$ {total.toFixed(2).replace('.', ',')}</span>
 
     <Button
       onClick={handleOpenFinalizarPedidoModal}
-      className="ml-auto bg-white text-primary border border-white font-semibold rounded-full px-5 py-2 text-sm transition-colors duration-200 hover:bg-gray-100"
+      className="ml-auto bg-white text-primary border border-white font-semibold rounded-full px-3 sm:px-5 py-1 sm:py-2 text-xs sm:text-sm transition-colors duration-200 hover:bg-gray-100 h-8 sm:h-9"
     >
-      <CheckCircle className="mr-2 h-4 w-4" /> Finalizar Pedido
+      <CheckCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Finalizar Pedido
     </Button>
   </div>
 )}
         <Dialog open={!!selectedProduct} onOpenChange={closeProductModal}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:w-auto max-w-md sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>{selectedProduct?.nome}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg sm:text-xl">{selectedProduct?.nome}</DialogTitle>
+              <DialogDescription className="text-sm">
                 {selectedProduct?.descricao}
                 {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
                   <span className="font-bold text-lg mt-1" style={{ color: primaryColor }}>

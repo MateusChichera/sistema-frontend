@@ -191,18 +191,18 @@ const FormasPagamentoPage = () => {
   }
   
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Formas de Pagamento - {empresa.nome_fantasia}</h2>
+    <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Formas de Pagamento - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Forma de Pagamento - Visível apenas para quem pode gerenciar */}
       {canManage && (
-        <form onSubmit={editandoForma ? handleSaveEdit : handleAddFormaPagamento} className="mb-8 p-4 border rounded-lg bg-gray-50">
-          <h3 className="text-xl font-semibold mb-4 text-gray-700">
+        <form onSubmit={editandoForma ? handleSaveEdit : handleAddFormaPagamento} className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50">
+          <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">
             {editandoForma ? `Editar Forma: ${editandoForma.descricao}` : 'Adicionar Nova Forma de Pagamento'}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 items-end">
             <div>
-              <Label htmlFor="descricao">Descrição</Label>
+              <Label htmlFor="descricao" className="text-sm">Descrição</Label>
               <Input
                 id="descricao"
                 type="text"
@@ -210,10 +210,11 @@ const FormasPagamentoPage = () => {
                 value={editandoForma ? editDescricao : novaDescricao}
                 onChange={(e) => editandoForma ? setEditDescricao(e.target.value) : setNovaDescricao(e.target.value)}
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div>
-              <Label htmlFor="desconto">Desconto (%)</Label>
+              <Label htmlFor="desconto" className="text-sm">Desconto (%)</Label>
               <Input
                 id="desconto"
                 type="number"
@@ -224,24 +225,25 @@ const FormasPagamentoPage = () => {
                 value={editandoForma ? editDesconto : novoDesconto}
                 onChange={(e) => editandoForma ? setEditDesconto(e.target.value) : setNovoDesconto(e.target.value)}
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
-            {editandoForma && ( // O switch de ativo só aparece na edição
+            {editandoForma && (
               <div className="flex items-center space-x-2">
                 <Switch
                   id="ativo"
                   checked={editAtivo}
                   onCheckedChange={setEditAtivo}
                 />
-                <Label htmlFor="ativo">Ativa</Label>
+                <Label htmlFor="ativo" className="text-sm">Ativa</Label>
               </div>
             )}
-            <div className="flex gap-2 col-span-1 md:col-span-3">
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <div className="flex flex-col sm:flex-row gap-2 col-span-1 md:col-span-3">
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
                 {editandoForma ? 'Salvar Edição' : 'Adicionar Forma'}
               </Button>
               {editandoForma && (
-                <Button type="button" onClick={handleCancelEdit} variant="outline">
+                <Button type="button" onClick={handleCancelEdit} variant="outline" className="text-xs sm:text-sm h-8 sm:h-9">
                   Cancelar
                 </Button>
               )}
@@ -251,57 +253,105 @@ const FormasPagamentoPage = () => {
       )}
 
       {/* Lista de Formas de Pagamento */}
-      <h3 className="text-xl font-semibold mb-4 text-gray-700">Formas de Pagamento Existentes</h3>
+      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Formas de Pagamento Existentes</h3>
       {formasPagamento.length === 0 ? (
-        <p className="text-gray-600">{canManage ? 'Nenhuma forma de pagamento cadastrada ainda. Use o formulário acima para adicionar.' : 'Nenhuma forma de pagamento cadastrada para esta empresa.'}</p>
+        <p className="text-gray-600 text-sm sm:text-base">{canManage ? 'Nenhuma forma de pagamento cadastrada ainda. Use o formulário acima para adicionar.' : 'Nenhuma forma de pagamento cadastrada para esta empresa.'}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
-            <TableHeader className="bg-gray-100">
-              <TableRow>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">ID</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Descrição</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Desconto (%)</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
-                {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {formasPagamento.map((forma) => (
-                <TableRow key={forma.id} className="hover:bg-gray-50">
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{forma.id}</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{forma.descricao}</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{parseFloat(forma.porcentagem_desconto_geral).toFixed(2)}%</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      forma.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {forma.ativo ? 'Ativa' : 'Inativa'}
-                    </span>
-                  </TableCell>
-                  {canManage && (
-                    <TableCell className="py-2 px-4 border-b text-sm">
-                      <Button 
-                        onClick={() => handleEditClick(forma)} 
-                        variant="outline" 
-                        size="sm" 
-                        className="mr-2"
-                      >
-                        Editar
-                      </Button>
-                      <Button 
-                        onClick={() => handleDeleteFormaPagamento(forma.id)} 
-                        variant="destructive" 
-                        size="sm"
-                      >
-                        Excluir
-                      </Button>
-                    </TableCell>
-                  )}
+        <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+          {/* Versão mobile/tablet - Cards */}
+          <div className="sm:hidden space-y-2">
+            {formasPagamento.map((forma) => (
+              <div key={forma.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-gray-800">{forma.descricao}</h4>
+                    <p className="text-xs text-gray-500">ID: {forma.id}</p>
+                    <p className="text-sm font-semibold text-blue-600 mt-1">
+                      Desconto: {parseFloat(forma.porcentagem_desconto_geral).toFixed(2)}%
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    forma.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {forma.ativo ? 'Ativa' : 'Inativa'}
+                  </span>
+                </div>
+                {canManage && (
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => handleEditClick(forma)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-xs h-8"
+                    >
+                      Editar
+                    </Button>
+                    <Button 
+                      onClick={() => handleDeleteFormaPagamento(forma.id)} 
+                      variant="destructive" 
+                      size="sm"
+                      className="flex-1 text-xs h-8"
+                    >
+                      Excluir
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Versão desktop - Tabela */}
+          <div className="hidden sm:block overflow-x-auto">
+            <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
+              <TableHeader className="bg-gray-100">
+                <TableRow>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">ID</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Descrição</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Desconto (%)</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
+                  {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {formasPagamento.map((forma) => (
+                  <TableRow key={forma.id} className="hover:bg-gray-50">
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{forma.id}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{forma.descricao}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{parseFloat(forma.porcentagem_desconto_geral).toFixed(2)}%</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        forma.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {forma.ativo ? 'Ativa' : 'Inativa'}
+                      </span>
+                    </TableCell>
+                    {canManage && (
+                      <TableCell className="py-2 px-4 border-b text-sm">
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => handleEditClick(forma)} 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs h-8 px-2"
+                          >
+                            Editar
+                          </Button>
+                          <Button 
+                            onClick={() => handleDeleteFormaPagamento(forma.id)} 
+                            variant="destructive" 
+                            size="sm"
+                            className="text-xs h-8 px-2"
+                          >
+                            Excluir
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>

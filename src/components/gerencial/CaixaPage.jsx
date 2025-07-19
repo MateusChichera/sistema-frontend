@@ -1372,33 +1372,42 @@ const CaixaPage = () => {
     }
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Caixa - {empresa.nome_fantasia}</h2>
+        <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Caixa - {empresa.nome_fantasia}</h2>
               {empresa.usa_controle_caixa && caixaInfo && (
-                 <div className="flex gap-2">
-                     <Button variant="outline" onClick={() => setIsSuprimentoModalOpen(true)} className="flex items-center"><PlusCircle className="h-4 w-4 mr-1"/> Suprimento/Sangria</Button>
-                     <Button onClick={openFechamentoModal} className="bg-red-600 hover:bg-red-700 text-white flex items-center"><DollarSign className="h-4 w-4 mr-1"/> Fechar Caixa</Button>
+                 <div className="flex flex-col sm:flex-row gap-2">
+                     <Button variant="outline" onClick={() => setIsSuprimentoModalOpen(true)} className="flex items-center text-xs sm:text-sm h-8 sm:h-9">
+                         <PlusCircle className="h-4 w-4 mr-1"/> Suprimento/Sangria
+                     </Button>
+                     <Button onClick={openFechamentoModal} className="bg-red-600 hover:bg-red-700 text-white flex items-center text-xs sm:text-sm h-8 sm:h-9">
+                         <DollarSign className="h-4 w-4 mr-1"/> Fechar Caixa
+                     </Button>
                  </div>
               )}
             </div>
 
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"> {/* Ajustado para 4 colunas para incluir a data */}
+            {/* Filtros */}
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
-                    <Label htmlFor="filterStatus">Visualizar Status</Label>
+                    <Label htmlFor="filterStatus" className="text-sm">Status</Label>
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger id="filterStatus"><SelectValue placeholder="Status Ativos" /></SelectTrigger>
+                        <SelectTrigger id="filterStatus" className="h-9 sm:h-10">
+                            <SelectValue placeholder="Todos os Status" />
+                        </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="Pendente,Preparando,Pronto">Ativos (Pendente, Preparando, Pronto)</SelectItem>
-                            <SelectItem value="Entregue,Cancelado">Finalizados (Entregue, Cancelado)</SelectItem>
-                            <SelectItem value="all">Todos os Status</SelectItem>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="Pendente,Preparando,Pronto">Ativos</SelectItem>
+                            <SelectItem value="Entregue,Cancelado">Finalizados</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div>
-                    <Label htmlFor="filterTipoEntrega">Tipo de Entrega</Label>
+                    <Label htmlFor="filterTipoEntrega" className="text-sm">Tipo de Entrega</Label>
                     <Select value={filterTipoEntrega} onValueChange={setFilterTipoEntrega}>
-                        <SelectTrigger id="filterTipoEntrega"><SelectValue placeholder="Todos os Tipos" /></SelectTrigger>
+                        <SelectTrigger id="filterTipoEntrega" className="h-9 sm:h-10">
+                            <SelectValue placeholder="Todos os Tipos" />
+                        </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Todos</SelectItem>
                             {tipoEntregaOptions.map(tipo => (
@@ -1408,40 +1417,40 @@ const CaixaPage = () => {
                     </Select>
                 </div>
                 <div>
-                    <Label htmlFor="searchTerm">Buscar por Pedido/Cliente</Label>
+                    <Label htmlFor="searchTerm" className="text-sm">Buscar por Pedido/Cliente</Label>
                     <Input
                         id="searchTerm"
                         placeholder="Número do pedido, nome do cliente..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full"
+                        className="w-full h-9 sm:h-10 text-sm"
                     />
                 </div>
                 {/* Novo filtro de data */}
                 <div>
-                    <Label htmlFor="filterDate">Filtrar por Data</Label>
+                    <Label htmlFor="filterDate" className="text-sm">Filtrar por Data</Label>
                     <Input
                         id="filterDate"
                         type="date"
                         value={filterDate}
                         onChange={(e) => setFilterDate(e.target.value)}
-                        className="w-full"
+                        className="w-full h-9 sm:h-10 text-sm"
                     />
                 </div>
             </div>
 
             {/* Pedidos Ativos - Agora sempre em uma única lista, sem separação por tipo */}
-            <h3 className="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Pedidos Ativos ({pedidosAbertos.length})</h3>
+            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2">Pedidos Ativos ({pedidosAbertos.length})</h3>
             {pedidosAbertos.length === 0 ? (
-                <p className="text-gray-600">Nenhum pedido ativo encontrado para os filtros selecionados.</p>
+                <p className="text-gray-600 text-sm sm:text-base">Nenhum pedido ativo encontrado para os filtros selecionados.</p>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {pedidosAbertos.map(pedido => (
                         <Card key={pedido.id} className="hover:shadow-lg transition-shadow duration-200">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-lg flex justify-between items-center">
-                                    Pedido #{pedido.numero_pedido}
-                                    <Badge className={`${
+                            <CardHeader className="pb-2 px-3 sm:px-4 py-3">
+                                <CardTitle className="text-base sm:text-lg flex justify-between items-center">
+                                    <span className="truncate">Pedido #{pedido.numero_pedido}</span>
+                                    <Badge className={`text-xs ${
                                         pedido.tipo_entrega === 'Mesa' ? 'bg-blue-100 text-blue-800' :
                                         pedido.tipo_entrega === 'Balcao' ? 'bg-purple-100 text-purple-800' :
                                         'bg-orange-100 text-orange-800'
@@ -1450,13 +1459,13 @@ const CaixaPage = () => {
                                         {pedido.tipo_entrega === 'Mesa' && pedido.numero_mesa ? ` (${pedido.numero_mesa})` : ''}
                                     </Badge>
                                 </CardTitle>
-                                <CardDescription className="text-sm flex justify-between items-center">
+                                <CardDescription className="text-xs sm:text-sm flex justify-between items-center">
                                     {/* Nome do cliente agora maior e em negrito */}
-                                    <span className="text-base font-bold">Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
+                                    <span className="text-sm sm:text-base font-bold truncate">Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
                                     {getStatusBadge(pedido.status)}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="pt-2">
+                            <CardContent className="pt-2 px-3 sm:px-4">
                                 {(() => {
                                     const baseTotal = parseFloat(pedido.valor_total || 0);
                                     const deliveryTax = (pedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) ? parseFloat(empresa.taxa_entrega) : 0;
@@ -1464,42 +1473,34 @@ const CaixaPage = () => {
                                     const receivedPartial = parseFloat(pedido.valor_recebido_parcial || 0);
                                     const missingAmount = Math.max(0, parseFloat(displayTotal) - receivedPartial).toFixed(2);
                                     
-                                    // console.log(`Pedido #${pedido.numero_pedido}:`);
-                                    // console.log("  pedido.valor_total:", pedido.valor_total);
-                                    // console.log("  empresa?.taxa_entrega:", empresa?.taxa_entrega);
-                                    // console.log("  pedido.tipo_entrega:", pedido.tipo_entrega);
-                                    // console.log("  displayTotal (calculado):", displayTotal);
-                                    // console.log("  receivedPartial:", receivedPartial);
-                                    // console.log("  missingAmount:", missingAmount);
-
                                     return (
-                                        <>
-                                            <p className="text-base font-semibold">Valor Total: R$ {displayTotal.replace('.', ',')}</p>
+                                        <div className="space-y-1 text-xs sm:text-sm">
+                                            <p className="text-sm sm:text-base font-semibold">Valor Total: R$ {displayTotal.replace('.', ',')}</p>
                                             
                                             {/* Forma de pagamento aparece somente para Delivery ou Retirada */}
                                             {['Delivery', 'Retirada'].includes(pedido.tipo_entrega) && (
-                                                <p className="text-base">Forma de pagamento: {pedido.formapagamento || 'N/A'}</p>
+                                                <p>Forma de pagamento: {pedido.formapagamento || 'N/A'}</p>
                                             )} 
                                             
-                                            <p className="text-sm text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
-                                            <p className="text-sm text-gray-500">Recebido Parcial: R$ {receivedPartial.toFixed(2).replace('.', ',')}</p>
+                                            <p className="text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
+                                            <p className="text-gray-500">Recebido Parcial: R$ {receivedPartial.toFixed(2).replace('.', ',')}</p>
                                             
                                             {/* Falta Receber aparece somente se tiver um valor parcial recebido maior que zero */}
                                             {receivedPartial > 0 && parseFloat(missingAmount) > 0 && (
-                                                <p className="font-bold text-lg text-red-600">Falta Receber: R$ {missingAmount.replace('.', ',')}</p>
+                                                <p className="font-bold text-sm sm:text-lg text-red-600">Falta Receber: R$ {missingAmount.replace('.', ',')}</p>
                                             )}
                                             <div className="mt-2 flex justify-end">
                                                 {getPagamentoStatusBadge(pedido)}
                                             </div>
-                                        </>
+                                        </div>
                                     );
                                 })()}
                             </CardContent>
-                            <CardFooter className="pt-2 flex justify-end gap-2">
-                                <Button onClick={() => openPedidoDetailModal(pedido.id)} size="sm">Finalizar</Button>
+                            <CardFooter className="pt-2 px-3 sm:px-4 pb-3 flex justify-end gap-1 sm:gap-2">
+                                <Button onClick={() => openPedidoDetailModal(pedido.id)} size="sm" className="text-xs h-8 px-2">Finalizar</Button>
                                 {/* Botão Imprimir adicionado em cada card */}
-                                <Button onClick={() => handlePrintCupom(pedido)} size="sm" variant="ghost" className="flex items-center">
-                                    <Printer className="h-4 w-4 mr-1"/> Imprimir
+                                <Button onClick={() => handlePrintCupom(pedido)} size="sm" variant="ghost" className="flex items-center text-xs h-8 px-2">
+                                    <Printer className="h-3 w-3 sm:h-4 sm:w-4 mr-1"/> Imprimir
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -1509,17 +1510,17 @@ const CaixaPage = () => {
 
             {(filterStatus === 'Entregue,Cancelado' || filterStatus === 'all') && (
                 <>
-                    <h3 className="text-xl font-semibold mb-4 mt-8 text-gray-700 border-b pb-2">Pedidos Finalizados ({pedidosFinalizados.length})</h3>
+                    <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 mt-6 sm:mt-8 text-gray-700 border-b pb-2">Pedidos Finalizados ({pedidosFinalizados.length})</h3>
                     {pedidosFinalizados.length === 0 ? (
-                        <p className="text-gray-600">Nenhum pedido finalizado encontrado para os filtros selecionados.</p>
+                        <p className="text-gray-600 text-sm sm:text-base">Nenhum pedido finalizado encontrado para os filtros selecionados.</p>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                             {pedidosFinalizados.map(pedido => (
                                 <Card key={pedido.id} className="hover:shadow-lg transition-shadow duration-200 opacity-70">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-lg flex justify-between items-center">
-                                            Pedido #{pedido.numero_pedido}
-                                            <Badge className={`${
+                                    <CardHeader className="pb-2 px-3 sm:px-4 py-3">
+                                        <CardTitle className="text-base sm:text-lg flex justify-between items-center">
+                                            <span className="truncate">Pedido #{pedido.numero_pedido}</span>
+                                            <Badge className={`text-xs ${
                                                 pedido.tipo_entrega === 'Mesa' ? 'bg-blue-100 text-blue-800' :
                                                 pedido.tipo_entrega === 'Balcao' ? 'bg-purple-100 text-purple-800' :
                                                 'bg-orange-100 text-orange-800'
@@ -1528,13 +1529,13 @@ const CaixaPage = () => {
                                                 {pedido.tipo_entrega === 'Mesa' && pedido.numero_mesa ? ` (${pedido.numero_mesa})` : ''}
                                             </Badge>
                                         </CardTitle>
-                                        <CardDescription className="text-sm flex justify-between items-center">
+                                        <CardDescription className="text-xs sm:text-sm flex justify-between items-center">
                                             {/* Nome do cliente agora maior e em negrito */}
-                                            <span className="text-base font-bold">Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
+                                            <span className="text-sm sm:text-base font-bold truncate">Cliente: {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</span>
                                             {getStatusBadge(pedido.status)}
                                         </CardDescription>
                                     </CardHeader>
-                                    <CardContent className="pt-2">
+                                    <CardContent className="pt-2 px-3 sm:px-4">
                                         {(() => {
                                             const baseTotal = parseFloat(pedido.valor_total || 0);
                                             const deliveryTax = (pedido.tipo_entrega === 'Delivery' && empresa?.taxa_entrega) ? parseFloat(empresa.taxa_entrega) : 0;
@@ -1543,27 +1544,27 @@ const CaixaPage = () => {
                                             const missingAmount = Math.max(0, parseFloat(displayTotal) - receivedPartial).toFixed(2);
 
                                             return (
-                                                <>
-                                                    <p className="text-base font-semibold">Valor Total: R$ {displayTotal.replace('.', ',')}</p>
+                                                <div className="space-y-1 text-xs sm:text-sm">
+                                                    <p className="text-sm sm:text-base font-semibold">Valor Total: R$ {displayTotal.replace('.', ',')}</p>
                                                     {['Delivery', 'Retirada'].includes(pedido.tipo_entrega) && (
-                                                        <p className="text-base">Forma de pagamento: {pedido.formapagamento || 'N/A'}</p>
+                                                        <p>Forma de pagamento: {pedido.formapagamento || 'N/A'}</p>
                                                     )}
-                                                    <p className="text-sm text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
-                                                    <p className="text-sm text-gray-500">Recebido Parcial: R$ {receivedPartial.toFixed(2).replace('.', ',')}</p>
+                                                    <p className="text-gray-500">Criado em: {formatDateTime(pedido.data_pedido)}</p>
+                                                    <p className="text-gray-500">Recebido Parcial: R$ {receivedPartial.toFixed(2).replace('.', ',')}</p>
                                                     {receivedPartial > 0 && parseFloat(missingAmount) > 0 && (
-                                                        <p className="font-bold text-lg text-red-600">Falta Receber: R$ {missingAmount.replace('.', ',')}</p>
+                                                        <p className="font-bold text-sm sm:text-lg text-red-600">Falta Receber: R$ {missingAmount.replace('.', ',')}</p>
                                                     )}
                                                     <div className="mt-2 flex justify-end">
                                                         {getPagamentoStatusBadge(pedido)}
                                                     </div>
-                                                </>
+                                                </div>
                                             );
                                         })()}
                                     </CardContent>
-                                    <CardFooter className="pt-2 flex justify-end gap-2">
-                                        <Button onClick={() => openPedidoDetailModal(pedido.id)} size="sm" variant="outline">Ver Detalhes</Button>
-                                        <Button onClick={() => handlePrintCupom(pedido)} size="sm" variant="ghost" className="flex items-center">
-                                            <Printer className="h-4 w-4 mr-1"/> Imprimir
+                                    <CardFooter className="pt-2 px-3 sm:px-4 pb-3 flex justify-end gap-1 sm:gap-2">
+                                        <Button onClick={() => openPedidoDetailModal(pedido.id)} size="sm" variant="outline" className="text-xs h-8 px-2">Ver Detalhes</Button>
+                                        <Button onClick={() => handlePrintCupom(pedido)} size="sm" variant="ghost" className="flex items-center text-xs h-8 px-2">
+                                            <Printer className="h-3 w-3 sm:h-4 sm:w-4 mr-1"/> Imprimir
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -1576,64 +1577,66 @@ const CaixaPage = () => {
 
             {/* Modal de Detalhes dos Itens */}
             <Dialog open={isItemDetailModalOpen} onOpenChange={closeItemDetailModal}>
-                <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+                <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh] w-[95vw] sm:w-auto">
                     {selectedPedido ? (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Itens do Pedido #{selectedPedido.numero_pedido}</DialogTitle>
-                                <DialogDescription>
+                                <DialogTitle className="text-lg sm:text-xl">Itens do Pedido #{selectedPedido.numero_pedido}</DialogTitle>
+                                <DialogDescription className="text-sm">
                                     Lista completa dos produtos incluídos neste pedido.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="py-4">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Produto</TableHead>
-                                            <TableHead className="text-right">Qtd</TableHead>
-                                            <TableHead className="text-right">V. Unit</TableHead>
-                                            <TableHead className="text-right">Total</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {(selectedPedido.itens || []).map(item => (
-                                            <TableRow key={item.id}>
-                                                <TableCell>
-                                                    <div>
-                                                        <div>{item.nome_produto} {item.observacoes && `(${item.observacoes})`}</div>
-                                                        {/* Exibir adicionais do item */}
-                                                        {item.adicionais && item.adicionais.length > 0 && (
-                                                            <div className="mt-1">
-                                                                {item.adicionais.map((adicional, adicIdx) => (
-                                                                    <div key={adicIdx} className="text-xs text-blue-600">
-                                                                        + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco_unitario_adicional).toFixed(2).replace('.', ',')})
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right">{item.quantidade}</TableCell>
-                                                <TableCell className="text-right">R$ {parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</TableCell>
-                                                <TableCell className="text-right">R$ {(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</TableCell>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="text-xs sm:text-sm">Produto</TableHead>
+                                                <TableHead className="text-right text-xs sm:text-sm">Qtd</TableHead>
+                                                <TableHead className="text-right text-xs sm:text-sm">V. Unit</TableHead>
+                                                <TableHead className="text-right text-xs sm:text-sm">Total</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                                <p className="text-right font-bold mt-4">
-                                    Subtotal dos Itens: R$ {parseFloat(selectedPedido.valor_total || 0).toFixed(2).replace('.', ',')}
-                                </p>
-                                {selectedPedido.tipo_entrega === 'Delivery' && parseFloat(empresa?.taxa_entrega || 0) > 0 && (
-                                    <p className="text-right text-sm text-gray-600">
-                                        Taxa de Entrega: R$ {parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}
+                                        </TableHeader>
+                                        <TableBody>
+                                            {(selectedPedido.itens || []).map(item => (
+                                                <TableRow key={item.id}>
+                                                    <TableCell>
+                                                        <div>
+                                                            <div>{item.nome_produto} {item.observacoes && `(${item.observacoes})`}</div>
+                                                            {/* Exibir adicionais do item */}
+                                                            {item.adicionais && item.adicionais.length > 0 && (
+                                                                <div className="mt-1">
+                                                                    {item.adicionais.map((adicional, adicIdx) => (
+                                                                        <div key={adicIdx} className="text-xs text-blue-600">
+                                                                            + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco_unitario_adicional).toFixed(2).replace('.', ',')})
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">{item.quantidade}</TableCell>
+                                                    <TableCell className="text-right">R$ {parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</TableCell>
+                                                    <TableCell className="text-right">R$ {(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                    <p className="text-right font-bold mt-4">
+                                        Subtotal dos Itens: R$ {parseFloat(selectedPedido.valor_total || 0).toFixed(2).replace('.', ',')}
                                     </p>
-                                )}
-                                <p className="text-right font-bold text-lg mt-2">
-                                    Total Geral do Pedido: R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}
-                                    {cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && (
-                                        <span className="text-sm text-orange-600 ml-2">(inclui 10% garçom)</span>
+                                    {selectedPedido.tipo_entrega === 'Delivery' && parseFloat(empresa?.taxa_entrega || 0) > 0 && (
+                                        <p className="text-right text-sm text-gray-600">
+                                            Taxa de Entrega: R$ {parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}
+                                        </p>
                                     )}
-                                </p>
+                                    <p className="text-right font-bold text-lg mt-2">
+                                        Total Geral do Pedido: R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}
+                                        {cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && (
+                                            <span className="text-sm text-orange-600 ml-2">(inclui 10% garçom)</span>
+                                        )}
+                                    </p>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button onClick={closeItemDetailModal} variant="outline">Fechar</Button>
@@ -1653,12 +1656,12 @@ const CaixaPage = () => {
 
             {/* Modal de Finalização de Pagamento (Principal) */}
             <Dialog open={isPedidoDetailModalOpen} onOpenChange={closePedidoDetailModal}>
-                <DialogContent className="max-w-4xl w-full overflow-visible" style={{ maxWidth: '1000px' }}>
+                <DialogContent className="max-w-4xl w-[95vw] sm:w-full overflow-visible max-h-[90vh] overflow-y-auto" style={{ maxWidth: '1000px' }}>
                     {selectedPedido ? (
                         <div className="flex flex-col h-full">
                             <DialogHeader>
-                                <DialogTitle>Finalizar Pagamento do Pedido #{selectedPedido.numero_pedido}</DialogTitle>
-                                <DialogDescription>
+                                <DialogTitle className="text-lg sm:text-xl">Finalizar Pagamento do Pedido #{selectedPedido.numero_pedido}</DialogTitle>
+                                <DialogDescription className="text-sm">
                                     Cliente: {selectedPedido.nome_cliente || selectedPedido.nome_cliente_convidado || 'Convidado'} | Tipo: {selectedPedido.tipo_entrega} {selectedPedido.numero_mesa ? `(Mesa ${selectedPedido.numero_mesa})` : ''}
                                     {selectedPedido.nome_funcionario && ` | Atendente: ${selectedPedido.nome_funcionario}`}
                                 </DialogDescription>
@@ -1666,26 +1669,26 @@ const CaixaPage = () => {
 
                             {/* Grid assimétrico para melhor proporção visual */}
                             <div className="flex-grow py-4">
-                                <div className="grid grid-cols-1 md:grid-cols-[1fr_1.5fr] gap-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4 sm:gap-6 lg:gap-8">
                                     {/* Coluna 1: Resumo do Pedido e Pagamentos */}
-                                    <div className="space-y-4">
-                                        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-                                            <h5 className="font-bold text-lg md:text-xl text-blue-800 mb-2">Resumo do Pedido</h5>
-                                            <div className="flex flex-col gap-1 text-sm">
+                                    <div className="space-y-3 sm:space-y-4">
+                                        <div className="rounded-lg border border-gray-100 bg-white p-3 sm:p-4 shadow-sm">
+                                            <h5 className="font-bold text-base sm:text-lg md:text-xl text-blue-800 mb-2">Resumo do Pedido</h5>
+                                            <div className="flex flex-col gap-1 text-xs sm:text-sm">
                                                 <span><b>Total Geral:</b> R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}</span>
                                                 <span><b>Recebido:</b> R$ {parseFloat(selectedPedido.valor_recebido_parcial || 0).toFixed(2).replace('.', ',')}</span>
                                                 <span><b>Falta Pagar:</b> <span className="text-red-600 font-bold">R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}</span></span>
                                             </div>
-                                            <Button onClick={() => openItemDetailModal(selectedPedido)} size="sm" variant="secondary" className="w-full mt-3">
+                                            <Button onClick={() => openItemDetailModal(selectedPedido)} size="sm" variant="secondary" className="w-full mt-3 text-xs h-8">
                                                 Ver Detalhes dos Itens
                                             </Button>
                                         </div>
-                                        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-                                            <h5 className="font-semibold text-base mb-2 text-gray-800">Pagamentos Realizados</h5>
+                                        <div className="rounded-lg border border-gray-100 bg-white p-3 sm:p-4 shadow-sm">
+                                            <h5 className="font-semibold text-sm sm:text-base mb-2 text-gray-800">Pagamentos Realizados</h5>
                                             {(selectedPedido.pagamentos_recebidos && selectedPedido.pagamentos_recebidos.length > 0) ? (
                                                 <div className="space-y-1">
                                                     {selectedPedido.pagamentos_recebidos.map((pagamento, index) => (
-                                                        <div key={index} className="grid grid-cols-3 gap-2 items-center text-xs">
+                                                        <div key={index} className="grid grid-cols-3 gap-1 sm:gap-2 items-center text-xs">
                                                             <span className="truncate">{pagamento.forma_pagamento_descricao}</span>
                                                             <span className="text-center whitespace-nowrap">{format(parseISO(pagamento.data_pagamento), 'dd/MM HH:mm')}</span>
                                                             <span className="font-bold text-green-600 text-right">R$ {parseFloat(pagamento.valor_pago || 0).toFixed(2).replace('.', ',')}</span>
@@ -1703,16 +1706,18 @@ const CaixaPage = () => {
                                     </div>
 
                                     {/* Coluna 2: Formulário de Pagamento */}
-                                    <div className="space-y-4">
-                                        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm flex flex-col gap-3">
+                                    <div className="space-y-3 sm:space-y-4">
+                                        <div className="rounded-lg border border-gray-100 bg-white p-3 sm:p-4 shadow-sm flex flex-col gap-3">
                                             <div>
                                                 <Label htmlFor="formaPagamentoCaixa" className="text-xs">Forma de Pagamento</Label>
                                                 <Select value={selectedFormaPagamentoId} onValueChange={setSelectedFormaPagamentoId} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}>
-                                                    <SelectTrigger id="formaPagamentoCaixa"><SelectValue placeholder="Selecione a forma" /></SelectTrigger>
+                                                    <SelectTrigger id="formaPagamentoCaixa" className="h-9 sm:h-10 text-xs sm:text-sm">
+                                                        <SelectValue placeholder="Selecione a forma" />
+                                                    </SelectTrigger>
                                                     <SelectContent>
                                                         {formasPagamento.length === 0 && <SelectItem disabled value="">Nenhuma forma disponível</SelectItem>}
                                                         {formasPagamento.map(fp => (
-                                                            <SelectItem key={fp.id} value={fp.id.toString()}>
+                                                            <SelectItem key={fp.id} value={fp.id.toString()} className="text-xs sm:text-sm">
                                                                 {fp.descricao} {fp.porcentagem_desconto_geral > 0 && `(${parseFloat(fp.porcentagem_desconto_geral).toFixed(0)}% desc)`}
                                                             </SelectItem>
                                                         ))}
@@ -1748,7 +1753,7 @@ const CaixaPage = () => {
                                                     readOnly
                                                     placeholder="0.00"
                                                     disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                                    className="text-xs"
+                                                    className="text-xs h-9 sm:h-10"
                                                 />
                                                 {valorComDesconto.toFixed(2) !== parseFloat(valorCobrancaManual || '0').toFixed(2) && (
                                                     <p className="text-xs text-yellow-700 mt-1">
@@ -1767,7 +1772,7 @@ const CaixaPage = () => {
                                                     onChange={(e) => setValorRecebidoInput(e.target.value)}
                                                     placeholder="0.00"
                                                     disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                                    className="text-xs"
+                                                    className="text-xs h-9 sm:h-10"
                                                 />
                                                 {(() => {
                                                     const valorRecebido = parseFloat(valorRecebidoInput) || 0;

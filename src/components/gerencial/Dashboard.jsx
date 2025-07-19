@@ -145,53 +145,53 @@ const Dashboard = () => {
   const totalReceitaEntregue = dashboardData.pedidosOverview.find(p => p.status === 'Entregue')?.valor_total_pedidos || 0;
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Dashboard - {empresa.nome_fantasia}</h2>
+    <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Dashboard - {empresa.nome_fantasia}</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
         <Card className="bg-blue-50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Ativos</CardTitle>
-            <ListOrdered className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-4 py-3">
+            <CardTitle className="text-xs sm:text-sm font-medium">Pedidos Ativos</CardTitle>
+            <ListOrdered className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPedidosAbertos}</div>
+          <CardContent className="px-3 sm:px-4 pb-3">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold">{totalPedidosAbertos}</div>
             <p className="text-xs text-muted-foreground">
               Pedidos aguardando preparo ou entrega
             </p>
           </CardContent>
         </Card>
         <Card className="bg-green-50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-4 py-3">
+            <CardTitle className="text-xs sm:text-sm font-medium">Faturamento Total</CardTitle>
+            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ {dashboardData.receitaTotal.toFixed(2).replace('.', ',')}</div>
+          <CardContent className="px-3 sm:px-4 pb-3">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold">R$ {dashboardData.receitaTotal.toFixed(2).replace('.', ',')}</div>
             <p className="text-xs text-muted-foreground">
               Receita total registrada
             </p>
           </CardContent>
         </Card>
         <Card className="bg-purple-50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Finalizados</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-4 py-3">
+            <CardTitle className="text-xs sm:text-sm font-medium">Pedidos Finalizados</CardTitle>
+            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPedidosEntregues}</div>
+          <CardContent className="px-3 sm:px-4 pb-3">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold">{totalPedidosEntregues}</div>
             <p className="text-xs text-muted-foreground">
               Pedidos concluídos
             </p>
           </CardContent>
         </Card>
         <Card className="bg-yellow-50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Ticket Médio (Últimos 7 Dias)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-4 py-3">
+            <CardTitle className="text-xs sm:text-sm font-medium">Ticket Médio (Últimos 7 Dias)</CardTitle>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-3 sm:px-4 pb-3">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold">
                 R$ {
                     dashboardData.vendasPorDia.length > 0
                     ? (dashboardData.vendasPorDia.reduce((sum, day) => sum + parseFloat(day.vendas_total), 0) / dashboardData.vendasPorDia.reduce((sum, day) => sum + parseFloat(day.total_pedidos), 0)).toFixed(2).replace('.', ',')
@@ -205,88 +205,92 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Vendas por Dia */}
         <Card>
-          <CardHeader>
-            <CardTitle>Vendas Diárias (Últimos 7 Dias)</CardTitle>
-            <CardDescription>Faturamento e número de pedidos por dia.</CardDescription> {/* <--- CardDescription usado aqui */}
+          <CardHeader className="px-3 sm:px-4 py-3">
+            <CardTitle className="text-base sm:text-lg">Vendas Diárias (Últimos 7 Dias)</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Faturamento e número de pedidos por dia.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-4 pb-3">
             {dashboardData.vendasPorDia.length === 0 ? (
-                <p className="text-gray-600">Nenhuma venda registrada nos últimos 7 dias.</p>
+                <p className="text-gray-600 text-sm sm:text-base">Nenhuma venda registrada nos últimos 7 dias.</p>
             ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Data</TableHead>
-                            <TableHead>Pedidos</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="text-right">Ticket Médio</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {dashboardData.vendasPorDia.map(venda => (
-                            <TableRow key={venda.data}>
-                                <TableCell>{format(parseISO(venda.data), 'dd/MM')}</TableCell>
-                                <TableCell>{venda.total_pedidos}</TableCell>
-                                <TableCell className="text-right">R$ {parseFloat(venda.vendas_total).toFixed(2).replace('.', ',')}</TableCell>
-                                <TableCell className="text-right">R$ {parseFloat(venda.ticket_medio).toFixed(2).replace('.', ',')}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead className="text-xs sm:text-sm">Data</TableHead>
+                              <TableHead className="text-xs sm:text-sm">Pedidos</TableHead>
+                              <TableHead className="text-right text-xs sm:text-sm">Total</TableHead>
+                              <TableHead className="text-right text-xs sm:text-sm">Ticket Médio</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {dashboardData.vendasPorDia.map(venda => (
+                              <TableRow key={venda.data}>
+                                  <TableCell className="text-xs sm:text-sm">{format(parseISO(venda.data), 'dd/MM')}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{venda.total_pedidos}</TableCell>
+                                  <TableCell className="text-right text-xs sm:text-sm">R$ {parseFloat(venda.vendas_total).toFixed(2).replace('.', ',')}</TableCell>
+                                  <TableCell className="text-right text-xs sm:text-sm">R$ {parseFloat(venda.ticket_medio).toFixed(2).replace('.', ',')}</TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+                </div>
             )}
           </CardContent>
         </Card>
 
         {/* Produtos Mais Vendidos */}
         <Card>
-          <CardHeader>
-            <CardTitle>Produtos Mais Vendidos (Top 5)</CardTitle>
-            <CardDescription>Produtos com maior volume de vendas.</CardDescription> {/* <--- CardDescription usado aqui */}
+          <CardHeader className="px-3 sm:px-4 py-3">
+            <CardTitle className="text-base sm:text-lg">Produtos Mais Vendidos (Top 5)</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Produtos com maior volume de vendas.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-4 pb-3">
             {dashboardData.produtosMaisVendidos.length === 0 ? (
-                <p className="text-gray-600">Nenhum produto vendido ainda.</p>
+                <p className="text-gray-600 text-sm sm:text-base">Nenhum produto vendido ainda.</p>
             ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Produto</TableHead>
-                            <TableHead>Quantidade</TableHead>
-                            <TableHead className="text-right">Valor Total</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {dashboardData.produtosMaisVendidos.map((prod, index) => (
-                            <TableRow key={index}>
-                                <TableCell>{prod.produto_nome}</TableCell>
-                                <TableCell>{prod.quantidade_vendida}</TableCell>
-                                <TableCell className="text-right">R$ {parseFloat(prod.valor_total).toFixed(2).replace('.', ',')}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead className="text-xs sm:text-sm">Produto</TableHead>
+                              <TableHead className="text-xs sm:text-sm">Quantidade</TableHead>
+                              <TableHead className="text-right text-xs sm:text-sm">Valor Total</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {dashboardData.produtosMaisVendidos.map((prod, index) => (
+                              <TableRow key={index}>
+                                  <TableCell className="text-xs sm:text-sm">{prod.produto_nome}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{prod.quantidade_vendida}</TableCell>
+                                  <TableCell className="text-right text-xs sm:text-sm">R$ {parseFloat(prod.valor_total).toFixed(2).replace('.', ',')}</TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+                </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Visão Geral de Pedidos por Status e Tipo (exemplo de como usar pedidosOverview) */}
-      <h3 className="text-xl font-semibold mb-4 mt-8 text-gray-800 border-b pb-2">Pedidos por Status e Tipo</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Visão Geral de Pedidos por Status e Tipo */}
+      <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 mt-6 sm:mt-8 text-gray-800 border-b pb-2">Pedidos por Status e Tipo</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {dashboardData.pedidosOverview.length === 0 ? (
-              <p className="text-gray-600">Nenhum pedido registrado.</p>
+              <p className="text-gray-600 text-sm sm:text-base">Nenhum pedido registrado.</p>
           ) : (
               dashboardData.pedidosOverview.map((item, index) => (
                   <Card key={index}>
-                      <CardHeader className="pb-2">
-                          <CardTitle className="text-base">{item.status} ({item.tipo_entrega})</CardTitle>
+                      <CardHeader className="pb-2 px-3 sm:px-4 py-3">
+                          <CardTitle className="text-sm sm:text-base">{item.status} ({item.tipo_entrega})</CardTitle>
                       </CardHeader>
-                      <CardContent>
-                          <div className="text-xl font-bold">{item.total_pedidos} pedidos</div>
-                          <p className="text-sm text-muted-foreground">Total: R$ {parseFloat(item.valor_total_pedidos).toFixed(2).replace('.', ',')}</p>
+                      <CardContent className="px-3 sm:px-4 pb-3">
+                          <div className="text-lg sm:text-xl font-bold">{item.total_pedidos} pedidos</div>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Total: R$ {parseFloat(item.valor_total_pedidos).toFixed(2).replace('.', ',')}</p>
                       </CardContent>
                   </Card>
               ))
@@ -294,19 +298,19 @@ const Dashboard = () => {
       </div>
 
       {/* Acessos x Pedidos */}
-      <h3 className="text-xl font-semibold mb-4 mt-8 text-gray-800 border-b pb-2">Acessos x Pedidos (Últimos 7 Dias)</h3>
+      <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 mt-6 sm:mt-8 text-gray-800 border-b pb-2">Acessos x Pedidos (Últimos 7 Dias)</h3>
       {loadingAcessosPedidos ? (
-        <p className="text-gray-600">Carregando relatório de acessos...</p>
+        <p className="text-gray-600 text-sm sm:text-base">Carregando relatório de acessos...</p>
       ) : acessosPedidosData.length === 0 ? (
-        <p className="text-gray-600">Nenhum dado de acesso encontrado.</p>
+        <p className="text-gray-600 text-sm sm:text-base">Nenhum dado de acesso encontrado.</p>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Conversão Delivery/Retirada</CardTitle>
-              <CardDescription>Acessos vs. Pedidos Online</CardDescription>
+            <CardHeader className="px-3 sm:px-4 py-3">
+              <CardTitle className="text-base sm:text-lg">Conversão Delivery/Retirada</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Acessos vs. Pedidos Online</CardDescription>
             </CardHeader>
-            <CardContent style={{ width: '100%', height: 300 }}>
+            <CardContent className="px-3 sm:px-4 pb-3" style={{ width: '100%', height: 250, minHeight: 250 }}>
               <ResponsiveContainer>
                 <BarChart data={acessosPedidosData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -322,31 +326,33 @@ const Dashboard = () => {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Resumo</CardTitle>
+            <CardHeader className="px-3 sm:px-4 py-3">
+              <CardTitle className="text-base sm:text-lg">Resumo</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-lg">Total de Acessos: <span className="font-semibold">{totalAcessos}</span></p>
-              <p className="text-lg">Total de Pedidos: <span className="font-semibold">{totalPedidos}</span></p>
-              <p className="text-lg">Taxa de Conversão: <span className="font-semibold">{taxaConversaoGeral}%</span></p>
-              <Table className="mt-4">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Acessos</TableHead>
-                    <TableHead>Pedidos</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {acessosPedidosData.map((item) => (
-                    <TableRow key={item.data}>
-                      <TableCell>{format(parseISO(item.data), 'dd/MM')}</TableCell>
-                      <TableCell>{item.acessos}</TableCell>
-                      <TableCell>{item.pedidos}</TableCell>
+            <CardContent className="px-3 sm:px-4 pb-3">
+              <p className="text-sm sm:text-lg">Total de Acessos: <span className="font-semibold">{totalAcessos}</span></p>
+              <p className="text-sm sm:text-lg">Total de Pedidos: <span className="font-semibold">{totalPedidos}</span></p>
+              <p className="text-sm sm:text-lg">Taxa de Conversão: <span className="font-semibold">{taxaConversaoGeral}%</span></p>
+              <div className="overflow-x-auto mt-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs sm:text-sm">Data</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Acessos</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Pedidos</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {acessosPedidosData.map((item) => (
+                      <TableRow key={item.data}>
+                        <TableCell className="text-xs sm:text-sm">{format(parseISO(item.data), 'dd/MM')}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{item.acessos}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{item.pedidos}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

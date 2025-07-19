@@ -250,41 +250,42 @@ const ConfiguracoesPage = () => {
   }
   
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Configurações da Empresa - {empresa.nome_fantasia}</h2>
+    <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Configurações da Empresa - {empresa.nome_fantasia}</h2>
 
       {/* Adicionado o componente Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="detalhes">Detalhes da Empresa</TabsTrigger>
-          <TabsTrigger value="pedidosCardapio">Pedidos e Cardápio</TabsTrigger>
-          <TabsTrigger value="caixa">Caixa</TabsTrigger>
+          <TabsTrigger value="detalhes" className="text-xs sm:text-sm">Detalhes da Empresa</TabsTrigger>
+          <TabsTrigger value="pedidosCardapio" className="text-xs sm:text-sm">Pedidos e Cardápio</TabsTrigger>
+          <TabsTrigger value="caixa" className="text-xs sm:text-sm">Caixa</TabsTrigger>
         </TabsList>
 
-        <form onSubmit={handleSaveConfig} className="mt-4">
+        <form onSubmit={handleSaveConfig} className="mt-3 sm:mt-4">
           {/* ABA 1: DETALHES DA EMPRESA */}
-          <TabsContent value="detalhes" className="p-4 border rounded-lg bg-gray-50">
-            <h3 className="text-xl font-semibold mb-4 text-gray-700">Informações Gerais</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <TabsContent value="detalhes" className="p-3 sm:p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Informações Gerais</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-end">
                 {/* Campo Logo */}
                 <div className="col-span-full">
-                  <Label htmlFor="logo_file">Logo da Empresa (opcional)</Label>
+                  <Label htmlFor="logo_file" className="text-sm">Logo da Empresa (opcional)</Label>
                   <Input
                     id="logo_file"
                     type="file"
                     accept="image/*"
                     onChange={handleLogoFileChange}
                     disabled={!canManage || isUploadingLogo}
+                    className="h-9 sm:h-10 text-sm"
                   />
-                  <div className="mt-2 flex space-x-4">
+                  <div className="mt-2 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     {empresa.logo_full_url && (
                       <div className="flex flex-col items-center">
                         <img 
                           src={empresa.logo_full_url} 
                           alt="Logo atual" 
-                          className="h-24 w-24 object-contain rounded-md border" 
+                          className="h-20 w-20 sm:h-24 sm:w-24 object-contain rounded-md border" 
                         />
-                        <p className="text-sm text-gray-600 mt-1">Atual</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">Atual</p>
                       </div>
                     )}
                     {previewLogoUrl && (
@@ -292,18 +293,18 @@ const ConfiguracoesPage = () => {
                         <img 
                           src={previewLogoUrl} 
                           alt="Nova logo preview" 
-                          className="h-24 w-24 object-contain rounded-md border" 
+                          className="h-20 w-20 sm:h-24 sm:w-24 object-contain rounded-md border" 
                         />
-                        <p className="text-sm text-blue-600 mt-1">Nova (Prévia)</p>
+                        <p className="text-xs sm:text-sm text-blue-600 mt-1">Nova (Prévia)</p>
                       </div>
                     )}
                   </div>
-                  {isUploadingLogo && <p className="text-sm text-blue-500 flex items-center mt-2"><Loader2 className="animate-spin mr-2"/> Fazendo upload da logo...</p>}
+                  {isUploadingLogo && <p className="text-xs sm:text-sm text-blue-500 flex items-center mt-2"><Loader2 className="animate-spin mr-2"/> Fazendo upload da logo...</p>}
                 </div>
 
                 {/* Horário de Funcionamento */}
                 <div className="col-span-full">
-                  <Label htmlFor="horario_funcionamento">Horário de Funcionamento</Label>
+                  <Label htmlFor="horario_funcionamento" className="text-sm">Horário de Funcionamento</Label>
                   <Textarea
                     id="horario_funcionamento"
                     placeholder="Ex: Seg-Sex: 09h-18h, Sáb: 09h-14h"
@@ -311,12 +312,13 @@ const ConfiguracoesPage = () => {
                     onChange={handleFormChange}
                     rows={3}
                     disabled={!canManage}
+                    className="text-sm"
                   />
                 </div>
 
                 {/* Número de Mesas */}
                 <div>
-                  <Label htmlFor="numero_mesas">Número de Mesas</Label>
+                  <Label htmlFor="numero_mesas" className="text-sm">Número de Mesas</Label>
                   <Input
                     id="numero_mesas"
                     type="number"
@@ -325,12 +327,13 @@ const ConfiguracoesPage = () => {
                     value={formData.numero_mesas}
                     onChange={handleFormChange}
                     disabled={!canManage}
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
                 {/* Taxa de Entrega */}
                 <div>
-                  <Label htmlFor="taxa_entrega">Taxa de Entrega (R$)</Label>
+                  <Label htmlFor="taxa_entrega" className="text-sm">Taxa de Entrega (R$)</Label>
                   <Input
                     id="taxa_entrega"
                     type="number"
@@ -340,12 +343,13 @@ const ConfiguracoesPage = () => {
                     value={formData.taxa_entrega}
                     onChange={handleFormChange}
                     disabled={!canManage}
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
                 {/* Tempo Médio de Preparo */}
                 <div>
-                  <Label htmlFor="tempo_medio_preparo">Tempo Médio de Preparo</Label>
+                  <Label htmlFor="tempo_medio_preparo" className="text-sm">Tempo Médio de Preparo</Label>
                   <Input
                     id="tempo_medio_preparo"
                     type="text"
@@ -353,12 +357,13 @@ const ConfiguracoesPage = () => {
                     value={formData.tempo_medio_preparo}
                     onChange={handleFormChange}
                     disabled={!canManage}
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
                 {/* Configuração da Impressora */}
                 <div className="col-span-full">
-                  <Label htmlFor="config_impressora">Configuração da Impressora (JSON ou Texto)</Label>
+                  <Label htmlFor="config_impressora" className="text-sm">Configuração da Impressora (JSON ou Texto)</Label>
                   <Textarea
                     id="config_impressora"
                     placeholder="Ex: { 'tipo': 'termica', 'ip': '192.168.1.100' }"
@@ -366,15 +371,16 @@ const ConfiguracoesPage = () => {
                     onChange={handleFormChange}
                     rows={4}
                     disabled={!canManage}
+                    className="text-sm"
                   />
                 </div>
             </div>
           </TabsContent>
 
           {/* ABA 2: CONFIGURAÇÕES DE PEDIDO E CARDÁPIO */}
-          <TabsContent value="pedidosCardapio" className="p-4 border rounded-lg bg-gray-50">
-            <h3 className="text-xl font-semibold mb-4 text-gray-700">Configurações de Pedido e Cardápio</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <TabsContent value="pedidosCardapio" className="p-3 sm:p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Configurações de Pedido e Cardápio</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-end">
               <div className="flex items-center space-x-2 col-span-full">
                 <Switch
                   id="permitir_pedido_online"
@@ -382,11 +388,11 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, permitir_pedido_online: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="permitir_pedido_online">Permitir Pedido Online (Cardápio Digital)</Label>
+                <Label htmlFor="permitir_pedido_online" className="text-sm">Permitir Pedido Online (Cardápio Digital)</Label>
               </div>
 
               <div>
-                <Label htmlFor="pedido_minimo_delivery">Pedido Mínimo para Delivery (R$)</Label>
+                <Label htmlFor="pedido_minimo_delivery" className="text-sm">Pedido Mínimo para Delivery (R$)</Label>
                 <Input
                   id="pedido_minimo_delivery"
                   type="number"
@@ -396,6 +402,7 @@ const ConfiguracoesPage = () => {
                   value={formData.pedido_minimo_delivery}
                   onChange={handleFormChange}
                   disabled={!canManage}
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
 
@@ -406,7 +413,7 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, desativar_entrega: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="desativar_entrega">Desativar Opção de Entrega (Delivery)</Label>
+                <Label htmlFor="desativar_entrega" className="text-sm">Desativar Opção de Entrega (Delivery)</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -416,7 +423,7 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, som_notificacao_cozinha: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="som_notificacao_cozinha">Ativar Som de Notificação na Cozinha</Label>
+                <Label htmlFor="som_notificacao_cozinha" className="text-sm">Ativar Som de Notificação na Cozinha</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -426,7 +433,7 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, som_notificacao_delivery: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="som_notificacao_delivery">Ativar Som de Notificação no Delivery</Label>
+                <Label htmlFor="som_notificacao_delivery" className="text-sm">Ativar Som de Notificação no Delivery</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -436,11 +443,11 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, desativar_retirada: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="desativar_retirada">Desativar Opção de Retirada no Local</Label>
+                <Label htmlFor="desativar_retirada" className="text-sm">Desativar Opção de Retirada no Local</Label>
               </div>
 
               <div>
-                <Label htmlFor="tempo_corte_pedido_online">Tempo de Corte Pedido Online (HH:MM)</Label>
+                <Label htmlFor="tempo_corte_pedido_online" className="text-sm">Tempo de Corte Pedido Online (HH:MM)</Label>
                 <Input
                   id="tempo_corte_pedido_online"
                   type="text"
@@ -448,11 +455,12 @@ const ConfiguracoesPage = () => {
                   value={formData.tempo_corte_pedido_online}
                   onChange={handleFormChange}
                   disabled={!canManage}
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
 
               <div className="col-span-full">
-                <Label htmlFor="mensagem_confirmacao_pedido">Mensagem de Confirmação de Pedido</Label>
+                <Label htmlFor="mensagem_confirmacao_pedido" className="text-sm">Mensagem de Confirmação de Pedido</Label>
                 <Textarea
                   id="mensagem_confirmacao_pedido"
                   placeholder="Ex: Seu pedido foi recebido e está sendo preparado!"
@@ -460,41 +468,20 @@ const ConfiguracoesPage = () => {
                   onChange={handleFormChange}
                   rows={3}
                   disabled={!canManage}
+                  className="text-sm"
                 />
               </div>
-
-              {/* Temporariamente oculto - funcionalidade em desenvolvimento
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="auto_aprovar_pedidos"
-                  checked={formData.auto_aprovar_pedidos}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, auto_aprovar_pedidos: checked }))}
-                  disabled={!canManage}
-                />
-                <Label htmlFor="auto_aprovar_pedidos">Aprovar Pedidos Automaticamente</Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="enviar_email_confirmacao"
-                  checked={formData.enviar_email_confirmacao}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enviar_email_confirmacao: checked }))}
-                  disabled={!canManage}
-                />
-                <Label htmlFor="enviar_email_confirmacao">Enviar Email de Confirmação de Pedido</Label>
-              </div>
-              */}
 
               {/* CAMPO DE SELEÇÃO DE COR */}
               <div className="col-span-full">
-                <Label htmlFor="cor_primaria_cardapio" className="mb-2 block">Cor Primária do Cardápio</Label>
-                <div className="flex items-center space-x-2">
+                <Label htmlFor="cor_primaria_cardapio" className="mb-2 block text-sm">Cor Primária do Cardápio</Label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                   <Select
                     value={formData.cor_primaria_cardapio}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, cor_primaria_cardapio: value }))}
                     disabled={!canManage}
                   >
-                    <SelectTrigger id="cor_primaria_cardapio" className="w-[180px]">
+                    <SelectTrigger id="cor_primaria_cardapio" className="w-full sm:w-[180px] h-9 sm:h-10 text-sm">
                       <SelectValue placeholder="Escolha uma cor" />
                     </SelectTrigger>
                     <SelectContent>
@@ -516,7 +503,7 @@ const ConfiguracoesPage = () => {
                       title={`Cor selecionada: ${formData.cor_primaria_cardapio}`}
                     ></div>
                   )}
-                  <p className="text-sm text-gray-500 ml-2">Ex: red-500</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Ex: red-500</p>
                 </div>
               </div>
 
@@ -527,17 +514,17 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, mostrar_promocoes_na_home: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="mostrar_promocoes_na_home">Mostrar Promoções na Página Inicial</Label>
+                <Label htmlFor="mostrar_promocoes_na_home" className="text-sm">Mostrar Promoções na Página Inicial</Label>
               </div>
 
               <div>
-                <Label htmlFor="layout_cardapio">Layout Padrão do Cardápio</Label>
+                <Label htmlFor="layout_cardapio" className="text-sm">Layout Padrão do Cardápio</Label>
                 <Select
                   value={formData.layout_cardapio}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, layout_cardapio: value }))}
                   disabled={!canManage}
                 >
-                  <SelectTrigger id="layout_cardapio"><SelectValue placeholder="Selecione o layout" /></SelectTrigger>
+                  <SelectTrigger id="layout_cardapio" className="h-9 sm:h-10 text-sm"><SelectValue placeholder="Selecione o layout" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="grid">Grid</SelectItem>
                     <SelectItem value="lista">Lista</SelectItem>
@@ -547,41 +534,12 @@ const ConfiguracoesPage = () => {
             </div>
           </TabsContent>
 
-          {/* ABA 3: CONFIGURAÇÕES DE ESTOQUE - TEMPORARIAMENTE OCULTA
-          <TabsContent value="estoque" className="p-4 border rounded-lg bg-gray-50">
-            <h3 className="text-xl font-semibold mb-4 text-gray-700">Configurações de Estoque</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="alerta_estoque_baixo_ativo"
-                  checked={formData.alerta_estoque_baixo_ativo}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, alerta_estoque_baixo_ativo: checked }))}
-                  disabled={!canManage}
-                />
-                <Label htmlFor="alerta_estoque_baixo_ativo">Ativar Alerta de Estoque Baixo</Label>
-              </div>
-              <div>
-                <Label htmlFor="limite_estoque_baixo">Limite para Alerta de Estoque Baixo</Label>
-                <Input
-                  id="limite_estoque_baixo"
-                  type="number"
-                  min="0"
-                  placeholder="Ex: 10"
-                  value={formData.limite_estoque_baixo}
-                  onChange={handleFormChange}
-                  disabled={!canManage}
-                />
-              </div>
-            </div>
-          </TabsContent>
-          */}
-
           {/* ABA 4: CONFIGURAÇÕES DE CAIXA */}
-          <TabsContent value="caixa" className="p-4 border rounded-lg bg-gray-50">
-            <h3 className="text-xl font-semibold mb-4 text-gray-700">Configurações de Caixa</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <TabsContent value="caixa" className="p-3 sm:p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Configurações de Caixa</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-end">
               <div>
-                <Label htmlFor="valor_inicial_caixa_padrao">Valor Inicial do Caixa Padrão (R$)</Label>
+                <Label htmlFor="valor_inicial_caixa_padrao" className="text-sm">Valor Inicial do Caixa Padrão (R$)</Label>
                 <Input
                   id="valor_inicial_caixa_padrao"
                   type="number"
@@ -591,6 +549,7 @@ const ConfiguracoesPage = () => {
                   value={formData.valor_inicial_caixa_padrao}
                   onChange={handleFormChange}
                   disabled={!canManage}
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
 
@@ -601,7 +560,7 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, exibir_valores_fechamento_caixa: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="exibir_valores_fechamento_caixa">Exibir Valores no Fechamento do Caixa</Label>
+                <Label htmlFor="exibir_valores_fechamento_caixa" className="text-sm">Exibir Valores no Fechamento do Caixa</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -611,7 +570,7 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, usa_controle_caixa: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="usa_controle_caixa">Usar Controle de Caixa</Label>
+                <Label htmlFor="usa_controle_caixa" className="text-sm">Usar Controle de Caixa</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -621,14 +580,14 @@ const ConfiguracoesPage = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, porcentagem_garcom: checked }))}
                   disabled={!canManage}
                 />
-                <Label htmlFor="porcentagem_garcom">Cobrar 10% (Garçom) em pedidos Mesa</Label>
+                <Label htmlFor="porcentagem_garcom" className="text-sm">Cobrar 10% (Garçom) em pedidos Mesa</Label>
               </div>
             </div>
           </TabsContent>
 
           {canManage && (
-            <div className="flex gap-2 mt-6 justify-end col-span-full">
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white flex items-center">
+            <div className="flex gap-2 mt-4 sm:mt-6 justify-end col-span-full">
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white flex items-center text-xs sm:text-sm h-8 sm:h-9">
                 Salvar Configurações {loadingConfig && <Loader2 className="animate-spin ml-2 h-4 w-4" />}
               </Button>
             </div>

@@ -187,96 +187,145 @@ const AdicionaisPage = () => {
   }
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Gerenciar Adicionais - {empresa.nome_fantasia}</h2>
-        <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white">
-          <Plus className="h-4 w-4 mr-2" />
+    <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Gerenciar Adicionais - {empresa.nome_fantasia}</h2>
+        <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
+          <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Novo Adicional
         </Button>
       </div>
 
       {adicionais.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-gray-600 mb-4">Nenhum adicional cadastrado.</p>
-            <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white">
-              <Plus className="h-4 w-4 mr-2" />
+          <CardContent className="p-4 sm:p-8 text-center">
+            <p className="text-gray-600 mb-4 text-sm sm:text-base">Nenhum adicional cadastrado.</p>
+            <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Criar Primeiro Adicional
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Preço</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {adicionais.map((adicional) => (
-                <TableRow key={adicional.id}>
-                  <TableCell className="font-medium">{adicional.nome}</TableCell>
-                  <TableCell>{adicional.descricao || '-'}</TableCell>
-                  <TableCell>R$ {parseFloat(adicional.preco || 0).toFixed(2).replace('.', ',')}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      adicional.ativo 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {adicional.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        onClick={() => openModal(adicional)}
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center"
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(adicional.id)}
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Excluir
-                      </Button>
-                    </div>
-                  </TableCell>
+        <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+          {/* Versão mobile/tablet - Cards */}
+          <div className="sm:hidden space-y-2">
+            {adicionais.map((adicional) => (
+              <div key={adicional.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-gray-800">{adicional.nome}</h4>
+                    {adicional.descricao && (
+                      <p className="text-xs text-gray-600 mt-1">{adicional.descricao}</p>
+                    )}
+                    <p className="text-sm font-semibold text-green-600 mt-1">
+                      R$ {parseFloat(adicional.preco || 0).toFixed(2).replace('.', ',')}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    adicional.ativo 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {adicional.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => openModal(adicional)}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs h-8"
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    onClick={() => handleDelete(adicional.id)}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs h-8 text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Versão desktop - Tabela */}
+          <div className="hidden sm:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-sm">Nome</TableHead>
+                  <TableHead className="text-sm">Descrição</TableHead>
+                  <TableHead className="text-sm">Preço</TableHead>
+                  <TableHead className="text-sm">Status</TableHead>
+                  <TableHead className="text-right text-sm">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {adicionais.map((adicional) => (
+                  <TableRow key={adicional.id}>
+                    <TableCell className="font-medium text-sm">{adicional.nome}</TableCell>
+                    <TableCell className="text-sm">{adicional.descricao || '-'}</TableCell>
+                    <TableCell className="text-sm">R$ {parseFloat(adicional.preco || 0).toFixed(2).replace('.', ',')}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        adicional.ativo 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {adicional.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          onClick={() => openModal(adicional)}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center text-xs h-8 px-2"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(adicional.id)}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center text-red-600 hover:text-red-700 text-xs h-8 px-2"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
       {/* Modal de Criação/Edição */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {editingAdicional ? 'Editar Adicional' : 'Novo Adicional'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               {editingAdicional ? 'Edite as informações do adicional.' : 'Preencha as informações do novo adicional.'}
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <div>
-              <Label htmlFor="nome">Nome *</Label>
+              <Label htmlFor="nome" className="text-sm">Nome *</Label>
               <Input
                 id="nome"
                 type="text"
@@ -284,22 +333,24 @@ const AdicionaisPage = () => {
                 onChange={handleFormChange}
                 placeholder="Ex: Queijo extra"
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             
             <div>
-              <Label htmlFor="descricao">Descrição</Label>
+              <Label htmlFor="descricao" className="text-sm">Descrição</Label>
               <Textarea
                 id="descricao"
                 value={formData.descricao}
                 onChange={handleFormChange}
                 placeholder="Ex: Fatia de queijo cheddar"
                 rows={3}
+                className="text-sm"
               />
             </div>
             
             <div>
-              <Label htmlFor="preco">Preço (R$) *</Label>
+              <Label htmlFor="preco" className="text-sm">Preço (R$) *</Label>
               <Input
                 id="preco"
                 type="number"
@@ -309,6 +360,7 @@ const AdicionaisPage = () => {
                 onChange={handleFormChange}
                 placeholder="Ex: 2.50"
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             
@@ -318,15 +370,15 @@ const AdicionaisPage = () => {
                 checked={formData.ativo}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
               />
-              <Label htmlFor="ativo">Ativo</Label>
+              <Label htmlFor="ativo" className="text-sm">Ativo</Label>
             </div>
             
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeModal}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={closeModal} className="text-xs sm:text-sm h-8 sm:h-9">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Button type="submit" disabled={loading} className="text-xs sm:text-sm h-8 sm:h-9">
+                {loading && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />}
                 {editingAdicional ? 'Atualizar' : 'Criar'}
               </Button>
             </DialogFooter>

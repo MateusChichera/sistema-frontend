@@ -199,18 +199,18 @@ const MesasPage = () => {
   }
   
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Mesas - {empresa.nome_fantasia}</h2>
+    <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Mesas - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Mesa - Visível apenas para quem pode gerenciar */}
       {canManage && (
-        <form onSubmit={editandoMesa ? handleSaveEdit : handleAddMesa} className="mb-8 p-4 border rounded-lg bg-gray-50">
-          <h3 className="text-xl font-semibold mb-4 text-gray-700">
+        <form onSubmit={editandoMesa ? handleSaveEdit : handleAddMesa} className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50">
+          <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">
             {editandoMesa ? `Editar Mesa: ${editandoMesa.numero}` : 'Adicionar Nova Mesa'}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 items-end">
             <div>
-              <Label htmlFor="numero">Número da Mesa</Label>
+              <Label htmlFor="numero" className="text-sm">Número da Mesa</Label>
               <Input
                 id="numero"
                 type="text"
@@ -218,10 +218,11 @@ const MesasPage = () => {
                 value={editandoMesa ? editNumero : novoNumero}
                 onChange={(e) => editandoMesa ? setEditNumero(e.target.value) : setNovoNumero(e.target.value)}
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div>
-              <Label htmlFor="capacidade">Capacidade</Label>
+              <Label htmlFor="capacidade" className="text-sm">Capacidade</Label>
               <Input
                 id="capacidade"
                 type="number"
@@ -230,16 +231,17 @@ const MesasPage = () => {
                 value={editandoMesa ? editCapacidade : novaCapacidade}
                 onChange={(e) => editandoMesa ? setEditCapacidade(e.target.value) : setNovaCapacidade(e.target.value)}
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status" className="text-sm">Status</Label>
               <Select 
                 value={editandoMesa ? editStatus : novoStatus} 
                 onValueChange={(value) => editandoMesa ? setEditStatus(value) : setNovoStatus(value)}
                 required
               >
-                <SelectTrigger id="status">
+                <SelectTrigger id="status" className="h-9 sm:h-10 text-sm">
                   <SelectValue placeholder="Selecione um status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -255,14 +257,14 @@ const MesasPage = () => {
                 checked={editandoMesa ? editAtivo : novoAtivo}
                 onCheckedChange={(checked) => editandoMesa ? setEditAtivo(checked) : setNovoAtivo(checked)}
               />
-              <Label htmlFor="ativo">Ativa</Label>
+              <Label htmlFor="ativo" className="text-sm">Ativa</Label>
             </div>
-            <div className="flex gap-2 col-span-1 md:col-span-3 justify-end">
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <div className="flex flex-col sm:flex-row gap-2 col-span-1 md:col-span-3 justify-end">
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
                 {editandoMesa ? 'Salvar Edição' : 'Adicionar Mesa'}
               </Button>
               {editandoMesa && (
-                <Button type="button" onClick={handleCancelEdit} variant="outline">
+                <Button type="button" onClick={handleCancelEdit} variant="outline" className="text-xs sm:text-sm h-8 sm:h-9">
                   Cancelar
                 </Button>
               )}
@@ -272,27 +274,21 @@ const MesasPage = () => {
       )}
 
       {/* Lista de Mesas */}
-      <h3 className="text-xl font-semibold mb-4 text-gray-700">Mesas Existentes</h3>
+      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Mesas Existentes</h3>
       {mesas.length === 0 ? (
-        <p className="text-gray-600">{canManage ? 'Nenhuma mesa cadastrada ainda. Use o formulário acima para adicionar.' : 'Nenhuma mesa cadastrada para esta empresa.'}</p>
+        <p className="text-gray-600 text-sm sm:text-base">{canManage ? 'Nenhuma mesa cadastrada ainda. Use o formulário acima para adicionar.' : 'Nenhuma mesa cadastrada para esta empresa.'}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
-            <TableHeader className="bg-gray-100">
-              <TableRow>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Número</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Capacidade</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ativa</TableHead>
-                {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mesas.map((mesa) => (
-                <TableRow key={mesa.id} className="hover:bg-gray-50">
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{mesa.numero}</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{mesa.capacidade}</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+        <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+          {/* Versão mobile/tablet - Cards */}
+          <div className="sm:hidden space-y-2">
+            {mesas.map((mesa) => (
+              <div key={mesa.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-gray-800">Mesa {mesa.numero}</h4>
+                    <p className="text-xs text-gray-500">Capacidade: {mesa.capacidade} pessoas</p>
+                  </div>
+                  <div className="flex flex-col gap-1">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                       mesa.status === 'Livre' ? 'bg-green-100 text-green-800' : 
                       mesa.status === 'Ocupada' ? 'bg-red-100 text-red-800' : 
@@ -300,37 +296,97 @@ const MesasPage = () => {
                     }`}>
                       {mesa.status}
                     </span>
-                  </TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                       mesa.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {mesa.ativo ? 'Sim' : 'Não'}
+                      {mesa.ativo ? 'Ativa' : 'Inativa'}
                     </span>
-                  </TableCell>
-                  {canManage && (
-                    <TableCell className="py-2 px-4 border-b text-sm">
-                      <Button 
-                        onClick={() => handleEditClick(mesa)} 
-                        variant="outline" 
-                        size="sm" 
-                        className="mr-2"
-                      >
-                        Editar
-                      </Button>
-                      <Button 
-                        onClick={() => handleDeleteMesa(mesa.id)} 
-                        variant="destructive" 
-                        size="sm"
-                      >
-                        Excluir
-                      </Button>
-                    </TableCell>
-                  )}
+                  </div>
+                </div>
+                {canManage && (
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => handleEditClick(mesa)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-xs h-8"
+                    >
+                      Editar
+                    </Button>
+                    <Button 
+                      onClick={() => handleDeleteMesa(mesa.id)} 
+                      variant="destructive" 
+                      size="sm"
+                      className="flex-1 text-xs h-8"
+                    >
+                      Excluir
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Versão desktop - Tabela */}
+          <div className="hidden sm:block overflow-x-auto">
+            <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
+              <TableHeader className="bg-gray-100">
+                <TableRow>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Número</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Capacidade</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ativa</TableHead>
+                  {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {mesas.map((mesa) => (
+                  <TableRow key={mesa.id} className="hover:bg-gray-50">
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{mesa.numero}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{mesa.capacidade}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        mesa.status === 'Livre' ? 'bg-green-100 text-green-800' : 
+                        mesa.status === 'Ocupada' ? 'bg-red-100 text-red-800' : 
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {mesa.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        mesa.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {mesa.ativo ? 'Sim' : 'Não'}
+                      </span>
+                    </TableCell>
+                    {canManage && (
+                      <TableCell className="py-2 px-4 border-b text-sm">
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => handleEditClick(mesa)} 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs h-8 px-2"
+                          >
+                            Editar
+                          </Button>
+                          <Button 
+                            onClick={() => handleDeleteMesa(mesa.id)} 
+                            variant="destructive" 
+                            size="sm"
+                            className="text-xs h-8 px-2"
+                          >
+                            Excluir
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>
