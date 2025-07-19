@@ -433,13 +433,16 @@ const CaixaPage = () => {
             setNumPessoasDividir('');
             setObservacoesPagamento('');
             setSelectedFormaPagamentoId(formasPagamento.length > 0 ? formasPagamento[0].id.toString() : '');
-            setCobrarPorcentagemGarcom(false); // Reset da cobrança de porcentagem do garçom
-
+            // AJUSTE: Marcar cobrarPorcentagemGarcom como true por padrão em pedidos de mesa quando a configuração está ativa
+            if (processedPedidoCompleto.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom) {
+                setCobrarPorcentagemGarcom(true);
+            } else {
+                setCobrarPorcentagemGarcom(false);
+            }
 
             setIsPedidoDetailModalOpen(true);
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Erro ao carregar detalhes do pedido.');
-            console.error("Erro ao carregar detalhes do pedido:", err);
+            toast.error('Erro ao carregar detalhes do pedido.');
         } finally {
             setLoadingFinalizacao(false);
         }
@@ -525,19 +528,18 @@ const CaixaPage = () => {
         return valor;
     }, [valorBaseParaCalculo, selectedFormaPagamentoId, formasPagamento]);
 
-    // ATUALIZAÇÃO DO VALOR RECEBIDO INPUT COM DESCONTO (AO MUDAR FORMA DE PAGAMENTO/VALOR A COBRAR)
+    // ATUALIZAÇÃO DO VALOR RECEBIDO INPUT COM DESCONTO (AO MUDAR FORMA DE PAGAMENTO/VALOR A COBRAR OU 10%)
     useEffect(() => {
-        const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
-        // Só atualiza automaticamente se o campo estiver vazio ou zero
-        if (valorRecebidoInput === '' || parseFloat(valorRecebidoInput) === 0) {
-            if (formaPagamento && formaPagamento.descricao.toLowerCase() !== 'dinheiro') {
-                setValorRecebidoInput(valorComDesconto.toFixed(2));
-            } else {
-                setValorRecebidoInput(valorComDesconto.toFixed(2));
-            }
+        if (!selectedPedido) return;
+        let valorBase = valorComDesconto;
+        // Se for para cobrar 10%, soma 10% do valor base do pedido (NÃO do valorComDesconto)
+        if (cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom) {
+            const valorOriginal = parseFloat(selectedPedido.valor_total || 0);
+            valorBase = valorComDesconto - (valorOriginal * 0.10); // Remove 10% se já tiver sido somado
+            valorBase += valorOriginal * 0.10;
         }
-        // Se o usuário já digitou um valor, não sobrescreve
-    }, [valorComDesconto, selectedFormaPagamentoId, formasPagamento]);
+        setValorRecebidoInput(valorBase.toFixed(2));
+    }, [valorComDesconto, selectedFormaPagamentoId, formasPagamento, cobrarPorcentagemGarcom, selectedPedido, empresa?.porcentagem_garcom]);
 
     // ATUALIZAÇÃO DO VALOR A COBRAR QUANDO O PEDIDO É ATUALIZADO OU COBRANÇA DE GARÇOM MUDAR
     useEffect(() => {
@@ -780,9 +782,8 @@ const CaixaPage = () => {
             return;
         }
 
-        // Abrir janela de impressão com largura inicial próxima de 80mm
-        // Note: 'width' e 'height' aqui são sugestões. O controle final é do navegador/SO.
-        const printWindow = window.open('', '_blank', 'width=300,height=600'); 
+        // Garante que printWindow está definido antes de usar
+        const printWindow = window.open('', '_blank', 'width=300,height=600');
         if (!printWindow) {
             toast.error("Não foi possível abrir a janela de impressão. Verifique pop-ups.");
             return;
@@ -791,30 +792,33 @@ const CaixaPage = () => {
         // Calcula o total geral do pedido (itens + taxa de entrega)
         const totalBaseItensETaxa = parseFloat(pedidoToPrint.valor_total || 0) +
                                      (pedidoToPrint.tipo_entrega === 'Delivery' ? parseFloat(empresa?.taxa_entrega || 0) : 0);
-        
         // Pega a última forma de pagamento do array de pagamentos recebidos
         const lastPayment = (pedidoToPrint.pagamentos_recebidos && pedidoToPrint.pagamentos_recebidos.length > 0)
             ? pedidoToPrint.pagamentos_recebidos[pedidoToPrint.pagamentos_recebidos.length - 1]
             : null;
-        
         let descontoAplicadoNoCupom = null;
         let valorTotalComDescontoNoCupom = totalBaseItensETaxa; // Inicializa com o total sem desconto
-
+        let taxaServicoCupom = null;
+        // AJUSTE: calcular taxa de serviço se cobrada
+        if (pedidoToPrint.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom && (lastPayment?.cobrar_porcentagem_garcom || cobrarPorcentagemGarcom)) {
+            const valorOriginal = parseFloat(pedidoToPrint.valor_total || 0);
+            taxaServicoCupom = (valorOriginal * 0.10).toFixed(2);
+            valorTotalComDescontoNoCupom += parseFloat(taxaServicoCupom);
+        }
         if (lastPayment) {
             // Encontra a forma de pagamento real com base na descrição (nome) da forma do último pagamento
             const formaPagamentoDetalhe = formasPagamento.find(fp => fp.descricao === lastPayment.forma_pagamento_descricao);
-            
             if (formaPagamentoDetalhe && formaPagamentoDetalhe.porcentagem_desconto_geral > 0) {
                 // Calcula o valor do desconto sobre o total base (itens + taxa)
                 const percentualDesconto = parseFloat(formaPagamentoDetalhe.porcentagem_desconto_geral) / 100;
                 descontoAplicadoNoCupom = (totalBaseItensETaxa * percentualDesconto).toFixed(2);
                 valorTotalComDescontoNoCupom = (totalBaseItensETaxa * (1 - percentualDesconto));
+                // Se também tem taxa de serviço, soma
+                if (taxaServicoCupom) valorTotalComDescontoNoCupom += parseFloat(taxaServicoCupom);
             }
         }
-        
         // Arredonda o valor total final (já com desconto, se aplicável)
         const totalGeralParaExibirNoCupom = valorTotalComDescontoNoCupom.toFixed(2);
-
         // Recalcula o "Falta Pagar" usando o valorTotalComDescontoNoCupom
         const valorRestanteAPagarCupom = Math.max(0, parseFloat(totalGeralParaExibirNoCupom) - parseFloat(pedidoToPrint.valor_recebido_parcial || 0));
 
@@ -930,13 +934,16 @@ const CaixaPage = () => {
                         <span>TAXA DE ENTREGA:</span>
                         <span>R$ ${parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}</span>
                     </div>` : ''}
-                    
+                    ${taxaServicoCupom ? `
+                    <div class="total-row" style="color: orange;">
+                        <span>TAXA DE SERVIÇO:</span>
+                        <span>R$ ${parseFloat(taxaServicoCupom).toFixed(2).replace('.', ',')}</span>
+                    </div>` : ''}
                     ${descontoAplicadoNoCupom !== null && parseFloat(descontoAplicadoNoCupom) > 0 ? `
                     <div class="total-row" style="color: green;">
                         <span>DESCONTO:</span>
                         <span>-R$ ${descontoAplicadoNoCupom.replace('.', ',')}</span>
                     </div>` : ''}
-
                     <div class="total-row">
                         <span>TOTAL GERAL DO PEDIDO:</span>
                         <span>R$ ${totalGeralParaExibirNoCupom.replace('.', ',')}</span>
@@ -974,7 +981,7 @@ const CaixaPage = () => {
         printWindow.focus();
         printWindow.print();
         printWindow.onafterprint = () => printWindow.close();
-    }, [empresa, formasPagamento, valorRecebidoAntes]);
+    }, [empresa, formasPagamento, valorRecebidoAntes, cobrarPorcentagemGarcom]);
 
 
     const getStatusBadge = (status) => {
