@@ -14,9 +14,12 @@ import { Loader2, Plus } from 'lucide-react';
 import { IMaskInput } from 'react-imask';
 import { Switch } from '../ui/switch';
 import { useCarrinho } from '../../contexts/CarrinhoContext';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, itens, onAddMoreItems, setIsMinimoDeliveryModalOpen, setValorFaltanteDelivery }) => {
     const { user, token } = useAuth(); 
+    const navigate = useNavigate();
+    const { slug } = useParams();
 
     const [loading, setLoading] = useState(false);
     const [submitError, setSubmitError] = useState(null);
@@ -36,7 +39,8 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
     };
     const handleSaveObservation = () => {
         if (editingItemIndex !== null) {
-            atualizarQuantidadeItem(itens[editingItemIndex].id_produto, editingQuantity, editingObservation, itens[editingItemIndex].adicionais);
+            const item = itens[editingItemIndex];
+            atualizarQuantidadeItem(item.id_produto, editingQuantity, editingObservation, item.adicionais);
             setEditingItemIndex(null);
             setEditingObservation('');
             setEditingQuantity(1);
@@ -47,7 +51,7 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
     };
 
     // Responsividade: classes utilitárias
-    const containerClass = "p-2 sm:p-4 overflow-y-auto max-h-[90vh]";
+    const containerClass = "p-2 sm:p-4 overflow-y-auto max-h-[90vh] w-full overflow-x-hidden";
     const tableClass = "min-w-full text-xs sm:text-sm";
     const buttonClass = "h-9 sm:h-10 text-xs sm:text-sm";
 
@@ -160,6 +164,9 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
         };
         fetchFormasPagamento();
     }, [empresa, token, selectedFormaPagamento]);
+
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [pedidoIdFinalizado, setPedidoIdFinalizado] = useState(null);
 
     const handleFinalizarPedido = async (e) => {
         e.preventDefault();
@@ -280,13 +287,13 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 headers.Authorization = `Bearer ${token}`;
             }
 
-            await api.post(`/${empresa.slug}/pedidos`, pedidoData, { headers });
-
+            const response = await api.post(`/${empresa.slug}/pedidos`, pedidoData, { headers });
+            const pedidoCriado = response.data;
             toast.success('Pedido enviado com sucesso! Aguarde a confirmação.');
             limparCarrinho();
             localStorage.removeItem('finalizarPedidoFormData'); // Limpa dados após finalizar
-            onClose();
-            alert(empresa?.mensagem_confirmacao_pedido || 'Seu pedido foi recebido.');
+            setPedidoIdFinalizado(pedidoCriado.pedido?.id);
+            setShowConfirmDialog(true);
         } catch (err) {
             setSubmitError(err.response?.data?.message || 'Erro ao finalizar pedido.');
             toast.error(err.response?.data?.message || 'Erro ao finalizar pedido.');
@@ -462,46 +469,48 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                     <div className="text-right font-bold mt-2">Total: R$ {total.toFixed(2).replace('.', ',')}</div>
                   </div>
                   {/* Desktop: Tabela */}
-                  <div className="hidden sm:block">
-                    <Table className={tableClass}>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Produto</TableHead>
-                          <TableHead>Qtd</TableHead>
-                          <TableHead>Adicionais</TableHead>
-                          <TableHead>Obs.</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itens.map((item, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell>{item.nome}</TableCell>
-                            <TableCell>{item.quantidade}</TableCell>
-                            <TableCell>
-                              {item.adicionais && item.adicionais.length > 0 ? (
-                                <div className="flex flex-col gap-1">
-                                  {item.adicionais.map((ad, i) => (
-                                    <span key={i} className="inline-block bg-blue-50 px-2 py-1 rounded text-xs">
-                                      +{ad.quantidade}x {ad.nome} (R$ {parseFloat(ad.preco).toFixed(2).replace('.', ',')})
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : <span className="text-xs text-gray-400">-</span>}
-                            </TableCell>
-                            <TableCell className="text-xs text-gray-600">{item.observacoes || <span className="italic text-gray-400">(vazio)</span>}</TableCell>
-                            <TableCell className="text-right">R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="outline" className={buttonClass} onClick={() => handleEditObservation(idx)}>Editar</Button>
-                                <Button size="sm" variant="destructive" className={buttonClass} onClick={() => handleRemoveItem(idx)}>Excluir</Button>
-                              </div>
-                            </TableCell>
+                  <div className="hidden sm:block w-full">
+                    <div className="overflow-x-auto w-full">
+                      <Table className={tableClass}>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Produto</TableHead>
+                            <TableHead>Qtd</TableHead>
+                            <TableHead>Adicionais</TableHead>
+                            <TableHead>Obs.</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead></TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {itens.map((item, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell>{item.nome}</TableCell>
+                              <TableCell>{item.quantidade}</TableCell>
+                              <TableCell>
+                                {item.adicionais && item.adicionais.length > 0 ? (
+                                  <div className="flex flex-col gap-1">
+                                    {item.adicionais.map((ad, i) => (
+                                      <span key={i} className="inline-block bg-blue-50 px-2 py-1 rounded text-xs">
+                                        +{ad.quantidade}x {ad.nome} (R$ {parseFloat(ad.preco).toFixed(2).replace('.', ',')})
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : <span className="text-xs text-gray-400">-</span>}
+                              </TableCell>
+                              <TableCell className="text-xs text-gray-600">{item.observacoes || <span className="italic text-gray-400">(vazio)</span>}</TableCell>
+                              <TableCell className="text-right">R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="outline" className={buttonClass} onClick={() => handleEditObservation(idx)}>Editar</Button>
+                                  <Button size="sm" variant="destructive" className={buttonClass} onClick={() => handleRemoveItem(idx)}>Excluir</Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                     <div className="text-right font-bold mt-2">Total: R$ {total.toFixed(2).replace('.', ',')}</div>
                   </div>
                 </div>
@@ -646,6 +655,31 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                     <Button type="submit" className={buttonClass} disabled={loading}>Finalizar Pedido</Button>
                 </DialogFooter>
             </form>
+            {/* Modal de confirmação do pedido */}
+            <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+              <DialogContent className="max-w-md w-[95vw] sm:w-full text-center">
+                <DialogHeader>
+                  <DialogTitle>Pedido realizado!</DialogTitle>
+                  <DialogDescription>{empresa?.mensagem_confirmacao_pedido || 'Seu pedido foi recebido com sucesso.'}</DialogDescription>
+                </DialogHeader>
+                <div className="my-4">
+                  {empresa?.permitir_acompanhar_status ? (
+                    <p className="text-lg font-semibold">Você será redirecionado para acompanhar o status do seu pedido.</p>
+                  ) : null}
+                </div>
+                <DialogFooter>
+                  <Button onClick={() => {
+                    setShowConfirmDialog(false);
+                    if (typeof onClose === 'function') onClose();
+                    if (pedidoIdFinalizado && empresa?.permitir_acompanhar_status) {
+                      navigate(`/${slug}/acompanhar/${pedidoIdFinalizado}`);
+                    } else {
+                      navigate(`/${slug}`);
+                    }
+                  }}>OK</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
         </div>
     );
 };

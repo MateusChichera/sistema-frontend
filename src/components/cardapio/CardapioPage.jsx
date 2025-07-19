@@ -42,7 +42,7 @@ const CardapioPage = () => {
   // productQuantityInModal é a quantidade que será adicionada/atualizada via modal
   const [productQuantityInModal, setProductQuantityInModal] = useState(1); 
   // productObservationInModal é a observação digitada no modal
-  const [productObservationInModal, setProductObservationInModal] = useState('');
+  const [productObservationInModal, setProductObservationInModal] = useState(''); 
   // Estados para adicionais no modal
   const [productAdicionais, setProductAdicionais] = useState([]); // Adicionais disponíveis do produto
   const [selectedAdicionais, setSelectedAdicionais] = useState([]); // Adicionais selecionados no modal 

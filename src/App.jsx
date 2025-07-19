@@ -16,6 +16,7 @@ import PedidosPage from './components/gerencial/PedidosPage';
 import CaixaPage from './components/gerencial/CaixaPage';
 import RelatoriosPage from './components/gerencial/RelatoriosPage';
 import OrderStatusPage from './components/cardapio/OrderStatusPage';
+import OrderStatusPagePublic from './components/cardapio/OrderStatusPagePublic';
 
 // Componentes de Layout
 import LayoutGerencial from './components/layout/LayoutGerencial';
@@ -175,6 +176,9 @@ function App() {
                   <AdminDashboardPage />
                 </LayoutAdmin>
               } />
+
+              {/* Rota para acompanhar pedido público */}
+              <Route path=":slug/acompanhar/:id" element={<OrderStatusPagePublic />} />
 
               {/* Rota para 404 global (captura qualquer outra rota não correspondida) */}
               <Route path="*" element={<div className="text-center p-8 text-red-500">Página Não Encontrada (404 Global)</div>} />

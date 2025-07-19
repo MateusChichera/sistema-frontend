@@ -67,6 +67,7 @@ const ConfiguracoesPage = () => {
     exibir_valores_fechamento_caixa: false,
     usa_controle_caixa: false,
     porcentagem_garcom: false,
+    permitir_acompanhar_status: true, // novo campo
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState(null);
@@ -117,6 +118,7 @@ const ConfiguracoesPage = () => {
           exibir_valores_fechamento_caixa: !!empresa.exibir_valores_fechamento_caixa,
           usa_controle_caixa: !!empresa.usa_controle_caixa,
           porcentagem_garcom: !!empresa.porcentagem_garcom,
+          permitir_acompanhar_status: empresa.permitir_acompanhar_status !== undefined ? !!empresa.permitir_acompanhar_status : true,
         });
         setPreviewLogoUrl(null);
         toast.success("Configurações carregadas com sucesso!");
@@ -186,6 +188,7 @@ const ConfiguracoesPage = () => {
         exibir_valores_fechamento_caixa: formData.exibir_valores_fechamento_caixa ? 1 : 0,
         usa_controle_caixa: formData.usa_controle_caixa ? 1 : 0,
         porcentagem_garcom: formData.porcentagem_garcom ? 1 : 0,
+        permitir_acompanhar_status: formData.permitir_acompanhar_status ? 1 : 0,
       };
 
       await api.put(`/gerencial/${empresa.slug}/config`, dataToSend, {
@@ -389,6 +392,17 @@ const ConfiguracoesPage = () => {
                   disabled={!canManage}
                 />
                 <Label htmlFor="permitir_pedido_online" className="text-sm">Permitir Pedido Online (Cardápio Digital)</Label>
+              </div>
+
+              {/* NOVO: Permitir acompanhar status dos pedidos */}
+              <div className="flex items-center space-x-2 col-span-full">
+                <Switch
+                  id="permitir_acompanhar_status"
+                  checked={formData.permitir_acompanhar_status}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, permitir_acompanhar_status: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="permitir_acompanhar_status" className="text-sm">Permitir acompanhar status dos pedidos</Label>
               </div>
 
               <div>
