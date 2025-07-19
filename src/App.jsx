@@ -25,6 +25,7 @@ import LayoutAdmin from './components/layout/LayoutAdmin';
 
 // Páginas de Comercial
 import LandingPage from './components/Comercial/LandingPage';
+import VitrineEmpresas from './components/Comercial/VitrineEmpresas';
 
 import './App.css';
 
@@ -179,6 +180,9 @@ function App() {
 
               {/* Rota para acompanhar pedido público */}
               <Route path=":slug/acompanhar/:id" element={<OrderStatusPagePublic />} />
+
+              {/* Rota para lojas */}
+              <Route path="/lojas" element={<VitrineEmpresas />} />
 
               {/* Rota para 404 global (captura qualquer outra rota não correspondida) */}
               <Route path="*" element={<div className="text-center p-8 text-red-500">Página Não Encontrada (404 Global)</div>} />

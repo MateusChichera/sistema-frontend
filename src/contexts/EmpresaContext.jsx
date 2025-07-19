@@ -67,7 +67,8 @@ export const EmpresaProvider = ({ children }) => {
           slug = segments[0];
         }
       }
-   //   console.log("EmpresaContext: handleLocationChange: Slug extraído da URL:", slug);
+      // Exceção para rota /lojas
+      if (slug === 'lojas') return;
       loadEmpresa(slug);
     };
 
