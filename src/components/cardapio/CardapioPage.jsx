@@ -349,6 +349,7 @@ const CardapioPage = () => {
 
       setIsMesaOrderModalOpen(false);
       limparCarrinho(); 
+      localStorage.removeItem(`carrinho_mesa_${selectedMesaId}`);
       // Resetar campos do modal de mesa
       setSelectedMesaId('');
       setQtdPessoas('');
@@ -401,6 +402,42 @@ const CardapioPage = () => {
     };
     fetchExistingOrder();
   }, [selectedMesaId, user, token, empresa, mesas]);
+
+  // Carrinho por mesa
+  useEffect(() => {
+    if (!selectedMesaId) return;
+    // Carrega carrinho salvo para a mesa ao selecionar
+    const saved = localStorage.getItem(`carrinho_mesa_${selectedMesaId}`);
+    if (saved) {
+      try {
+        const itensMesa = JSON.parse(saved);
+        limparCarrinho();
+        itensMesa.forEach(item => {
+          adicionarItem(item, item.quantidade, item.observacoes, item.adicionais);
+        });
+      } catch {}
+    } else {
+      limparCarrinho();
+    }
+    // eslint-disable-next-line
+  }, [selectedMesaId]);
+
+  // Salva carrinho sempre que itens mudam e há mesa selecionada
+  useEffect(() => {
+    if (!selectedMesaId) return;
+    localStorage.setItem(`carrinho_mesa_${selectedMesaId}`,
+      JSON.stringify(itens.map(item => ({ ...item }))));
+  }, [itens, selectedMesaId]);
+
+  // Ao trocar de mesa, salva o carrinho da mesa anterior
+  const prevMesaIdRef = React.useRef();
+  useEffect(() => {
+    if (prevMesaIdRef.current && prevMesaIdRef.current !== selectedMesaId) {
+      localStorage.setItem(`carrinho_mesa_${prevMesaIdRef.current}`,
+        JSON.stringify(itens.map(item => ({ ...item }))));
+    }
+    prevMesaIdRef.current = selectedMesaId;
+  }, [selectedMesaId]);
 
 
   // Cores para os cards de mesa
@@ -857,48 +894,47 @@ const CardapioPage = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="flex items-center space-x-1">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade - 1, item.observacoes, item.adicionais)}
-                               // disabled={item.quantidade <= 1}
-                            >
-                                <Minus className="h-4 w-4" />
-                            </Button>
-                            <Input 
-                                type="number" 
-                                value={item.quantidade} 
-                                onChange={(e) => atualizarQuantidadeItem(item.id_produto, parseInt(e.target.value) || 0, item.observacoes, item.adicionais)} 
-                                className="w-16 text-center" 
-                                min="1" 
-                            />
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade + 1, item.observacoes, item.adicionais)}
-                            >
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                                type="button" 
-                                variant="destructive" 
-                                size="sm" 
-                                onClick={() => removerItem(item.id_produto, true, item.observacoes, item.adicionais)}
-                            >
-                                <XCircle className="h-4 w-4" />
-                            </Button>
-                             <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => openEditObservationModal(item)}
-                            >
-                                <SquarePen className="h-4 w-4" />
-                            </Button>
-                        </div>
+                        <div className="flex flex-wrap gap-1 xs:flex-nowrap items-center justify-end min-w-0">
+  <Button 
+    type="button" 
+    variant="outline" 
+    size="sm" 
+    onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade - 1, item.observacoes, item.adicionais)}
+  >
+    <Minus className="h-4 w-4" />
+  </Button>
+  <Input 
+    type="number" 
+    value={item.quantidade} 
+    onChange={(e) => atualizarQuantidadeItem(item.id_produto, parseInt(e.target.value) || 0, item.observacoes, item.adicionais)} 
+    className="w-16 text-center" 
+    min="1" 
+  />
+  <Button 
+    type="button" 
+    variant="outline" 
+    size="sm" 
+    onClick={() => atualizarQuantidadeItem(item.id_produto, item.quantidade + 1, item.observacoes, item.adicionais)}
+  >
+    <Plus className="h-4 w-4" />
+  </Button>
+  <Button 
+    type="button" 
+    variant="destructive" 
+    size="sm" 
+    onClick={() => removerItem(item.id_produto, true, item.observacoes, item.adicionais)}
+  >
+    <XCircle className="h-4 w-4" />
+  </Button>
+  <Button 
+    type="button" 
+    variant="ghost" 
+    size="sm" 
+    onClick={() => openEditObservationModal(item)}
+  >
+    <SquarePen className="h-4 w-4" />
+  </Button>
+</div>
                     </div>
                 ))}
             </div>

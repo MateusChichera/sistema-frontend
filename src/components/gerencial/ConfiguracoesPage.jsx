@@ -258,10 +258,10 @@ const ConfiguracoesPage = () => {
 
       {/* Adicionado o componente Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="detalhes" className="text-xs sm:text-sm">Detalhes da Empresa</TabsTrigger>
-          <TabsTrigger value="pedidosCardapio" className="text-xs sm:text-sm">Pedidos e Cardápio</TabsTrigger>
-          <TabsTrigger value="caixa" className="text-xs sm:text-sm">Caixa</TabsTrigger>
+        <TabsList className="flex flex-col sm:grid sm:grid-cols-3 w-full">
+          <TabsTrigger value="detalhes" className="w-full text-xs sm:text-sm">Detalhes da Empresa</TabsTrigger>
+          <TabsTrigger value="pedidosCardapio" className="w-full text-xs sm:text-sm">Pedidos e Cardápio</TabsTrigger>
+          <TabsTrigger value="caixa" className="w-full text-xs sm:text-sm">Caixa</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSaveConfig} className="mt-3 sm:mt-4">
