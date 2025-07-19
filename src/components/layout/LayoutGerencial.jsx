@@ -201,15 +201,38 @@ const LayoutGerencial = ({ children }) => {
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden bg-white border-b px-4 py-3">
+      <div className="md:hidden sticky top-0 z-30 bg-white border-b px-4 py-3 shadow">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">{empresa.nome_fantasia}</h1>
+          <button
+            className="text-lg font-semibold text-gray-900 focus:outline-none focus:underline"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            title="Ir para o topo"
+          >
+            {empresa.nome_fantasia}
+          </button>
           <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <Menu className="h-5 w-5" />
           </Button>
         </div>
         {isMobileMenuOpen && (
-          <div className="mt-2">{renderMenuItems()}</div>
+          <>
+            <div className="mt-2">{renderMenuItems()}</div>
+            <div className="mt-4 flex items-center gap-2 border-t pt-4">
+              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-primary-foreground">
+                  {user?.nome ? user.nome.charAt(0) : 'U'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">{user?.nome || 'Usuário'}</p>
+                <p className="text-xs text-gray-600">{user?.role || 'Visitante'}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </>
         )}
       </div>
 

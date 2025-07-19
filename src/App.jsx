@@ -38,6 +38,7 @@ import ConfiguracoesPage from './components/gerencial/ConfiguracoesPage';
 
 // IMPORTAR A PÁGINA DO ADMIN MASTER
 import AdminDashboardPage from './components/admin/AdminDashboardPage';
+import SessionExpiredHandler from './components/SessionExpiredHandler';
 
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
       <EmpresaProvider>
         <CarrinhoProvider>
           <Router>
+            <SessionExpiredHandler />
             <Routes>
               {/* Rota inicial - redireciona para uma empresa de exemplo */}
               <Route path="/" element={<LandingPage />} />
