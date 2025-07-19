@@ -671,7 +671,7 @@ const CaixaPage = () => {
 
 
         console.log("Todas as validações iniciais passaram.");
-        
+
         if (isPagamentoDinheiro) {
             const valorTroco = Math.max(0, formattedValorRecebido - formattedValorRestanteTotal);
             
@@ -783,7 +783,7 @@ const CaixaPage = () => {
         }
 
         // Garante que printWindow está definido antes de usar
-        const printWindow = window.open('', '_blank', 'width=300,height=600');
+        const printWindow = window.open('', '_blank', 'width=300,height=600'); 
         if (!printWindow) {
             toast.error("Não foi possível abrir a janela de impressão. Verifique pop-ups.");
             return;
@@ -1479,7 +1479,7 @@ const CaixaPage = () => {
                                     const displayTotal = (baseTotal + deliveryTax).toFixed(2);
                                     const receivedPartial = parseFloat(pedido.valor_recebido_parcial || 0);
                                     const missingAmount = Math.max(0, parseFloat(displayTotal) - receivedPartial).toFixed(2);
-                                    
+
                                     return (
                                         <div className="space-y-1 text-xs sm:text-sm">
                                             <p className="text-sm sm:text-base font-semibold">Valor Total: R$ {displayTotal.replace('.', ',')}</p>
@@ -1595,18 +1595,18 @@ const CaixaPage = () => {
                             </DialogHeader>
                             <div className="py-4">
                                 <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
                                                 <TableHead className="text-xs sm:text-sm">Produto</TableHead>
                                                 <TableHead className="text-right text-xs sm:text-sm">Qtd</TableHead>
                                                 <TableHead className="text-right text-xs sm:text-sm">V. Unit</TableHead>
                                                 <TableHead className="text-right text-xs sm:text-sm">Total</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {(selectedPedido.itens || []).map(item => (
-                                                <TableRow key={item.id}>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {(selectedPedido.itens || []).map(item => (
+                                            <TableRow key={item.id}>
                                                     <TableCell>
                                                         <div>
                                                             <div>{item.nome_produto} {item.observacoes && `(${item.observacoes})`}</div>
@@ -1622,27 +1622,27 @@ const CaixaPage = () => {
                                                             )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-right">{item.quantidade}</TableCell>
-                                                    <TableCell className="text-right">R$ {parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</TableCell>
-                                                    <TableCell className="text-right">R$ {(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                    <p className="text-right font-bold mt-4">
-                                        Subtotal dos Itens: R$ {parseFloat(selectedPedido.valor_total || 0).toFixed(2).replace('.', ',')}
+                                                <TableCell className="text-right">{item.quantidade}</TableCell>
+                                                <TableCell className="text-right">R$ {parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</TableCell>
+                                                <TableCell className="text-right">R$ {(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                <p className="text-right font-bold mt-4">
+                                    Subtotal dos Itens: R$ {parseFloat(selectedPedido.valor_total || 0).toFixed(2).replace('.', ',')}
+                                </p>
+                                {selectedPedido.tipo_entrega === 'Delivery' && parseFloat(empresa?.taxa_entrega || 0) > 0 && (
+                                    <p className="text-right text-sm text-gray-600">
+                                        Taxa de Entrega: R$ {parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}
                                     </p>
-                                    {selectedPedido.tipo_entrega === 'Delivery' && parseFloat(empresa?.taxa_entrega || 0) > 0 && (
-                                        <p className="text-right text-sm text-gray-600">
-                                            Taxa de Entrega: R$ {parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}
-                                        </p>
-                                    )}
-                                    <p className="text-right font-bold text-lg mt-2">
-                                        Total Geral do Pedido: R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}
+                                )}
+                                <p className="text-right font-bold text-lg mt-2">
+                                    Total Geral do Pedido: R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}
                                         {cobrarPorcentagemGarcom && selectedPedido.tipo_entrega === 'Mesa' && (
                                             <span className="text-sm text-orange-600 ml-2">(inclui 10% garçom)</span>
                                         )}
-                                    </p>
+                                </p>
                                 </div>
                             </div>
                             <DialogFooter>
@@ -1685,7 +1685,7 @@ const CaixaPage = () => {
                                                 <span><b>Total Geral:</b> R$ {totalGeralPedidoOriginal.toFixed(2).replace('.', ',')}</span>
                                                 <span><b>Recebido:</b> R$ {parseFloat(selectedPedido.valor_recebido_parcial || 0).toFixed(2).replace('.', ',')}</span>
                                                 <span><b>Falta Pagar:</b> <span className="text-red-600 font-bold">R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}</span></span>
-                                            </div>
+                                    </div>
                                             <Button onClick={() => openItemDetailModal(selectedPedido)} size="sm" variant="secondary" className="w-full mt-3 text-xs h-8">
                                                 Ver Detalhes dos Itens
                                             </Button>
@@ -1715,22 +1715,22 @@ const CaixaPage = () => {
                                     {/* Coluna 2: Formulário de Pagamento */}
                                     <div className="space-y-3 sm:space-y-4">
                                         <div className="rounded-lg border border-gray-100 bg-white p-3 sm:p-4 shadow-sm flex flex-col gap-3">
-                                            <div>
+                                    <div>
                                                 <Label htmlFor="formaPagamentoCaixa" className="text-xs">Forma de Pagamento</Label>
-                                                <Select value={selectedFormaPagamentoId} onValueChange={setSelectedFormaPagamentoId} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}>
+                                        <Select value={selectedFormaPagamentoId} onValueChange={setSelectedFormaPagamentoId} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}>
                                                     <SelectTrigger id="formaPagamentoCaixa" className="h-9 sm:h-10 text-xs sm:text-sm">
                                                         <SelectValue placeholder="Selecione a forma" />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        {formasPagamento.length === 0 && <SelectItem disabled value="">Nenhuma forma disponível</SelectItem>}
-                                                        {formasPagamento.map(fp => (
+                                            <SelectContent>
+                                                {formasPagamento.length === 0 && <SelectItem disabled value="">Nenhuma forma disponível</SelectItem>}
+                                                {formasPagamento.map(fp => (
                                                             <SelectItem key={fp.id} value={fp.id.toString()} className="text-xs sm:text-sm">
                                                                 {fp.descricao} {fp.porcentagem_desconto_geral > 0 && `(${parseFloat(fp.porcentagem_desconto_geral).toFixed(0)}% desc)`}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                             {selectedPedido.tipo_entrega === 'Mesa' && empresa?.porcentagem_garcom && (
                                                 <div className="flex items-center gap-2">
                                                     <Switch
@@ -1751,33 +1751,33 @@ const CaixaPage = () => {
                                             )}
                                             <div>
                                                 <Label htmlFor="valorCobrancaManual" className="text-xs">Valor a Cobrar (R$)</Label>
-                                                <Input
-                                                    id="valorCobrancaManual"
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    value={valorCobrancaManual}
+                                        <Input
+                                            id="valorCobrancaManual"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={valorCobrancaManual}
                                                     readOnly
-                                                    placeholder="0.00"
-                                                    disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                            placeholder="0.00"
+                                            disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
                                                     className="text-xs h-9 sm:h-10"
-                                                />
-                                                {valorComDesconto.toFixed(2) !== parseFloat(valorCobrancaManual || '0').toFixed(2) && (
+                                        />
+                                        {valorComDesconto.toFixed(2) !== parseFloat(valorCobrancaManual || '0').toFixed(2) && (
                                                     <p className="text-xs text-yellow-700 mt-1">
-                                                        Valor com Desconto: <span className="font-bold">R$ {valorComDesconto.toFixed(2).replace('.', ',')}</span>
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div>
+                                                Valor com Desconto: <span className="font-bold">R$ {valorComDesconto.toFixed(2).replace('.', ',')}</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
                                                 <Label htmlFor="valorRecebidoInput" className="text-xs">Valor Recebido (R$)</Label>
-                                                <Input
-                                                    id="valorRecebidoInput"
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    value={valorRecebidoInput}
-                                                    onChange={(e) => setValorRecebidoInput(e.target.value)}
-                                                    placeholder="0.00"
+                                        <Input
+                                            id="valorRecebidoInput"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={valorRecebidoInput}
+                                            onChange={(e) => setValorRecebidoInput(e.target.value)}
+                                            placeholder="0.00"
                                                     disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
                                                     className="text-xs h-9 sm:h-10"
                                                 />
@@ -1795,43 +1795,43 @@ const CaixaPage = () => {
                                                     }
                                                     return null;
                                                 })()}
-                                            </div>
-                                            {selectedFormaPagamentoId && formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId)?.descricao.toLowerCase() === 'dinheiro' && (
+                                    </div>
+                                    {selectedFormaPagamentoId && formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId)?.descricao.toLowerCase() === 'dinheiro' && (
                                                 <div className="rounded bg-green-50 border border-green-100 p-2 text-xs">
                                                     Troco: <span className="text-blue-600 font-bold">R$ {troco.toFixed(2).replace('.', ',')}</span>
-                                                </div>
-                                            )}
+                                        </div>
+                                    )}
                                             <div className="flex items-center gap-2">
-                                                <Switch
-                                                    id="dividirConta"
-                                                    checked={dividirContaAtivo}
-                                                    onCheckedChange={setDividirContaAtivo}
-                                                    disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
-                                                />
+                                        <Switch
+                                            id="dividirConta"
+                                            checked={dividirContaAtivo}
+                                            onCheckedChange={setDividirContaAtivo}
+                                            disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                        />
                                                 <Label htmlFor="dividirConta" className="text-xs">Dividir Conta</Label>
-                                            </div>
-                                            {dividirContaAtivo && (
-                                                <div>
+                                    </div>
+                                    {dividirContaAtivo && (
+                                        <div>
                                                     <Label htmlFor="numPessoasDividir" className="text-xs">Dividir por (Pessoas)</Label>
-                                                    <Input
-                                                        id="numPessoasDividir"
-                                                        type="number"
-                                                        min="1"
-                                                        value={numPessoasDividir}
-                                                        onChange={(e) => setNumPessoasDividir(parseInt(e.target.value) || '')}
-                                                        placeholder="Ex: 2"
-                                                        disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
+                                            <Input
+                                                id="numPessoasDividir"
+                                                type="number"
+                                                min="1"
+                                                value={numPessoasDividir}
+                                                onChange={(e) => setNumPessoasDividir(parseInt(e.target.value) || '')}
+                                                placeholder="Ex: 2"
+                                                disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'}
                                                         className="text-xs"
-                                                    />
-                                                    {numPessoasDividir && parseInt(numPessoasDividir) > 1 && (
+                                            />
+                                            {numPessoasDividir && parseInt(numPessoasDividir) > 1 && (
                                                         <p className="text-xs text-gray-600 mt-1">Valor por pessoa: <span className="font-bold">R$ {valorAPagarNestaParcelaFinal.toFixed(2).replace('.', ',')}</span></p>
-                                                    )}
-                                                </div>
                                             )}
-                                            <div>
+                                        </div>
+                                    )}
+                                    <div>
                                                 <Label htmlFor="obsPagamento" className="text-xs">Observações</Label>
                                                 <Textarea id="obsPagamento" value={observacoesPagamento} onChange={(e) => setObservacoesPagamento(e.target.value)} rows={2} disabled={selectedPedido.status === 'Entregue' || selectedPedido.status === 'Cancelado'} className="text-xs" />
-                                            </div>
+                                    </div>
                                             {valorRestanteTotalDoPedido > 0 && (
                                                 <div className="rounded bg-red-50 border border-red-100 p-2 text-xs mt-2">
                                                     <b>Falta Receber:</b> R$ {valorRestanteTotalDoPedido.toFixed(2).replace('.', ',')}
@@ -1863,9 +1863,9 @@ const CaixaPage = () => {
                                                     })()}
                                                 </div>
                                             )}
-                                            {selectedPedido.status !== 'Entregue' && selectedPedido.status !== 'Cancelado' && (
+                                    {selectedPedido.status !== 'Entregue' && selectedPedido.status !== 'Cancelado' && (
                                                 <Button onClick={handleFinalizarPagamento} className="w-full flex items-center mt-2" disabled={loadingFinalizacao} size="sm">
-                                                    {loadingFinalizacao ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
+                                            {loadingFinalizacao ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
                                                     {(() => {
                                                         const valorRecebido = parseFloat(valorRecebidoInput) || 0;
                                                         const valorRestante = parseFloat(valorRestanteTotalDoPedido);
@@ -1879,16 +1879,16 @@ const CaixaPage = () => {
                                                             return 'Receber Parcial';
                                                         }
                                                     })()}
-                                                </Button>
-                                            )}
-                                            {selectedPedido.status === 'Entregue' && (
+                                        </Button>
+                                    )}
+                                    {selectedPedido.status === 'Entregue' && (
                                                 <Badge className="bg-green-500 text-white text-center py-2 w-full mt-2">Pedido Finalizado</Badge>
-                                            )}
-                                            {selectedPedido.status === 'Cancelado' && (
+                                    )}
+                                    {selectedPedido.status === 'Cancelado' && (
                                                 <Badge className="bg-red-500 text-white text-center py-2 w-full mt-2">Pedido Cancelado</Badge>
-                                            )}
-                                        </div>
-                                    </div>
+                                    )}
+                                </div>
+                            </div>
                                 </div>
                             </div>
                             <DialogFooter className="flex flex-wrap gap-2 justify-end mt-2">
