@@ -290,28 +290,29 @@ const LayoutGerencial = ({ children }) => {
             <Menu className="h-5 w-5" />
           </Button>
         </div>
-        {/* Switches no mobile acima do usuário/logout */}
-        <div className="flex flex-col gap-2 mt-2">
-          <div className="flex items-center gap-2">
-            <Switch
-              id="switch-delivery-mobile"
-              checked={deliveryAtivo}
-              onCheckedChange={checked => handleToggleConfig('desativar_entrega', !checked)}
-            />
-            <span className={`text-sm font-semibold ${deliveryAtivo ? 'text-green-700' : 'text-red-600'}`}>{deliveryAtivo ? 'Delivery aberto' : 'Delivery fechado'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch
-              id="switch-retirada-mobile"
-              checked={retiradaAtiva}
-              onCheckedChange={checked => handleToggleConfig('desativar_retirada', !checked)}
-            />
-            <span className={`text-sm font-semibold ${retiradaAtiva ? 'text-green-700' : 'text-red-600'}`}>{retiradaAtiva ? 'Retirada aberta' : 'Retirada fechada'}</span>
-          </div>
-        </div>
+        {/* Switches no mobile só aparecem quando o menu está aberto */}
         {isMobileMenuOpen && (
           <>
             <div className="mt-2">{renderMenuItems()}</div>
+            {/* Switches acima do usuário/logout no mobile */}
+            <div className="flex flex-col gap-2 mt-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="switch-delivery-mobile"
+                  checked={deliveryAtivo}
+                  onCheckedChange={checked => handleToggleConfig('desativar_entrega', !checked)}
+                />
+                <span className={`text-sm font-semibold ${deliveryAtivo ? 'text-green-700' : 'text-red-600'}`}>{deliveryAtivo ? 'Delivery aberto' : 'Delivery fechado'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="switch-retirada-mobile"
+                  checked={retiradaAtiva}
+                  onCheckedChange={checked => handleToggleConfig('desativar_retirada', !checked)}
+                />
+                <span className={`text-sm font-semibold ${retiradaAtiva ? 'text-green-700' : 'text-red-600'}`}>{retiradaAtiva ? 'Retirada aberta' : 'Retirada fechada'}</span>
+              </div>
+            </div>
             <div className="mt-4 flex items-center gap-2 border-t pt-4">
               <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-sm font-medium text-primary-foreground">

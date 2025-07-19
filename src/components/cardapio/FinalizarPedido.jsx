@@ -457,9 +457,9 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                                   </div>
                                 )}
                               </div>
-                              <DialogFooter className="mt-4 flex gap-2">
-                                <Button variant="outline" onClick={() => setEditingItemIndex(null)}>Cancelar</Button>
-                                <Button onClick={handleSaveObservation}>Salvar</Button>
+                              <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4 w-full">
+                                <Button variant="outline" onClick={() => setEditingItemIndex(null)} className="w-full sm:w-auto">Cancelar</Button>
+                                <Button onClick={handleSaveObservation} className="w-full sm:w-auto">Salvar</Button>
                               </DialogFooter>
                             </DialogContent>
                           </Dialog>
