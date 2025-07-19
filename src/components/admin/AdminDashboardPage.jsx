@@ -35,7 +35,8 @@ const AdminDashboardPage = () => {
     status: 'Ativa',
     proprietario_nome: '',
     proprietario_email: '',
-    proprietario_senha: ''
+    proprietario_senha: '',
+    segmento: 'Restaurante', // novo campo
   });
 
   const [isPessoaFisica, setIsPessoaFisica] = useState(false);
@@ -44,6 +45,21 @@ const AdminDashboardPage = () => {
 
   // Estado para o campo de busca
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Opções de segmento
+  const segmentoOptions = [
+    'Hamburgueria',
+    'Restaurante',
+    'Conveniência',
+    'Pizzaria',
+    'Lanchonete/Cafeteria',
+    'Padaria',
+    'Açaiteria/Sorveteria',
+    'Pet Shop',
+    'Loja de Produtos Naturais',
+    'Distribuidora de Bebidas',
+    'Quitanda/Hortifruti',
+  ];
 
 
   const fetchEmpresas = async () => {
@@ -225,6 +241,7 @@ const AdminDashboardPage = () => {
           cep: fullEmpresaData.cep || '',
           valor_mensalidade: parseFloat(fullEmpresaData.valor_mensalidade) || 99.90,
           status: fullEmpresaData.status || 'Ativa',
+          segmento: fullEmpresaData.segmento || 'Restaurante', // Carrega o segmento da empresa
           proprietario_nome: '', // Campos de proprietário são apenas para criação
           proprietario_email: '',
           proprietario_senha: ''
@@ -245,6 +262,7 @@ const AdminDashboardPage = () => {
         nome_fantasia: '', razao_social: '', cnpj: '', email_contato: '',
         telefone_contato: '', endereco: '', cidade: '', estado: '', cep: '',
         valor_mensalidade: 99.90, status: 'Ativa',
+        segmento: 'Restaurante', // Nova empresa começa com um segmento padrão
         proprietario_nome: '', proprietario_email: '', proprietario_senha: ''
       });
       setIsFormOpen(true); // Abre o modal imediatamente
@@ -453,6 +471,19 @@ const AdminDashboardPage = () => {
                   <SelectItem value="Ativa">Ativa</SelectItem>
                   <SelectItem value="Inativa">Inativa</SelectItem>
                   <SelectItem value="Suspensa">Suspensa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Segmento */}
+            <div>
+              <Label htmlFor="segmento">Segmento</Label>
+              <Select id="segmento" value={formData.segmento} onValueChange={value => handleSelectChange('segmento', value)} required>
+                <SelectTrigger id="segmento"><SelectValue placeholder="Selecione o segmento" /></SelectTrigger>
+                <SelectContent>
+                  {segmentoOptions.map(opt => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -26,10 +26,13 @@ import {
   DollarSign
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import api from '../../services/api';
+import { Switch } from '../ui/switch';
+import { toast } from 'sonner';
 
 const LayoutGerencial = ({ children }) => {
   const { user, logout } = useAuth();
-  const { empresa, loading: empresaLoading, isReady } = useEmpresa();
+  const { empresa, loading: empresaLoading, isReady, loadEmpresa } = useEmpresa();
   const navigate = useNavigate();
   const location = useLocation();
   const { slug: urlSlugFromParams } = useParams();
@@ -38,6 +41,10 @@ const LayoutGerencial = ({ children }) => {
   const [openParentMenu, setOpenParentMenu] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentResolvedSlug, setCurrentResolvedSlug] = useState(null);
+
+  // Estado local para switches
+  const [deliveryAtivo, setDeliveryAtivo] = useState(!empresa?.desativar_entrega);
+  const [retiradaAtiva, setRetiradaAtiva] = useState(!empresa?.desativar_retirada);
 
   useEffect(() => {
     if (
@@ -48,6 +55,8 @@ const LayoutGerencial = ({ children }) => {
       empresa.slug === urlSlugFromParams
     ) {
       setCurrentResolvedSlug(empresa.slug);
+      setDeliveryAtivo(!empresa?.desativar_entrega);
+      setRetiradaAtiva(!empresa?.desativar_retirada);
     } else {
       setCurrentResolvedSlug(null);
     }
@@ -93,6 +102,50 @@ const LayoutGerencial = ({ children }) => {
   const handleLogout = () => {
     logout();
     navigate(`/gerencial/${currentSlug}`);
+  };
+
+  // Função para atualizar config de entrega/retirada
+  const handleToggleConfig = async (field, value) => {
+    if (!empresa || !empresa.slug) return;
+    if (field === 'desativar_entrega') setDeliveryAtivo(!value);
+    if (field === 'desativar_retirada') setRetiradaAtiva(!value);
+    try {
+      const headers = {};
+      if (user?.token) headers.Authorization = `Bearer ${user.token}`;
+      // Monta objeto completo de config, alterando só o campo desejado
+      const configToSend = {
+        horario_funcionamento: empresa.horario_funcionamento || '',
+        numero_mesas: empresa.numero_mesas || 0,
+        taxa_entrega: empresa.taxa_entrega || 0.00,
+        tempo_medio_preparo: empresa.tempo_medio_preparo || '',
+        config_impressora: empresa.config_impressora || '',
+        permitir_pedido_online: empresa.permitir_pedido_online ? 1 : 0,
+        pedido_minimo_delivery: empresa.pedido_minimo_delivery || 0.00,
+        desativar_entrega: field === 'desativar_entrega' ? (value ? 1 : 0) : (empresa.desativar_entrega ? 1 : 0),
+        desativar_retirada: field === 'desativar_retirada' ? (value ? 1 : 0) : (empresa.desativar_retirada ? 1 : 0),
+        tempo_corte_pedido_online: empresa.tempo_corte_pedido_online || '',
+        mensagem_confirmacao_pedido: empresa.mensagem_confirmacao_pedido || '',
+        auto_aprovar_pedidos: empresa.auto_aprovar_pedidos ? 1 : 0,
+        cor_primaria_cardapio: empresa.cor_primaria_cardapio || '',
+        mostrar_promocoes_na_home: empresa.mostrar_promocoes_na_home ? 1 : 0,
+        layout_cardapio: empresa.layout_cardapio || 'grid',
+        alerta_estoque_baixo_ativo: empresa.alerta_estoque_baixo_ativo ? 1 : 0,
+        limite_estoque_baixo: empresa.limite_estoque_baixo || 0,
+        enviar_email_confirmacao: empresa.enviar_email_confirmacao ? 1 : 0,
+        som_notificacao_cozinha: empresa.som_notificacao_cozinha ? 1 : 0,
+        som_notificacao_delivery: empresa.som_notificacao_delivery ? 1 : 0,
+        valor_inicial_caixa_padrao: empresa.valor_inicial_caixa_padrao || 0.00,
+        exibir_valores_fechamento_caixa: empresa.exibir_valores_fechamento_caixa ? 1 : 0,
+        usa_controle_caixa: empresa.usa_controle_caixa ? 1 : 0,
+        porcentagem_garcom: empresa.porcentagem_garcom ? 1 : 0,
+        permitir_acompanhar_status: empresa.permitir_acompanhar_status ? 1 : 0,
+      };
+      await api.put(`/gerencial/${empresa.slug}/config`, configToSend, { headers });
+      toast.success(`Configuração atualizada!`);
+      await loadEmpresa(empresa.slug); // Atualiza contexto sem reload
+    } catch (err) {
+      toast.error('Erro ao atualizar configuração.');
+    }
   };
 
   const renderMenuItems = () =>
@@ -181,6 +234,28 @@ const LayoutGerencial = ({ children }) => {
             <nav className="flex-1 px-2 space-y-1">{renderMenuItems()}</nav>
           </div>
 
+          {/* Switches acima do usuário/logout */}
+          <div className="px-4 pb-2">
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="switch-delivery"
+                  checked={deliveryAtivo}
+                  onCheckedChange={checked => handleToggleConfig('desativar_entrega', !checked)}
+                />
+                <span className={`text-sm font-semibold ${deliveryAtivo ? 'text-green-700' : 'text-red-600'}`}>{deliveryAtivo ? 'Delivery aberto' : 'Delivery fechado'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="switch-retirada"
+                  checked={retiradaAtiva}
+                  onCheckedChange={checked => handleToggleConfig('desativar_retirada', !checked)}
+                />
+                <span className={`text-sm font-semibold ${retiradaAtiva ? 'text-green-700' : 'text-red-600'}`}>{retiradaAtiva ? 'Retirada aberta' : 'Retirada fechada'}</span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex-shrink-0 p-4 border-t">
             <div className="flex items-center space-x-3">
               <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
@@ -214,6 +289,25 @@ const LayoutGerencial = ({ children }) => {
           <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <Menu className="h-5 w-5" />
           </Button>
+        </div>
+        {/* Switches no mobile acima do usuário/logout */}
+        <div className="flex flex-col gap-2 mt-2">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="switch-delivery-mobile"
+              checked={deliveryAtivo}
+              onCheckedChange={checked => handleToggleConfig('desativar_entrega', !checked)}
+            />
+            <span className={`text-sm font-semibold ${deliveryAtivo ? 'text-green-700' : 'text-red-600'}`}>{deliveryAtivo ? 'Delivery aberto' : 'Delivery fechado'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="switch-retirada-mobile"
+              checked={retiradaAtiva}
+              onCheckedChange={checked => handleToggleConfig('desativar_retirada', !checked)}
+            />
+            <span className={`text-sm font-semibold ${retiradaAtiva ? 'text-green-700' : 'text-red-600'}`}>{retiradaAtiva ? 'Retirada aberta' : 'Retirada fechada'}</span>
+          </div>
         </div>
         {isMobileMenuOpen && (
           <>
