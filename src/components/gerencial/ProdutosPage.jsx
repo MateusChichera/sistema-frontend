@@ -322,36 +322,37 @@ const ProdutosPage = () => {
   }
   
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Produtos - {empresa.nome_fantasia}</h2>
+    <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Produtos - {empresa.nome_fantasia}</h2>
 
       {/* Campo de Busca */}
-      <div className="mb-6">
-        <Label htmlFor="search">Buscar Produto</Label>
+      <div className="mb-4 sm:mb-6">
+        <Label htmlFor="search" className="text-sm">Buscar Produto</Label>
         <Input
           id="search"
           type="text"
           placeholder="Digite o nome do produto..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          className="h-9 sm:h-10 text-sm"
         />
       </div>
 
       {/* Formulário para Adicionar/Editar Produto - Visível apenas para quem pode gerenciar */}
       {canManage && (
-        <form onSubmit={editandoProduto ? handleSaveEdit : handleAddProduto} className="mb-8 p-4 border rounded-lg bg-gray-50">
-          <h3 className="text-xl font-semibold mb-4 text-gray-700">
+        <form onSubmit={editandoProduto ? handleSaveEdit : handleAddProduto} className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50">
+          <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">
             {editandoProduto ? `Editar Produto: ${editandoProduto.nome}` : 'Adicionar Novo Produto'}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-end">
             <div>
-              <Label htmlFor="idCategoria">Categoria</Label>
+              <Label htmlFor="idCategoria" className="text-sm">Categoria</Label>
               <Select 
                 value={editandoProduto ? editIdCategoria : novoIdCategoria} 
                 onValueChange={(value) => editandoProduto ? setEditIdCategoria(value) : setNovoIdCategoria(value)}
                 required
               >
-                <SelectTrigger id="idCategoria">
+                <SelectTrigger id="idCategoria" className="h-9 sm:h-10 text-sm">
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -362,7 +363,7 @@ const ProdutosPage = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="nome">Nome do Produto</Label>
+              <Label htmlFor="nome" className="text-sm">Nome do Produto</Label>
               <Input
                 id="nome"
                 type="text"
@@ -370,20 +371,22 @@ const ProdutosPage = () => {
                 value={editandoProduto ? editNome : novoNome}
                 onChange={(e) => editandoProduto ? setEditNome(e.target.value) : setNovoNome(e.target.value)}
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="col-span-1 md:col-span-2 lg:col-span-1">
-              <Label htmlFor="descricao">Descrição (opcional)</Label>
+              <Label htmlFor="descricao" className="text-sm">Descrição (opcional)</Label>
               <Textarea
                 id="descricao"
                 placeholder="Descrição detalhada do produto"
                 value={editandoProduto ? editDescricao : novaDescricao}
                 onChange={(e) => editandoProduto ? setEditDescricao(e.target.value) : setNovaDescricao(e.target.value)}
                 rows={2}
+                className="text-sm"
               />
             </div>
             <div>
-              <Label htmlFor="preco">Preço</Label>
+              <Label htmlFor="preco" className="text-sm">Preço</Label>
               <Input
                 id="preco"
                 type="number"
@@ -393,10 +396,11 @@ const ProdutosPage = () => {
                 value={editandoProduto ? editPreco : novoPreco}
                 onChange={(e) => editandoProduto ? setEditPreco(e.target.value) : setNovoPreco(e.target.value)}
                 required
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div>
-              <Label htmlFor="promocao">Preço Promocional (opcional)</Label>
+              <Label htmlFor="promocao" className="text-sm">Preço Promocional (opcional)</Label>
               <Input
                 id="promocao"
                 type="number"
@@ -405,6 +409,7 @@ const ProdutosPage = () => {
                 placeholder="0.00"
                 value={editandoProduto ? editPromocao : novoPromocao}
                 onChange={(e) => editandoProduto ? setEditPromocao(e.target.value) : setNovoPromocao(e.target.value)}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -413,7 +418,7 @@ const ProdutosPage = () => {
                 checked={editandoProduto ? editPromoAtiva : novoPromoAtiva}
                 onCheckedChange={(checked) => editandoProduto ? setEditPromoAtiva(checked) : setNovoPromoAtiva(checked)}
               />
-              <Label htmlFor="promoAtiva">Promoção Ativa</Label>
+              <Label htmlFor="promoAtiva" className="text-sm">Promoção Ativa</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Switch
@@ -421,24 +426,25 @@ const ProdutosPage = () => {
                 checked={editandoProduto ? editAtivo : novoAtivo}
                 onCheckedChange={(checked) => editandoProduto ? setEditAtivo(checked) : setNovoAtivo(checked)}
               />
-              <Label htmlFor="ativo">Produto Ativo</Label>
+              <Label htmlFor="ativo" className="text-sm">Produto Ativo</Label>
             </div>
             <div className="col-span-full">
-              <Label htmlFor={editandoProduto ? "editFotoInput" : "novaFotoInput"}>Foto do Produto (opcional)</Label>
+              <Label htmlFor={editandoProduto ? "editFotoInput" : "novaFotoInput"} className="text-sm">Foto do Produto (opcional)</Label>
               <Input
                 id={editandoProduto ? "editFotoInput" : "novaFotoInput"}
                 type="file"
                 accept="image/*"
                 onChange={(e) => editandoProduto ? setEditFoto(e.target.files[0]) : setNovaFoto(e.target.files[0])}
+                className="text-sm"
               />
               {editandoProduto?.foto_url && !editFoto && !removerFotoExistente && (
                 <div className="mt-2 flex items-center space-x-2">
                   <img 
                     src={`${api.defaults.baseURL.replace('/api/v1', '')}${editandoProduto.foto_url}`} 
                     alt="Foto atual" 
-                    className="h-16 w-16 object-cover rounded-md" 
+                    className="h-12 w-12 sm:h-16 sm:w-16 object-cover rounded-md" 
                   />
-                  <Label htmlFor="removerFoto">Remover foto existente?</Label>
+                  <Label htmlFor="removerFoto" className="text-sm">Remover foto existente?</Label>
                   <Switch
                     id="removerFoto"
                     checked={removerFotoExistente}
@@ -452,13 +458,13 @@ const ProdutosPage = () => {
             {editandoProduto && adicionais.length > 0 && (
               <div className="col-span-full">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Adicionais Disponíveis</CardTitle>
+                  <CardHeader className="px-3 sm:px-4 py-3">
+                    <CardTitle className="text-base sm:text-lg">Adicionais Disponíveis</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <CardContent className="px-3 sm:px-4 pb-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {adicionais.filter(adicional => adicional.ativo).map((adicional) => (
-                        <div key={adicional.id} className="flex items-center space-x-2 p-3 border rounded-lg">
+                        <div key={adicional.id} className="flex items-center space-x-2 p-2 sm:p-3 border rounded-lg">
                           <Checkbox
                             id={`adicional-${adicional.id}`}
                             checked={editProdutoAdicionais.includes(adicional.id)}
@@ -471,13 +477,13 @@ const ProdutosPage = () => {
                             }}
                           />
                           <div className="flex-1">
-                            <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                            <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer text-sm">
                               {adicional.nome}
                             </Label>
                             {adicional.descricao && (
-                              <p className="text-sm text-gray-600">{adicional.descricao}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">{adicional.descricao}</p>
                             )}
-                            <p className="text-sm font-semibold text-green-600">
+                            <p className="text-xs sm:text-sm font-semibold text-green-600">
                               R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
                             </p>
                           </div>
@@ -485,7 +491,7 @@ const ProdutosPage = () => {
                       ))}
                     </div>
                     {adicionais.filter(adicional => adicional.ativo).length === 0 && (
-                      <p className="text-gray-600 text-center py-4">
+                      <p className="text-gray-600 text-center py-4 text-sm sm:text-base">
                         Nenhum adicional ativo disponível. 
                         <a href="/adicionais" className="text-blue-600 hover:underline ml-1">
                           Criar adicionais
@@ -497,12 +503,12 @@ const ProdutosPage = () => {
               </div>
             )}
 
-            <div className="flex gap-2 col-span-full justify-end">
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <div className="flex flex-col sm:flex-row gap-2 col-span-full justify-end">
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
                 {editandoProduto ? 'Salvar Edição' : 'Adicionar Produto'}
               </Button>
               {editandoProduto && (
-                <Button type="button" onClick={handleCancelEdit} variant="outline">
+                <Button type="button" onClick={handleCancelEdit} variant="outline" className="text-xs sm:text-sm h-8 sm:h-9">
                   Cancelar
                 </Button>
               )}
@@ -512,108 +518,177 @@ const ProdutosPage = () => {
       )}
 
       {/* Lista de Produtos */}
-      <h3 className="text-xl font-semibold mb-4 text-gray-700">Produtos Existentes</h3>
+      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Produtos Existentes</h3>
       {filteredProdutos.length === 0 ? (
-        <p className="text-gray-600">Nenhum produto cadastrado ainda ou nenhum resultado para a busca.</p>
+        <p className="text-gray-600 text-sm sm:text-base">Nenhum produto cadastrado ainda ou nenhum resultado para a busca.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
-            <TableHeader className="bg-gray-100">
-              <TableRow>
-                {/* REMOVIDO: <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">ID</TableHead> */}
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Foto</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Nome</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Categoria</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Preço</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Promoção</TableHead> {/* NOVA COLUNA */}
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
-                <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Adicionais</TableHead>
-                {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProdutos.map((prod) => (
-                <TableRow key={prod.id} className="hover:bg-gray-50">
-                  {/* REMOVIDO: <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.id}</TableCell> */}
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+        <div className="space-y-3 sm:space-y-0 sm:overflow-x-auto">
+          {/* Versão mobile/tablet - Cards */}
+          <div className="sm:hidden space-y-3">
+            {filteredProdutos.map((prod) => (
+              <div key={prod.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
                     {prod.foto_url ? (
                       <img 
                         src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`} 
                         alt={prod.nome} 
-                        className="h-12 w-12 object-cover rounded-md" 
+                        className="h-16 w-16 object-cover rounded-md" 
                       />
                     ) : (
-                      <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500 rounded-md">Sem Foto</div>
+                      <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-xs text-gray-500 rounded-md">Sem Foto</div>
                     )}
-                  </TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.nome}</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.categoria_nome}</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">R$ {parseFloat(prod.preco).toFixed(2)}</TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
-                    {/* Exibição da promoção */}
-                    {prod.promo_ativa ? (
-                      <p className="text-green-600 font-semibold">R$ {parseFloat(prod.promocao).toFixed(2)}</p>
-                    ) : (
-                      prod.promocao > 0 ? (
-                        <p className="text-yellow-600">R$ {parseFloat(prod.promocao).toFixed(2)} (Off)</p>
-                      ) : (
-                        '-'
-                      )
-                    )}
-                  </TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium text-gray-800 truncate">{prod.nome}</h4>
+                    <p className="text-xs text-gray-500">{prod.categoria_nome}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm font-semibold">R$ {parseFloat(prod.preco).toFixed(2)}</span>
+                      {prod.promo_ativa && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Promoção</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                       prod.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
                       {prod.ativo ? 'Ativo' : 'Inativo'}
                     </span>
-                    {prod.promo_ativa && ( // Badge de 'Promoção Ativa'
-                      <span className="ml-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                        Ativa
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
-                    {produtoAdicionais[prod.id] && produtoAdicionais[prod.id].length > 0 ? (
-                      <div className="space-y-1">
-                        {produtoAdicionais[prod.id].slice(0, 2).map((adicional) => (
-                          <div key={adicional.id} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                            {adicional.nome} (+R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')})
-                          </div>
-                        ))}
-                        {produtoAdicionais[prod.id].length > 2 && (
-                          <div className="text-xs text-gray-500">
-                            +{produtoAdicionais[prod.id].length - 2} mais
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">Nenhum</span>
-                    )}
-                  </TableCell>
-                  {canManage && (
-                    <TableCell className="py-2 px-4 border-b text-sm">
-                      <Button 
-                        onClick={() => handleEditClick(prod)} 
-                        variant="outline" 
-                        size="sm" 
-                        className="mr-2"
-                      >
-                        Editar
-                      </Button>
-                      <Button 
-                        onClick={() => handleDeleteProduto(prod.id)} 
-                        variant="destructive" 
-                        size="sm"
-                      >
-                        Excluir
-                      </Button>
-                    </TableCell>
-                  )}
+                  </div>
+                </div>
+                
+                {produtoAdicionais[prod.id] && produtoAdicionais[prod.id].length > 0 && (
+                  <div className="text-xs text-gray-600">
+                    <span className="font-medium">Adicionais:</span> {produtoAdicionais[prod.id].slice(0, 2).map(a => a.nome).join(', ')}
+                    {produtoAdicionais[prod.id].length > 2 && ` +${produtoAdicionais[prod.id].length - 2} mais`}
+                  </div>
+                )}
+                
+                {canManage && (
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => handleEditClick(prod)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-xs h-8"
+                    >
+                      Editar
+                    </Button>
+                    <Button 
+                      onClick={() => handleDeleteProduto(prod.id)} 
+                      variant="destructive" 
+                      size="sm"
+                      className="flex-1 text-xs h-8"
+                    >
+                      Excluir
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Versão desktop - Tabela */}
+          <div className="hidden sm:block overflow-x-auto">
+            <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
+              <TableHeader className="bg-gray-100">
+                <TableRow>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Foto</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Nome</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Categoria</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Preço</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Promoção</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Adicionais</TableHead>
+                  {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredProdutos.map((prod) => (
+                  <TableRow key={prod.id} className="hover:bg-gray-50">
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      {prod.foto_url ? (
+                        <img 
+                          src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`} 
+                          alt={prod.nome} 
+                          className="h-12 w-12 object-cover rounded-md" 
+                        />
+                      ) : (
+                        <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500 rounded-md">Sem Foto</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.nome}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.categoria_nome}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">R$ {parseFloat(prod.preco).toFixed(2)}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      {prod.promo_ativa ? (
+                        <p className="text-green-600 font-semibold">R$ {parseFloat(prod.promocao).toFixed(2)}</p>
+                      ) : (
+                        prod.promocao > 0 ? (
+                          <p className="text-yellow-600">R$ {parseFloat(prod.promocao).toFixed(2)} (Off)</p>
+                        ) : (
+                          '-'
+                        )
+                      )}
+                    </TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        prod.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {prod.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                      {prod.promo_ativa && (
+                        <span className="ml-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                          Ativa
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      {produtoAdicionais[prod.id] && produtoAdicionais[prod.id].length > 0 ? (
+                        <div className="space-y-1">
+                          {produtoAdicionais[prod.id].slice(0, 2).map((adicional) => (
+                            <div key={adicional.id} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                              {adicional.nome} (+R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')})
+                            </div>
+                          ))}
+                          {produtoAdicionais[prod.id].length > 2 && (
+                            <div className="text-xs text-gray-500">
+                              +{produtoAdicionais[prod.id].length - 2} mais
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Nenhum</span>
+                      )}
+                    </TableCell>
+                    {canManage && (
+                      <TableCell className="py-2 px-4 border-b text-sm">
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => handleEditClick(prod)} 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs h-8 px-2"
+                          >
+                            Editar
+                          </Button>
+                          <Button 
+                            onClick={() => handleDeleteProduto(prod.id)} 
+                            variant="destructive" 
+                            size="sm"
+                            className="text-xs h-8 px-2"
+                          >
+                            Excluir
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>

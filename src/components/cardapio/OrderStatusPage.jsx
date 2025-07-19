@@ -313,12 +313,12 @@ const OrderStatusPage = () => {
 
 
     return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">Painel da Cozinha</h1>
-            <p className="text-center text-lg text-gray-600 mb-8">Gerencie o status dos pedidos e avance-os na produção.</p>
+        <div className="container mx-auto p-2 sm:p-4">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 text-center">Painel da Cozinha</h1>
+            <p className="text-center text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">Gerencie o status dos pedidos e avance-os na produção.</p>
 
             {/* Filtros de Status (Switches) */}
-            <div className="mb-8 p-4 border rounded-lg bg-gray-50 flex flex-wrap gap-4 justify-center">
+            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50 flex flex-wrap gap-3 sm:gap-4 justify-center">
                 {allKitchenStatuses.map(status => (
                     <div key={status} className="flex items-center space-x-2">
                         <Switch
@@ -326,18 +326,18 @@ const OrderStatusPage = () => {
                             checked={activeStatuses[status]}
                             onCheckedChange={() => setActiveStatuses(prev => ({ ...prev, [status]: !prev[status] }))}
                         />
-                        <Label htmlFor={`switch-${status}`}>{status}</Label>
+                        <Label htmlFor={`switch-${status}`} className="text-sm">{status}</Label>
                     </div>
                 ))}
             </div>
 
             {/* Colunas de Pedidos por Status */}
             {Object.keys(groupedPedidos).length === 0 ? (
-                <p className="w-full text-center text-gray-600 text-lg">
+                <p className="w-full text-center text-gray-600 text-base sm:text-lg p-4">
                     {pedidos.length === 0 ? "Nenhum pedido ativo para a cozinha." : "Nenhum pedido para exibir com os filtros selecionados."}
                 </p>
             ) : (
-                <div className="flex overflow-x-auto gap-4 pb-4 items-start justify-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {/* Renderiza as colunas na ordem lógica de status */}
                     {['Pendente', 'Preparando', 'Pronto', 'Entregue', 'Cancelado'].map(status => {
                         if (!activeStatuses[status]) return null;
@@ -347,13 +347,12 @@ const OrderStatusPage = () => {
                         return (
                             <div 
                                 key={status} 
-                                className="flex-1 min-w-[300px] max-w-[calc(33.33%-1rem)] bg-gray-100 rounded-lg shadow-inner p-4 flex flex-col" 
-                                style={{flexBasis: `calc(33.33% - 1rem)`}} 
+                                className="bg-gray-100 rounded-lg shadow-inner p-3 sm:p-4 flex flex-col min-h-[60vh] sm:min-h-[70vh]" 
                             >
-                                <h2 className="text-xl font-semibold mb-4 text-gray-700 border-b pb-2 text-center">
+                                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2 text-center">
                                     {status} ({pedidosInColumn.length})
                                 </h2>
-                                <div className="space-y-4 flex-grow max-h-[calc(100vh-280px)] overflow-y-auto pr-2">
+                                <div className="space-y-3 sm:space-y-4 flex-grow overflow-y-auto pr-1 sm:pr-2">
                                     {pedidosInColumn.length === 0 ? (
                                         <p className="text-gray-500 text-sm text-center">Nenhum pedido neste status.</p>
                                     ) : (
@@ -365,62 +364,66 @@ const OrderStatusPage = () => {
                                                 <Card key={pedido.id} className="relative overflow-hidden bg-white shadow-md">
                                                     {isUpdatingThisPedido && (
                                                         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
-                                                            <Loader2 className="animate-spin text-primary h-8 w-8" />
+                                                            <Loader2 className="animate-spin text-primary h-6 w-6 sm:h-8 sm:w-8" />
                                                         </div>
                                                     )}
-                                                    <CardHeader className="pb-2">
-                                                        <CardTitle className="flex justify-between items-center text-lg">
-                                                            <span>#{pedido.numero_pedido}</span>
+                                                    <CardHeader className="pb-2 px-3 sm:px-4 py-3">
+                                                        <CardTitle className="flex justify-between items-center text-base sm:text-lg">
+                                                            <span className="truncate">#{pedido.numero_pedido}</span>
                                                             {getStatusBadgeGlobal(pedido.status)}
                                                         </CardTitle>
-                                                        <CardDescription className="text-sm">
+                                                        <CardDescription className="text-xs sm:text-sm">
                                                             {pedido.tipo_entrega === 'Mesa' ? `Mesa: ${pedido.numero_mesa || 'N/A'}` : `Tipo: ${pedido.tipo_entrega}`}
                                                         </CardDescription>
                                                     </CardHeader>
-                                                    <CardContent className="space-y-2 text-xs pt-2">
-                                                        <p><strong>Cliente:</strong> {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</p>
-                                                        <p><strong>Criado:</strong> {formatDateTime(pedido.data_pedido)}</p>
-                                                        <p><strong>Atualizado:</strong> {formatDateTime(pedido.data_atualizacao)}</p>
-                                                        <p className="font-semibold mt-2">Itens:</p>
-                                                        {(pedido.itens && pedido.itens.length > 0) ? (
-                                                            <ul className="list-disc list-inside ml-2 text-gray-700">
-                                                                {/* Garante que item.id existe para a key, usa fallback idx para segurança */}
-                                                                {pedido.itens.map((item, idx) => ( 
-                                                                    <li key={item.id || idx} className="text-xs">
-                                                                        <div>
-                                                                            {item.quantidade}x {item.nome_produto}
-                                                                            {/* CORRIGIDO: Exibição de observações do item (garantido string vazia se null) */}
-                                                                            {item.observacoes && item.observacoes.trim() !== '' ? <span className="italic text-gray-500"> ({item.observacoes})</span> : ''}
-                                                                        </div>
-                                                                        {/* Exibir adicionais do item */}
-                                                                        {item.adicionais && item.adicionais.length > 0 && (
-                                                                            <div className="ml-4 mt-1">
-                                                                                {item.adicionais.map((adicional, adicIdx) => (
-                                                                                    <div key={adicIdx} className="text-xs text-blue-600">
-                                                                                        + {adicional.quantidade}x {adicional.nome}
-                                                                                    </div>
-                                                                                ))}
+                                                    <CardContent className="space-y-2 text-xs sm:text-sm pt-2 px-3 sm:px-4">
+                                                        <div className="space-y-1">
+                                                            <div><strong>Cliente:</strong> {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</div>
+                                                            <div><strong>Criado:</strong> {formatDateTime(pedido.data_pedido)}</div>
+                                                            <div><strong>Atualizado:</strong> {formatDateTime(pedido.data_atualizacao)}</div>
+                                                        </div>
+                                                        <div className="mt-2">
+                                                            <p className="font-semibold">Itens:</p>
+                                                            {(pedido.itens && pedido.itens.length > 0) ? (
+                                                                <ul className="list-disc list-inside ml-2 text-gray-700 space-y-1">
+                                                                    {/* Garante que item.id existe para a key, usa fallback idx para segurança */}
+                                                                    {pedido.itens.map((item, idx) => ( 
+                                                                        <li key={item.id || idx} className="text-xs">
+                                                                            <div>
+                                                                                {item.quantidade}x {item.nome_produto}
+                                                                                {/* CORRIGIDO: Exibição de observações do item (garantido string vazia se null) */}
+                                                                                {item.observacoes && item.observacoes.trim() !== '' ? <span className="italic text-gray-500"> ({item.observacoes})</span> : ''}
                                                                             </div>
-                                                                        )}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        ) : (
-                                                            <p className="text-gray-500 text-xs">Nenhum item listado.</p>
-                                                        )}
-                                                        <p className="mt-2 text-gray-700">
+                                                                            {/* Exibir adicionais do item */}
+                                                                            {item.adicionais && item.adicionais.length > 0 && (
+                                                                                <div className="ml-4 mt-1">
+                                                                                    {item.adicionais.map((adicional, adicIdx) => (
+                                                                                        <div key={adicIdx} className="text-xs text-blue-600">
+                                                                                            + {adicional.quantidade}x {adicional.nome}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            ) : (
+                                                                <p className="text-gray-500 text-xs">Nenhum item listado.</p>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-2 text-gray-700">
                                                             {/* CORRIGIDO: Exibição de observações do pedido (garantido string vazia se null) */}
                                                             <strong>Obs. Pedido:</strong> {pedido.observacoes && pedido.observacoes.trim() !== '' ? pedido.observacoes : 'Nenhuma observação'}
-                                                        </p>
+                                                        </div>
                                                     </CardContent>
-                                                    <CardFooter className="pt-4 flex justify-center">
+                                                    <CardFooter className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 flex justify-center">
                                                         <Select
                                                             value={pedido.status}
                                                             onValueChange={(newStatus) => handleChangeStatus(pedido.id, newStatus)}
                                                             disabled={isUpdatingThisPedido}
                                                         >
                                                             <SelectTrigger
-                                                                className={`w-full border-blue-500 focus:border-blue-600 focus:ring-blue-500 flex items-center ${statusColorMap[pedido.status]}`}
+                                                                className={`w-full border-blue-500 focus:border-blue-600 focus:ring-blue-500 flex items-center text-xs sm:text-sm h-8 sm:h-9 ${statusColorMap[pedido.status]}`}
                                                             >
                                                                 <SelectValue placeholder="Mudar Status" />
                                                                
@@ -430,7 +433,7 @@ const OrderStatusPage = () => {
                                                                     <SelectItem
                                                                         key={status}
                                                                         value={status}
-                                                                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:text-white focus:bg-blue-100 focus:text-blue-900"
+                                                                        className="data-[state=checked]:bg-blue-500 data-[state=checked]:text-white focus:bg-blue-100 focus:text-blue-900 text-xs sm:text-sm"
                                                                     >
                                                                         {status} {status === pedido.status ? ' (Atual)' : ''}
                                                                     </SelectItem>

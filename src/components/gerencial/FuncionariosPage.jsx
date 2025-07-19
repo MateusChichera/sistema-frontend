@@ -195,17 +195,17 @@ const FuncionariosPage = () => {
   }
   
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Funcionários - {empresa.nome_fantasia}</h2>
+    <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Funcionários - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Funcionário */}
-      <form onSubmit={editandoFuncionario ? handleSaveEdit : handleAddFuncionario} className="mb-8 p-4 border rounded-lg bg-gray-50">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700">
+      <form onSubmit={editandoFuncionario ? handleSaveEdit : handleAddFuncionario} className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50">
+        <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">
           {editandoFuncionario ? `Editar Funcionário: ${editandoFuncionario.nome}` : 'Adicionar Novo Funcionário'}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-end">
           <div>
-            <Label htmlFor="nome">Nome</Label>
+            <Label htmlFor="nome" className="text-sm">Nome</Label>
             <Input
               id="nome"
               type="text"
@@ -213,40 +213,42 @@ const FuncionariosPage = () => {
               value={editandoFuncionario ? editNome : novoNome}
               onChange={(e) => editandoFuncionario ? setEditNome(e.target.value) : setNovoNome(e.target.value)}
               required
+              className="h-9 sm:h-10 text-sm"
             />
           </div>
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm">Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="email@empresa.com"
               value={editandoFuncionario ? editEmail : novoEmail}
               onChange={(e) => editandoFuncionario ? setEditEmail(e.target.value) : setNovoEmail(e.target.value)}
-              disabled={!!editandoFuncionario} // Desabilita edição de email
+              disabled={!!editandoFuncionario}
               required
+              className="h-9 sm:h-10 text-sm"
             />
           </div>
           <div>
-            <Label htmlFor="senha">{editandoFuncionario ? 'Nova Senha (opcional)' : 'Senha'}</Label>
+            <Label htmlFor="senha" className="text-sm">{editandoFuncionario ? 'Nova Senha (opcional)' : 'Senha'}</Label>
             <Input
               id="senha"
               type="password"
               placeholder={editandoFuncionario ? 'Deixe em branco para manter a atual' : 'Defina uma senha'}
               value={editandoFuncionario ? editSenha : novaSenha}
               onChange={(e) => editandoFuncionario ? setEditSenha(e.target.value) : setNovaSenha(e.target.value)}
-              required={!editandoFuncionario} // Senha é obrigatória apenas para novo cadastro
+              required={!editandoFuncionario}
+              className="h-9 sm:h-10 text-sm"
             />
           </div>
           <div>
-            <Label htmlFor="role">Cargo (Role)</Label>
+            <Label htmlFor="role" className="text-sm">Cargo (Role)</Label>
             <Select 
               value={editandoFuncionario ? editRole : novaRole} 
               onValueChange={(value) => editandoFuncionario ? setEditRole(value) : setNovaRole(value)}
-              // Proprietario não pode mudar a própria role
               disabled={user?.role !== 'Proprietario' || (editandoFuncionario && editandoFuncionario.id === user?.id)} 
             >
-              <SelectTrigger id="role">
+              <SelectTrigger id="role" className="h-9 sm:h-10 text-sm">
                 <SelectValue placeholder="Selecione um cargo" />
               </SelectTrigger>
               <SelectContent>
@@ -256,22 +258,22 @@ const FuncionariosPage = () => {
               </SelectContent>
             </Select>
           </div>
-          {editandoFuncionario && ( // O switch de ativo só aparece na edição
+          {editandoFuncionario && (
             <div className="flex items-center space-x-2">
               <Switch
                 id="ativo"
                 checked={editAtivo}
                 onCheckedChange={setEditAtivo}
               />
-              <Label htmlFor="ativo">Ativo</Label>
+              <Label htmlFor="ativo" className="text-sm">Ativo</Label>
             </div>
           )}
-          <div className="flex gap-2 col-span-1 md:col-span-2 lg:col-span-1">
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+          <div className="flex flex-col sm:flex-row gap-2 col-span-1 md:col-span-2 lg:col-span-1">
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
               {editandoFuncionario ? 'Salvar Edição' : 'Adicionar Funcionário'}
             </Button>
             {editandoFuncionario && (
-              <Button type="button" onClick={handleCancelEdit} variant="outline">
+              <Button type="button" onClick={handleCancelEdit} variant="outline" className="text-xs sm:text-sm h-8 sm:h-9">
                 Cancelar
               </Button>
             )}
@@ -280,59 +282,106 @@ const FuncionariosPage = () => {
       </form>
 
       {/* Lista de Funcionários */}
-      <h3 className="text-xl font-semibold mb-4 text-gray-700">Funcionários Existentes</h3>
+      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Funcionários Existentes</h3>
       {funcionarios.length === 0 ? (
-        <p className="text-gray-600">Nenhum funcionário cadastrado ainda.</p>
+        <p className="text-gray-600 text-sm sm:text-base">Nenhum funcionário cadastrado ainda.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">ID</th>
-                <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Nome</th>
-                <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
-                <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Cargo</th>
-                <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</th>
-                <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {funcionarios.map((func) => (
-                <tr key={func.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b text-sm text-gray-800">{func.id}</td>
-                  <td className="py-2 px-4 border-b text-sm text-gray-800">{func.nome}</td>
-                  <td className="py-2 px-4 border-b text-sm text-gray-800">{func.email}</td>
-                  <td className="py-2 px-4 border-b text-sm text-gray-800">{func.role}</td>
-                  <td className="py-2 px-4 border-b text-sm text-gray-800">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      func.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {func.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="py-2 px-4 border-b text-sm">
-                    <Button 
-                      onClick={() => handleEditClick(func)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="mr-2"
-                      disabled={user?.role !== 'Proprietario' || (func.role === 'Proprietario' && func.id !== user?.id)} 
-                    >
-                      Editar
-                    </Button>
-                    <Button 
-                      onClick={() => handleDeleteFuncionario(func.id)} 
-                      variant="destructive" 
-                      size="sm"
-                      disabled={user?.role !== 'Proprietario' || func.id === user?.id || func.role === 'Proprietario'} 
-                    >
-                      Excluir
-                    </Button>
-                  </td>
+        <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+          {/* Versão mobile/tablet - Cards */}
+          <div className="sm:hidden space-y-2">
+            {funcionarios.map((func) => (
+              <div key={func.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-gray-800">{func.nome}</h4>
+                    <p className="text-xs text-gray-500">ID: {func.id}</p>
+                    <p className="text-xs text-gray-600">{func.email}</p>
+                    <p className="text-sm font-semibold text-blue-600 mt-1">{func.role}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    func.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {func.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleEditClick(func)} 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 text-xs h-8"
+                    disabled={user?.role !== 'Proprietario' || (func.role === 'Proprietario' && func.id !== user?.id)} 
+                  >
+                    Editar
+                  </Button>
+                  <Button 
+                    onClick={() => handleDeleteFuncionario(func.id)} 
+                    variant="destructive" 
+                    size="sm"
+                    className="flex-1 text-xs h-8"
+                    disabled={user?.role !== 'Proprietario' || func.id === user?.id || func.role === 'Proprietario'} 
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Versão desktop - Tabela */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">ID</th>
+                  <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Nome</th>
+                  <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
+                  <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Cargo</th>
+                  <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</th>
+                  <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {funcionarios.map((func) => (
+                  <tr key={func.id} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b text-sm text-gray-800">{func.id}</td>
+                    <td className="py-2 px-4 border-b text-sm text-gray-800">{func.nome}</td>
+                    <td className="py-2 px-4 border-b text-sm text-gray-800">{func.email}</td>
+                    <td className="py-2 px-4 border-b text-sm text-gray-800">{func.role}</td>
+                    <td className="py-2 px-4 border-b text-sm text-gray-800">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        func.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {func.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 border-b text-sm">
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => handleEditClick(func)} 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs h-8 px-2"
+                          disabled={user?.role !== 'Proprietario' || (func.role === 'Proprietario' && func.id !== user?.id)} 
+                        >
+                          Editar
+                        </Button>
+                        <Button 
+                          onClick={() => handleDeleteFuncionario(func.id)} 
+                          variant="destructive" 
+                          size="sm"
+                          className="text-xs h-8 px-2"
+                          disabled={user?.role !== 'Proprietario' || func.id === user?.id || func.role === 'Proprietario'} 
+                        >
+                          Excluir
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

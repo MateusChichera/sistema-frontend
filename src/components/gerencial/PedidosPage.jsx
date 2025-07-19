@@ -507,15 +507,17 @@ const PedidosPage = () => {
     }
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Pedidos - {empresa.nome_fantasia}</h2>
+        <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Pedidos - {empresa.nome_fantasia}</h2>
 
             {/* Filtros */}
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
-                    <Label htmlFor="filterStatus">Status</Label>
+                    <Label htmlFor="filterStatus" className="text-sm">Status</Label>
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger id="filterStatus"><SelectValue placeholder="Todos os Status" /></SelectTrigger>
+                        <SelectTrigger id="filterStatus" className="h-9 sm:h-10">
+                            <SelectValue placeholder="Todos os Status" />
+                        </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Todos</SelectItem>
                             {statusOptions.map(status => (
@@ -525,9 +527,11 @@ const PedidosPage = () => {
                     </Select>
                 </div>
                 <div>
-                    <Label htmlFor="filterTipoEntrega">Tipo de Entrega</Label>
+                    <Label htmlFor="filterTipoEntrega" className="text-sm">Tipo de Entrega</Label>
                     <Select value={filterTipoEntrega} onValueChange={setFilterTipoEntrega}>
-                        <SelectTrigger id="filterTipoEntrega"><SelectValue placeholder="Todos os Tipos" /></SelectTrigger>
+                        <SelectTrigger id="filterTipoEntrega" className="h-9 sm:h-10">
+                            <SelectValue placeholder="Todos os Tipos" />
+                        </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Todos</SelectItem>
                             {tipoEntregaOptions.map(tipo => (
@@ -537,13 +541,13 @@ const PedidosPage = () => {
                     </Select>
                 </div>
                 <div>
-                    <Label htmlFor="filterDateRange">Período</Label>
+                    <Label htmlFor="filterDateRange" className="text-sm">Período</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
                                 id="filterDateRange"
                                 variant={"outline"}
-                                className={"w-full justify-start text-left font-normal"}
+                                className={"w-full h-9 sm:h-10 justify-start text-left font-normal text-sm"}
                             >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {filterDateRange.from ? (
@@ -573,18 +577,18 @@ const PedidosPage = () => {
                         </PopoverContent>
                     </Popover>
                 </div>
-                <div className="md:col-span-2">
-                    <Label htmlFor="searchTerm">Buscar por Pedido/Cliente</Label>
+                <div className="sm:col-span-2 lg:col-span-1">
+                    <Label htmlFor="searchTerm" className="text-sm">Buscar por Pedido/Cliente</Label>
                     <Input
                         id="searchTerm"
                         placeholder="Número do pedido, nome do cliente..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full"
+                        className="w-full h-9 sm:h-10 text-sm"
                     />
                 </div>
-                <div className="md:col-span-1 flex items-end">
-                    <Button onClick={fetchPedidosData} className="w-full">
+                <div className="sm:col-span-2 lg:col-span-1 flex items-end">
+                    <Button onClick={fetchPedidosData} className="w-full h-9 sm:h-10 text-sm">
                         <SearchIcon className="mr-2 h-4 w-4" /> Buscar
                     </Button>
                 </div>
@@ -592,63 +596,60 @@ const PedidosPage = () => {
 
             {/* Colunas de Pedidos por Status */}
             {Object.keys(groupedPedidos).length === 0 && !loadingPedidos ? (
-                 <p className="w-full text-center text-gray-600 text-lg">
+                 <p className="w-full text-center text-gray-600 text-base sm:text-lg p-4">
                     {pedidos.length === 0 ? "Nenhum pedido ativo para exibir." : "Nenhum pedido para exibir com os filtros selecionados."}
                  </p>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                     {Object.keys(groupedPedidos).sort((a,b) => statusOptions.indexOf(a) - statusOptions.indexOf(b)).map(statusKey => (
-                        <div key={statusKey} className="bg-gray-100 p-4 rounded-lg shadow-sm max-h-[80vh] overflow-y-auto">
-                            <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">
+                        <div key={statusKey} className="bg-gray-100 p-3 sm:p-4 rounded-lg shadow-sm max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
+                            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800 border-b pb-2">
                                 {statusKey} ({groupedPedidos[statusKey].length})
                             </h3>
                             {groupedPedidos[statusKey].length === 0 ? (
                                 <p className="text-gray-600 text-sm">Nenhum pedido neste status.</p>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                     {groupedPedidos[statusKey].map(pedido => (
                                         <Card key={pedido.id} className="bg-white border rounded-lg shadow-md">
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-lg flex justify-between items-center">
-                                                    Pedido #{pedido.numero_pedido}
+                                            <CardHeader className="pb-2 px-3 sm:px-4 py-3">
+                                                <CardTitle className="text-base sm:text-lg flex justify-between items-center">
+                                                    <span className="truncate">Pedido #{pedido.numero_pedido}</span>
                                                     {getStatusBadge(pedido.status)}
                                                 </CardTitle>
-                                                <CardDescription className="text-sm">
-                                                    Cliente: **{pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}**
-                                                    <br />
-                                                    Tipo: **{pedido.tipo_entrega}** {pedido.numero_mesa ? `(Mesa ${pedido.numero_mesa})` : ''}
-                                                    <br />
-                                                    Valor: R$ {parseFloat(pedido.valor_total).toFixed(2).replace('.', ',')}
-                                                    <br />
-                                                    Forma de Pagamento: {pedido.formapagamento || 'N/A'}
-                                                    <br />
-                                                    {pedido.troco > 0 && (
-                                                        <>
-                                                            Troco: R$ {parseFloat(pedido.troco || 0).toFixed(2).replace('.', ',')}
-                                                            <br />
-                                                        </>
+                                                <CardDescription className="text-xs sm:text-sm">
+                                                    <div className="space-y-1">
+                                                        <div><strong>Cliente:</strong> {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</div>
+                                                        <div><strong>Tipo:</strong> {pedido.tipo_entrega} {pedido.numero_mesa ? `(Mesa ${pedido.numero_mesa})` : ''}</div>
+                                                        <div><strong>Valor:</strong> R$ {parseFloat(pedido.valor_total).toFixed(2).replace('.', ',')}</div>
+                                                        <div><strong>Pagamento:</strong> {pedido.formapagamento || 'N/A'}</div>
+                                                        {pedido.troco > 0 && (
+                                                            <div><strong>Troco:</strong> R$ {parseFloat(pedido.troco || 0).toFixed(2).replace('.', ',')}</div>
                                                         )}
-
+                                                    </div>
                                                 </CardDescription>
                                             </CardHeader>
-                                            <CardContent className="text-sm pt-2">
+                                            <CardContent className="text-xs sm:text-sm pt-2 px-3 sm:px-4">
                                                 {pedido.tipo_entrega === 'Delivery' && pedido.endereco_entrega && (
-                                                    <p className="font-semibold text-gray-700">Endereço: {pedido.endereco_entrega}</p>
+                                                    <p className="font-semibold text-gray-700 text-xs sm:text-sm mb-1">Endereço: {pedido.endereco_entrega}</p>
                                                 )}
                                                 {pedido.observacoes && (
                                                     <p className="text-xs text-gray-600 mt-1">Obs: {pedido.observacoes}</p>
                                                 )}
                                                 <p className="text-xs text-gray-500 mt-2">Criado em: {formatDateTime(pedido.data_pedido)}</p>
                                             </CardContent>
-                                            <CardFooter className="pt-2 flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleViewDetails(pedido)}>Detalhes</Button>
+                                            <CardFooter className="pt-2 px-3 sm:px-4 pb-3 flex flex-wrap gap-1 sm:gap-2 justify-end">
+                                                <Button variant="outline" size="sm" onClick={() => handleViewDetails(pedido)} className="text-xs h-8 px-2">
+                                                    Detalhes
+                                                </Button>
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handlePrint(pedido)}
                                                     title="Imprimir Cupom"
+                                                    className="text-xs h-8 px-2"
                                                 >
-                                                    <PrinterIcon className="h-4 w-4" />
+                                                    <PrinterIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                                                 </Button>
 
                                                 {/* Lógica de mudança de status (mantida via Select) */}
@@ -660,7 +661,7 @@ const PedidosPage = () => {
                                                             onValueChange={(newStatus) => handleChangeStatus(pedido.id, newStatus)}
                                                             disabled={updatingStatusPedidoId === pedido.id}
                                                         >
-                                                            <SelectTrigger className="w-[120px] h-8">
+                                                            <SelectTrigger className="w-[100px] sm:w-[120px] h-8 text-xs">
                                                                 <SelectValue placeholder="Mudar Status" />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -687,72 +688,76 @@ const PedidosPage = () => {
             {/* Modal de Detalhes do Pedido */}
             {selectedPedido && (
                 <Dialog open={!!selectedPedido} onOpenChange={() => setSelectedPedido(null)}>
-                    <DialogContent className="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[700px] max-h-[90vh] overflow-y-auto w-[95vw] sm:w-auto">
                         <DialogHeader>
-                            <DialogTitle>Detalhes do Pedido #{selectedPedido.numero_pedido}</DialogTitle>
+                            <DialogTitle className="text-lg sm:text-xl">Detalhes do Pedido #{selectedPedido.numero_pedido}</DialogTitle>
                         </DialogHeader>
-                        <div className="py-4">
-                            <p><strong>Cliente:</strong> {selectedPedido.nome_cliente || selectedPedido.nome_cliente_convidado || 'Convidado'}</p>
-                            {selectedPedido.telefone_cliente && <p><strong>Telefone:</strong> {selectedPedido.telefone_cliente}</p>}
-                            <p><strong>Tipo de Entrega:</strong> {selectedPedido.tipo_entrega}{selectedPedido.numero_mesa ? ` (Mesa ${selectedPedido.numero_mesa})` : ''}</p>
-                            <p><strong>Status:</strong> {selectedPedido.status}</p>
-                            <p><strong>Valor Total:</strong> R$ {parseFloat(selectedPedido.valor_total).toFixed(2).replace('.', ',')}</p>
-                            <p><strong>Forma de Pagamento:</strong> {selectedPedido.formapagamento || 'N/A'}</p>
-                            {selectedPedido.troco > 0 && (
-                                <p><strong>Troco:</strong> R$ {parseFloat(selectedPedido.troco).toFixed(2).replace('.', ',')}</p>
-                            )}
-                            
+                        <div className="py-4 space-y-2 sm:space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                <div><strong>Cliente:</strong> {selectedPedido.nome_cliente || selectedPedido.nome_cliente_convidado || 'Convidado'}</div>
+                                {selectedPedido.telefone_cliente && <div><strong>Telefone:</strong> {selectedPedido.telefone_cliente}</div>}
+                                <div><strong>Tipo de Entrega:</strong> {selectedPedido.tipo_entrega}{selectedPedido.numero_mesa ? ` (Mesa ${selectedPedido.numero_mesa})` : ''}</div>
+                                <div><strong>Status:</strong> {selectedPedido.status}</div>
+                                <div><strong>Valor Total:</strong> R$ {parseFloat(selectedPedido.valor_total).toFixed(2).replace('.', ',')}</div>
+                                <div><strong>Forma de Pagamento:</strong> {selectedPedido.formapagamento || 'N/A'}</div>
+                                {selectedPedido.troco > 0 && (
+                                    <div><strong>Troco:</strong> R$ {parseFloat(selectedPedido.troco).toFixed(2).replace('.', ',')}</div>
+                                )}
+                            </div>
+
                             <p><strong>Criado em:</strong> {formatDateTime(selectedPedido.data_pedido)}</p>
 
                             {selectedPedido.tipo_entrega === 'Delivery' && (
                                 <div className="mt-4 p-3 bg-gray-50 border rounded-md">
-                                    <h4 className="font-semibold mb-2">Endereço de Entrega:</h4>
-                                    <p>{selectedPedido.endereco_entrega}</p>
-                                    {selectedPedido.complemento_entrega && <p>Complemento: {selectedPedido.complemento_entrega}</p>}
-                                    {selectedPedido.numero_entrega && <p>Número: {selectedPedido.numero_entrega}</p>}
-                                    {selectedPedido.bairro_entrega && <p>Bairro: {selectedPedido.bairro_entrega}</p>}
-                                    {selectedPedido.cidade_entrega && <p>Cidade: {selectedPedido.cidade_entrega}</p>}
-                                    {selectedPedido.estado_entrega && <p>Estado: {selectedPedido.estado_entrega}</p>}
-                                    {selectedPedido.cep_entrega && <p>CEP: {selectedPedido.cep_entrega}</p>}
+                                    <h4 className="font-semibold mb-2 text-sm sm:text-base">Endereço de Entrega:</h4>
+                                    <div className="space-y-1 text-xs sm:text-sm">
+                                        <p>{selectedPedido.endereco_entrega}</p>
+                                        {selectedPedido.complemento_entrega && <p>Complemento: {selectedPedido.complemento_entrega}</p>}
+                                        {selectedPedido.numero_entrega && <p>Número: {selectedPedido.numero_entrega}</p>}
+                                        {selectedPedido.bairro_entrega && <p>Bairro: {selectedPedido.bairro_entrega}</p>}
+                                        {selectedPedido.cidade_entrega && <p>Cidade: {selectedPedido.cidade_entrega}</p>}
+                                        {selectedPedido.estado_entrega && <p>Estado: {selectedPedido.estado_entrega}</p>}
+                                        {selectedPedido.cep_entrega && <p>CEP: {selectedPedido.cep_entrega}</p>}
+                                    </div>
                                 </div>
                             )}
 
                             {selectedPedido.observacoes && selectedPedido.observacoes.trim() !== '' && (
                                 <div className="mt-4 p-3 bg-gray-50 border rounded-md">
-                                    <h4 className="font-semibold mb-2">Observações do Pedido:</h4>
-                                    <p>{selectedPedido.observacoes}</p>
+                                    <h4 className="font-semibold mb-2 text-sm sm:text-base">Observações do Pedido:</h4>
+                                    <p className="text-xs sm:text-sm">{selectedPedido.observacoes}</p>
                                 </div>
                             )}
 
                             <div className="mt-4">
-                                <h4 className="font-semibold mb-2">Itens do Pedido:</h4>
+                                <h4 className="font-semibold mb-2 text-sm sm:text-base">Itens do Pedido:</h4>
                                 <ul className="list-disc pl-5 space-y-1">
                                     {selectedPedido.itens && selectedPedido.itens.length > 0 ? selectedPedido.itens.map(item => (
-                                        <li key={item.id}>
+                                        <li key={item.id} className="text-xs sm:text-sm">
                                             <div>
                                                 {item.quantidade}x {item.nome_produto} (R$ {parseFloat(item.preco_unitario).toFixed(2).replace('.', ',')}) - Total: R$ {(parseFloat(item.quantidade) * parseFloat(item.preco_unitario)).toFixed(2).replace('.', ',')}
-                                                {item.observacoes && item.observacoes.trim() !== '' && <span className="text-sm italic text-gray-600"> (Obs: {item.observacoes})</span>}
+                                                {item.observacoes && item.observacoes.trim() !== '' && <span className="text-xs italic text-gray-600"> (Obs: {item.observacoes})</span>}
                                             </div>
                                             {/* Exibir adicionais do item */}
                                             {item.adicionais && item.adicionais.length > 0 && (
                                                 <div className="ml-4 mt-1">
                                                     {item.adicionais.map((adicional, adicIdx) => (
-                                                        <div key={adicIdx} className="text-sm text-blue-600">
+                                                        <div key={adicIdx} className="text-xs text-blue-600">
                                                             + {adicional.quantidade}x {adicional.nome} (R$ {parseFloat(adicional.preco_unitario_adicional).toFixed(2).replace('.', ',')})
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
                                         </li>
-                                    )) : <p>Nenhum item listado para este pedido.</p>}
+                                    )) : <p className="text-xs sm:text-sm">Nenhum item listado para este pedido.</p>}
                                 </ul>
                             </div>
                         </div>
-                        <div className="flex justify-end gap-2">
-                             <Button variant="outline" onClick={() => handlePrint(selectedPedido)} title="Imprimir Cupom">
-                                <PrinterIcon className="mr-2 h-4 w-4" /> Imprimir Cupom
+                        <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+                             <Button variant="outline" onClick={() => handlePrint(selectedPedido)} title="Imprimir Cupom" className="text-xs sm:text-sm h-9 sm:h-10">
+                                <PrinterIcon className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Imprimir Cupom
                             </Button>
-                            <Button onClick={() => setSelectedPedido(null)}>Fechar</Button>
+                            <Button onClick={() => setSelectedPedido(null)} className="text-xs sm:text-sm h-9 sm:h-10">Fechar</Button>
                         </div>
                     </DialogContent>
                 </Dialog>
