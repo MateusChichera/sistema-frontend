@@ -16,6 +16,7 @@ import FinalizarPedido from './FinalizarPedido';
 import LoginRegisterModal from './LoginRegisterModal';
 import PedidoTypeSelectionModal from './PedidoTypeSelectionModal';
 import { useAuth } from '../../contexts/AuthContext';
+import LayoutCardapio from '../layout/LayoutCardapio';
 //corrigido merge
 
 const removeAccents = (str) => {
@@ -132,8 +133,109 @@ const PublicCardapioPage = ({ user: userProp }) => {
   const [lojaFechadaParaPedidosOnline, setLojaFechadaParaPedidosOnline] = useState(false);
 
   const canMakeOnlineOrder = empresa?.permitir_pedido_online === 1;
-  const restaurantStatus = isRestaurantOpen(empresa?.horario_funcionamento);
+  // Obter status de aberto/fechado igual ao layout
+  const getRestaurantStatus = () => {
+    if (!empresa?.horario_funcionamento) return { open: false, message: 'Horário não configurado' };
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+    const [dayPartsStr, timePartsStr] = empresa.horario_funcionamento.split(':', 2).map(s => s.trim());
+    const [openTimeStr, closeTimeStr] = timePartsStr.split('-', 2).map(s => s.trim());
+    const parseTime = (timeStr) => {
+      const [h, m] = timeStr.replace('h', ':').split(':').map(Number);
+      return h * 60 + (m || 0);
+    };
+    const daysMap = {
+      'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sab': 6, 'Dom': 0,
+      'seg': 1, 'ter': 2, 'qua': 3, 'qui': 4, 'sex': 5, 'sab': 6, 'dom': 0
+    };
+    let isTodayIncluded = false;
+    if (dayPartsStr.includes('-')) {
+      const [startDayName, endDayName] = dayPartsStr.split('-').map(s => s.trim());
+      const startDayIndex = daysMap[startDayName];
+      const endDayIndex = daysMap[endDayName];
+      if (startDayIndex !== undefined && endDayIndex !== undefined) {
+        if (startDayIndex <= endDayIndex) {
+          for (let i = startDayIndex; i <= endDayIndex; i++) {
+            if (i === dayOfWeek) isTodayIncluded = true;
+          }
+        } else {
+          for (let i = startDayIndex; i <= 6; i++) {
+            if (i === dayOfWeek) isTodayIncluded = true;
+          }
+          for (let i = 0; i <= endDayIndex; i++) {
+            if (i === dayOfWeek) isTodayIncluded = true;
+          }
+        }
+      }
+    } else if (dayPartsStr.includes(',')) {
+      const daysArr = dayPartsStr.split(',').map(s => s.trim());
+      isTodayIncluded = daysArr.some(d => {
+        const dayIdx = daysMap[d];
+        return dayIdx === dayOfWeek;
+      });
+    } else {
+      const singleDayIndex = daysMap[dayPartsStr];
+      if (singleDayIndex !== undefined) {
+        if (singleDayIndex === dayOfWeek) isTodayIncluded = true;
+      }
+    }
+    if (!isTodayIncluded) {
+      return { open: false, message: 'Fechado hoje' };
+    }
+    const openTimeMinutes = parseTime(openTimeStr);
+    const closeTimeMinutes = parseTime(closeTimeStr);
+    let currentlyOpen = false;
+    if (closeTimeMinutes < openTimeMinutes) {
+      currentlyOpen = currentTimeMinutes >= openTimeMinutes || currentTimeMinutes <= closeTimeMinutes;
+    } else {
+      currentlyOpen = currentTimeMinutes >= openTimeMinutes && currentTimeMinutes <= closeTimeMinutes;
+    }
+    if (currentlyOpen) {
+      return { open: true, message: 'Aberto Agora' };
+    } else {
+      return { open: false, message: 'Fechado Agora' };
+    }
+  };
+
+  const restaurantStatus = getRestaurantStatus();
   const isCurrentlyOpenForOrders = canMakeOnlineOrder && restaurantStatus.open;
+
+  // Lógica de horário limite de pedidos delivery
+  const isAfterDeliveryCutoff = empresa?.tempo_corte_pedido_online ? (() => {
+    const [h, m] = empresa.tempo_corte_pedido_online.split(':').map(Number);
+    const now = new Date();
+    const minAtual = now.getHours() * 60 + now.getMinutes();
+    const minCorte = (h || 0) * 60 + (m || 0);
+    return minAtual > minCorte;
+  })() : false;
+
+  // Status de tipos de pedido
+  const deliveryDisponivel = isCurrentlyOpenForOrders && !isAfterDeliveryCutoff && !empresa.desativar_entrega;
+  const retiradaDisponivel = isCurrentlyOpenForOrders && !empresa.desativar_retirada;
+
+  // Mensagem de aviso
+  let avisoTopo = null;
+  if (!restaurantStatus.open) {
+    avisoTopo = (
+      <div className="bg-red-50 border border-red-300 text-red-700 p-3 sm:p-4 rounded mb-4 text-center text-base sm:text-lg font-semibold shadow animate-fade-in">
+        {restaurantStatus.message} - Os pedidos online estão desabilitados no momento. Apenas visualização do cardápio disponível.
+      </div>
+    );
+  } else if (isAfterDeliveryCutoff && retiradaDisponivel) {
+    avisoTopo = (
+      <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-3 sm:p-4 rounded mb-4 text-center text-base sm:text-lg font-semibold shadow animate-fade-in">
+        Pedidos para delivery encerrados hoje. Apenas retirada disponível.<br />
+        Horário limite para pedidos: {empresa.tempo_corte_pedido_online}
+      </div>
+    );
+  } else if (!deliveryDisponivel && !retiradaDisponivel) {
+    avisoTopo = (
+      <div className="bg-red-50 border border-red-300 text-red-700 p-3 sm:p-4 rounded mb-4 text-center text-base sm:text-lg font-semibold shadow animate-fade-in">
+        Nenhum tipo de pedido disponível no momento. Apenas visualização do cardápio.
+      </div>
+    );
+  }
 
   useEffect(() => {
     const fetchCardapioData = async () => {
@@ -200,21 +302,16 @@ const PublicCardapioPage = ({ user: userProp }) => {
         let finalProdutos = [...produtosComAdicionais];
         
         const promoProducts = finalProdutos.filter(p => p.promo_ativa); 
+        // Corrigido: não filtrar produtos, só adicionar categoria promoções no topo
         if (promoProducts.length > 0 && empresa.mostrar_promocoes_na_home) {
-          const promoCategory = { id: 'promo', descricao: '🔥 Promoções', ativo: true };
+          const promoCategory = { id: 'promo', descricao: 'Promoções', ativo: true };
           finalCategorias = [promoCategory, ...fetchedCategorias];
         }
 
         setCategorias(finalCategorias);
         setProdutos(finalProdutos);
-        
-        if (empresa.mostrar_promocoes_na_home) {
-          setFilteredProdutos(finalProdutos.filter(p => p.promo_ativa));
-          setSelectedCategoryId('promo');
-        } else {
-          setFilteredProdutos(finalProdutos);
-          setSelectedCategoryId('all');
-        }
+        setFilteredProdutos(finalProdutos); // Sempre mostrar todos os produtos
+        setSelectedCategoryId('all');
         toast.success("Cardápio carregado!");
       } catch (err) {
         setError(err.response?.data?.message || 'Erro ao carregar o cardápio.');
@@ -399,6 +496,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
     return itens.filter(item => item.id_produto === productId && (item.observacoes === undefined || item.observacoes === '')).reduce((sum, item) => sum + item.quantidade, 0);
   }, [itens]); 
 
+  // Ajustar seleção de tipo de pedido e botões:
   const handleOpenFinalizarPedidoModal = () => {
     if (lojaFechadaParaPedidosOnline) {
       toast.error('Pedidos online encerrados. Apenas visualização do cardápio está disponível.');
@@ -408,8 +506,8 @@ const PublicCardapioPage = ({ user: userProp }) => {
       toast.error('O carrinho está vazio para finalizar o pedido!');
       return;
     }
-    if (!isCurrentlyOpenForOrders) { 
-      toast.error("A empresa não está aceitando pedidos online no momento.");
+    if (!deliveryDisponivel && !retiradaDisponivel) {
+      toast.error('A empresa não está aceitando pedidos online no momento.');
       return;
     }
     setIsPedidoTypeSelectionModalOpen(true);
@@ -439,6 +537,57 @@ const PublicCardapioPage = ({ user: userProp }) => {
     toast.info('Adicione mais itens ao seu pedido!');
   };
 
+  // Componente de ações do usuário para o topo
+  const userActions = (
+    <>
+      {user && user.role === 'cliente' ? (
+        <>
+          <span className="font-semibold text-sm sm:text-base mr-2">Olá, {user.nome.split(' ')[0]}</span>
+          <Button variant="outline" onClick={() => toast.info('Em breve!')} className="text-xs sm:text-sm h-8 sm:h-9">Meus pedidos</Button>
+          <Button variant="ghost" onClick={logout} className="text-xs sm:text-sm h-8 sm:h-9">Sair</Button>
+        </>
+      ) : (
+        <Button variant="outline" onClick={() => setIsLoginRegisterModalOpen(true)} className="text-xs sm:text-sm h-8 sm:h-9">Entrar ou Cadastrar</Button>
+      )}
+    </>
+  );
+
+  // Agrupamento de produtos por categoria, respeitando promoções e configs
+  let categoriasParaExibir = categorias.filter(c => c.ativo !== false);
+  let produtosPorCategoria = {};
+  if (empresa?.mostrar_promocoes_na_home) {
+    // Promoções primeiro, depois as demais
+    const promoCategoria = categoriasParaExibir.find(c => c.id === 'promo');
+    if (promoCategoria) {
+      categoriasParaExibir = [promoCategoria, ...categoriasParaExibir.filter(c => c.id !== 'promo')];
+    }
+  }
+  categoriasParaExibir.forEach(cat => {
+    if (cat.id === 'promo') {
+      produtosPorCategoria[cat.id] = produtos.filter(p => p.promo_ativa);
+    } else {
+      produtosPorCategoria[cat.id] = produtos.filter(p => p.id_categoria === cat.id && p.ativo);
+    }
+  });
+
+  // Filtro de busca e categoria
+  let categoriasFiltradas = categoriasParaExibir;
+  if (selectedCategoryId !== 'all') {
+    categoriasFiltradas = categoriasParaExibir.filter(c => c.id.toString() === selectedCategoryId);
+  }
+  if (searchTerm) {
+    const cleanedSearchTerm = removeAccents(searchTerm).toLowerCase();
+    categoriasFiltradas = categoriasFiltradas.filter(cat =>
+      produtosPorCategoria[cat.id]?.some(prod =>
+        removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
+        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm)
+      )
+    );
+  }
+
+  // Layout do cardápio
+  const isGrid = empresa?.layout_cardapio === 'grid';
+
   if (empresaLoading || loadingContent || !isReady) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -447,10 +596,11 @@ const PublicCardapioPage = ({ user: userProp }) => {
     );
   }
   
-  if (error && !isCurrentlyOpenForOrders) { 
+  // Só mostrar tela de erro se for erro real (API, empresa inativa, etc)
+  if (error && error.toLowerCase().indexOf('erro') !== -1) {
     return (
       <div className="flex flex-col justify-center items-center h-screen text-red-500 text-center p-4">
-        <p className="font-semibold text-lg mb-2">Ops! Algo deu errado ou a loja está fechada.</p>
+        <p className="font-semibold text-lg mb-2">Ops! Algo deu errado.</p>
         <p>{error}</p>
         <Button onClick={() => window.location.reload()} className="mt-4">Recarregar Página</Button>
       </div>
@@ -470,87 +620,18 @@ const PublicCardapioPage = ({ user: userProp }) => {
   const corPrimaria = empresa?.cor_primaria_cardapio || '#d32f2f';
 
   return (
-    <>
-      <div className="container mx-auto p-2 sm:p-4 relative">
-        <div className="flex flex-col sm:flex-row justify-end mb-4 items-center gap-2">
-          {user && user.role === 'cliente' ? (
-            <>
-              <span className="font-semibold text-sm sm:text-base mr-2">Olá, {user.nome.split(' ')[0]}</span>
-              <Button variant="outline" onClick={() => toast.info('Em breve!')} className="text-xs sm:text-sm h-8 sm:h-9">Meus pedidos</Button>
-              <Button variant="ghost" onClick={logout} className="text-xs sm:text-sm h-8 sm:h-9">Sair</Button>
-            </>
-          ) : (
-            <Button variant="outline" onClick={() => setIsLoginRegisterModalOpen(true)} className="text-xs sm:text-sm h-8 sm:h-9">
-              Entrar ou Cadastrar
-            </Button>
-          )}
-        </div>
-        <p className={`text-center font-semibold text-base sm:text-lg mb-4 ${restaurantStatus.open ? 'text-green-600' : 'text-red-600'}`}>
-          {restaurantStatus.message}
-        </p>
-        
-        {lojaFechadaParaPedidosOnline && (
-          <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-3 sm:p-4 rounded mb-4 text-center text-sm sm:text-base">
-            <strong>Loja fechada para pedidos de delivery no momento.</strong><br />
-            Você ainda pode consultar nosso cardápio normalmente.<br />
-            Agradecemos a compreensão! 😊
-          </div>
-        )}
-
-        {!isCurrentlyOpenForOrders && ( 
-            <div className="text-center text-orange-600 mb-6 p-3 sm:p-4 border border-orange-300 bg-orange-50 rounded-md flex flex-col items-center justify-center">
-              <div className="flex items-center justify-center mb-2">
-                <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='orange' strokeWidth='2' className='w-6 h-6 sm:w-8 sm:h-8 mr-2'><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01M21 20H3a1 1 0 01-.87-1.5l9-16a1 1 0 011.74 0l9 16A1 1 0 0121 20z' /></svg>
-                <p className="font-bold text-lg sm:text-xl text-orange-700">⚠️ Pedidos Online Temporariamente Indisponíveis!</p>
-              </div>
-              <p className="font-semibold text-base sm:text-lg">{restaurantStatus.message}</p>
-              {empresa.permitir_pedido_online === 0 && <p className="text-base sm:text-lg">Os pedidos online estão desativados pela empresa.</p>}
-              {empresa.tempo_corte_pedido_online && (
-                <p className="text-base sm:text-lg">Horário limite para pedidos: {empresa.tempo_corte_pedido_online}</p>
-              )}
-            </div>
-        )}
-
-        {canMakeOnlineOrder && ( 
-          <div className="mb-6 flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <Button
-              variant={selectedPedidoType === 'Delivery' ? 'default' : 'outline'}
-              onClick={() => setSelectedPedidoType('Delivery')}
-              disabled={empresa.desativar_entrega || !isCurrentlyOpenForOrders} 
-              className={`text-xs sm:text-sm h-8 sm:h-9 ${empresa.desativar_entrega || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Bike className="mr-2 h-4 w-4" /> Delivery
-            </Button>
-            <Button
-              variant={selectedPedidoType === 'Retirada' ? 'default' : 'outline'}
-              onClick={() => setSelectedPedidoType('Retirada')}
-              disabled={empresa.desativar_retirada || !isCurrentlyOpenForOrders} 
-              className={`text-xs sm:text-sm h-8 sm:h-9 ${empresa.desativar_retirada || !isCurrentlyOpenForOrders ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Home className="mr-2 h-4 w-4" /> Retirada
-            </Button>
-            <Button
-              variant={selectedPedidoType === 'Mesa' ? 'default' : 'outline'}
-              onClick={() => setSelectedPedidoType('Mesa')}
-              disabled={true} 
-              className={'opacity-50 cursor-not-allowed text-xs sm:text-sm h-8 sm:h-9'}
-            >
-              <Utensils className="mr-2 h-4 w-4" /> Mesa
-            </Button>
-          </div>
-        )}
-
-        {(!selectedPedidoType || selectedPedidoType === 'Delivery') && (parseFloat(empresa?.pedido_minimo_delivery) || 0) > 0 && (
-          <p className="text-center text-gray-700 mb-4 text-sm sm:text-base">
-            Valor mínimo para delivery: <span className="font-semibold">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
-          </p>
-        )}
-
-        <div className="mb-6 p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-end">
-          <div>
-            <Label htmlFor="categoryFilter" className="text-sm">Categoria</Label>
+    <LayoutCardapio userActions={userActions}>
+      {/* Avisos e status */}
+      <div className="max-w-4xl mx-auto px-2 animate-fade-in-up">
+        {avisoTopo}
+      </div>
+      {/* Filtros Modernos */}
+      <section className="max-w-4xl mx-auto px-2 mb-8 animate-fade-in-up">
+        <div className="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between bg-white/80 rounded-2xl shadow p-4 border border-gray-100">
+          <div className="flex-1">
+            <Label htmlFor="categoryFilter" className="text-sm font-semibold">Categoria</Label>
             <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-              <SelectTrigger id="categoryFilter" className="h-9 sm:h-10">
+              <SelectTrigger id="categoryFilter" className="h-10 rounded-lg border-gray-300">
                 <SelectValue placeholder="Todas as Categorias" />
               </SelectTrigger>
               <SelectContent>
@@ -564,71 +645,81 @@ const PublicCardapioPage = ({ user: userProp }) => {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label htmlFor="productSearch" className="text-sm">Buscar Produto</Label>
+          <div className="flex-1">
+            <Label htmlFor="productSearch" className="text-sm font-semibold">Buscar Produto</Label>
             <Input
               id="productSearch"
               placeholder="Nome ou descrição..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-9 sm:h-10 text-sm"
+              className="w-full h-10 rounded-lg border-gray-300"
             />
           </div>
         </div>
-
-        <div className="space-y-6 sm:space-y-8">
-          {categorias.map(categoria => {
-            const produtosParaExibir = categoria.id === 'promo' 
-              ? filteredProdutos.filter(p => p.promo_ativa && p.ativo) 
-              : filteredProdutos.filter(prod => prod.id_categoria === categoria.id && prod.ativo);
-            if (produtosParaExibir.length === 0) return null;
-            return (
-              <div key={categoria.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
-                <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2">{categoria.descricao}</h2>
-                <div className={`grid gap-3 sm:gap-4 ${empresa?.layout_cardapio === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                  {produtosParaExibir.map(prod => (
+      </section>
+      {/* Produtos agrupados por categoria */}
+      <div className="space-y-8">
+        {categoriasFiltradas.map(categoria => {
+          const produtosParaExibir = produtosPorCategoria[categoria.id] || [];
+          if (!produtosParaExibir.length) return null;
+          return (
+            <div key={categoria.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2 flex items-center gap-2">
+                {categoria.id === 'promo' && <span>🔥</span>}
+                {categoria.descricao}
+              </h2>
+              <div className={isGrid ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-4'}>
+                {produtosParaExibir
+                  .filter(prod => {
+                    if (searchTerm) {
+                      const cleanedSearchTerm = removeAccents(searchTerm).toLowerCase();
+                      return (
+                        removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
+                        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm)
+                      );
+                    }
+                    return true;
+                  })
+                  .map(prod => (
                     <div
                       key={prod.id}
-                      className="border p-3 sm:p-4 rounded-lg flex items-center space-x-3 sm:space-x-4 hover:bg-gray-50 cursor-pointer"
+                      className={
+                        isGrid
+                          ? 'bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center cursor-pointer'
+                          : 'bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-row items-center gap-4 cursor-pointer'
+                      }
                       onClick={() => {
-                        if (!lojaFechadaParaPedidosOnline) openProductModal(prod);
+                        if (!lojaFechadaParaPedidosOnline && (deliveryDisponivel || retiradaDisponivel)) openProductModal(prod);
                       }}
-                      style={lojaFechadaParaPedidosOnline ? { cursor: 'default', opacity: 0.7 } : {}}
+                      style={(!deliveryDisponivel && !retiradaDisponivel) || lojaFechadaParaPedidosOnline ? { cursor: 'default', opacity: 0.7 } : {}}
                     >
                       {prod.foto_url && (
                         <img
                           src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`}
                           alt={prod.nome}
-                          className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md flex-shrink-0"
+                          className={isGrid ? 'w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-xl mb-3' : 'w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl flex-shrink-0'}
                         />
                       )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">{prod.nome}</h3>
-                        <p className="text-gray-600 text-xs sm:text-sm line-clamp-2">{prod.descricao}</p>
+                      <div className={isGrid ? '' : 'flex-1 min-w-0'}>
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 truncate">{prod.nome}</h3>
+                        <p className="text-gray-600 text-sm sm:text-base line-clamp-2">{prod.descricao}</p>
                         {prod.promo_ativa && prod.promocao ? (
-                          <p className="font-bold text-base sm:text-lg mt-1" style={{ color: primaryColor }}>
+                          <p className="font-bold text-lg sm:text-xl mt-2 text-green-600">
                             <span className="line-through text-gray-500 mr-2">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</span>
-                            <span style={{ color: '#22C55E' }}>R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
+                            <span>R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
                           </p>
                         ) : (
-                          <p className="text-gray-800 font-bold text-base sm:text-lg mt-1">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
+                          <p className="text-gray-800 font-bold text-lg sm:text-xl mt-2">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
                         )}
                       </div>
-                      {canMakeOnlineOrder && ( 
-                        <div className="flex items-center space-x-1 flex-shrink-0">
-                          {/* Botões +/- e contagem */}
-                          {/* Nenhuma exibição de quantidade nos cards */}
-                        </div>
-                      )}
                     </div>
                   ))}
-                </div>
               </div>
-            );
-          })}
-        </div>
-
-{hasItemsInCart && isCurrentlyOpenForOrders && (
+            </div>
+          );
+        })}
+      </div>
+      {hasItemsInCart && isCurrentlyOpenForOrders && (
   <div
     className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-3 sm:p-4 rounded-full shadow-lg flex items-center space-x-2 sm:space-x-3 z-50 transition-all duration-300 ease-in-out bg-primary"
     style={{ color: '#fff', opacity: 1 }}
@@ -638,6 +729,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
 
     <Button
       onClick={handleOpenFinalizarPedidoModal}
+      disabled={!deliveryDisponivel && !retiradaDisponivel}
       className="ml-auto bg-white text-primary border border-white font-semibold rounded-full px-3 sm:px-5 py-1 sm:py-2 text-xs sm:text-sm transition-colors duration-200 hover:bg-gray-100 h-8 sm:h-9"
     >
       <CheckCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Finalizar Pedido
@@ -645,132 +737,136 @@ const PublicCardapioPage = ({ user: userProp }) => {
   </div>
 )}
         <Dialog open={!!selectedProduct} onOpenChange={closeProductModal}>
-          <DialogContent className="w-[95vw] sm:w-auto max-w-md sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">{selectedProduct?.nome}</DialogTitle>
-              <DialogDescription className="text-sm">
-                {selectedProduct?.descricao}
+          <DialogContent className="w-full max-w-lg rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
+            <div className="p-6 sm:p-8">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-extrabold text-gray-800 mb-1 text-center">{selectedProduct?.nome}</DialogTitle>
+                <DialogDescription className="text-base text-gray-600 text-center mb-2">
+                  {selectedProduct?.descricao}
+                </DialogDescription>
                 {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
-                  <span className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
-                    <span className="line-through text-gray-500 mr-2">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
-                    <span style={{ color: '#22C55E' }}>R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
-                  </span>
+                  <div className="flex justify-center items-center gap-2 mb-4">
+                    <span className="line-through text-gray-400 text-lg">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
+                    <span className="font-bold text-2xl text-green-600">R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
+                  </div>
                 ) : (
-                  <span className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
+                  <div className="flex justify-center items-center mb-4">
+                    <span className="text-gray-800 font-bold text-2xl">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
+                  </div>
                 )}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="flex items-center space-x-2">
-                <Button onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} disabled={!isCurrentlyOpenForOrders}>-</Button>
-                <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center" min={1} disabled={!isCurrentlyOpenForOrders} />
-                <Button onClick={() => setProductQuantity(prev => prev + 1)} disabled={!isCurrentlyOpenForOrders}>+</Button>
-              </div>
-              {productAdicionais.length > 0 && (
-                <div>
-                  <Label className="text-base font-medium">Adicionais Disponíveis</Label>
-                  <div className="space-y-2 mt-2">
-                    {productAdicionais.map((adicional) => (
-                      <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            id={`adicional-${adicional.id}`}
-                            checked={selectedAdicionais.some(sel => sel.id === adicional.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedAdicionais(prev => [...prev, { ...adicional, quantidade: 1 }]);
-                              } else {
-                                setSelectedAdicionais(prev => prev.filter(sel => sel.id !== adicional.id));
-                              }
-                            }}
-                            disabled={!isCurrentlyOpenForOrders}
-                            className="h-4 w-4 text-blue-600"
-                          />
-                          <div>
-                            <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
-                              {adicional.nome}
-                            </Label>
-                            {adicional.descricao && (
-                              <p className="text-sm text-gray-600">{adicional.descricao}</p>
+              </DialogHeader>
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-center gap-4">
+                  <Button onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} disabled={!isCurrentlyOpenForOrders} className="rounded-full h-10 w-10 text-xl bg-gray-200 border border-gray-300 text-gray-700 hover:bg-gray-300">-</Button>
+                  <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center rounded-lg border-gray-300" min={1} disabled={!isCurrentlyOpenForOrders} />
+                  <Button onClick={() => setProductQuantity(prev => prev + 1)} disabled={!isCurrentlyOpenForOrders} className="rounded-full h-10 w-10 text-xl bg-gray-200 border border-gray-300 text-gray-700 hover:bg-gray-300">+</Button>
+                </div>
+                {productAdicionais.length > 0 && (
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">Adicionais Disponíveis</Label>
+                    <div className="space-y-3 mt-2">
+                      {productAdicionais.map((adicional) => (
+                        <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-xl bg-gray-50">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              id={`adicional-${adicional.id}`}
+                              checked={selectedAdicionais.some(sel => sel.id === adicional.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedAdicionais(prev => [...prev, { ...adicional, quantidade: 1 }]);
+                                } else {
+                                  setSelectedAdicionais(prev => prev.filter(sel => sel.id !== adicional.id));
+                                }
+                              }}
+                              disabled={!isCurrentlyOpenForOrders}
+                              className="h-5 w-5 accent-blue-600 rounded-lg border-gray-300"
+                            />
+                            <div>
+                              <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                                {adicional.nome}
+                              </Label>
+                              {adicional.descricao && (
+                                <p className="text-xs text-gray-500">{adicional.descricao}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-green-600">
+                              R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
+                            </span>
+                            {selectedAdicionais.some(sel => sel.id === adicional.id) && (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedAdicionais(prev => prev.map(sel => 
+                                      sel.id === adicional.id 
+                                        ? { ...sel, quantidade: Math.max(1, sel.quantidade - 1) }
+                                        : sel
+                                    ));
+                                  }}
+                                  disabled={!isCurrentlyOpenForOrders}
+                                  className="h-7 w-7 p-0 rounded-full"
+                                >
+                                  -
+                                </Button>
+                                <span className="text-base font-medium w-6 text-center">
+                                  {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
+                                </span>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedAdicionais(prev => prev.map(sel => 
+                                      sel.id === adicional.id 
+                                        ? { ...sel, quantidade: sel.quantidade + 1 }
+                                        : sel
+                                    ));
+                                  }}
+                                  disabled={!isCurrentlyOpenForOrders}
+                                  className="h-7 w-7 p-0 rounded-full"
+                                >
+                                  +
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-semibold text-green-600">
-                            R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
-                          </span>
-                          {selectedAdicionais.some(sel => sel.id === adicional.id) && (
-                            <div className="flex items-center space-x-1">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedAdicionais(prev => prev.map(sel => 
-                                    sel.id === adicional.id 
-                                      ? { ...sel, quantidade: Math.max(1, sel.quantidade - 1) }
-                                      : sel
-                                  ));
-                                }}
-                                disabled={!isCurrentlyOpenForOrders}
-                                className="h-6 w-6 p-0"
-                              >
-                                -
-                              </Button>
-                              <span className="text-sm font-medium w-4 text-center">
-                                {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
-                              </span>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedAdicionais(prev => prev.map(sel => 
-                                    sel.id === adicional.id 
-                                      ? { ...sel, quantidade: sel.quantidade + 1 }
-                                      : sel
-                                  ));
-                                }}
-                                disabled={!isCurrentlyOpenForOrders}
-                                className="h-6 w-6 p-0"
-                              >
-                                +
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
+                )}
+                <div>
+                  <Label htmlFor="observacao" className="font-semibold">Observações (opcional)</Label>
+                  <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} className="rounded-xl border-gray-300 mt-1" />
                 </div>
-              )}
-              <div>
-                <Label htmlFor="observacao">Observações (opcional)</Label>
-                <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} />
+                <div className="text-center p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl mt-2">
+                  <p className="text-sm text-gray-600">Valor total:</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    R$ {(() => {
+                      const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
+                        ? parseFloat(selectedProduct.promocao) 
+                        : parseFloat(selectedProduct?.preco || 0);
+                      const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
+                        return total + (parseFloat(adicional.preco) * adicional.quantidade);
+                      }, 0);
+                      return ((precoBase + precoAdicionais) * productQuantity).toFixed(2).replace('.', ',');
+                    })()}
+                  </p>
+                </div>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Valor total:</p>
-                <p className="text-lg font-bold text-green-600">
-                  R$ {(() => {
-                    const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
-                      ? parseFloat(selectedProduct.promocao) 
-                      : parseFloat(selectedProduct?.preco || 0);
-                    const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
-                      return total + (parseFloat(adicional.preco) * adicional.quantidade);
-                    }, 0);
-                    return ((precoBase + precoAdicionais) * productQuantity).toFixed(2).replace('.', ',');
-                  })()}
-                </p>
-              </div>
+              <DialogFooter className="mt-6 flex justify-center">
+                <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders} className="rounded-full px-8 py-3 text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all">Adicionar ao Carrinho</Button>
+              </DialogFooter>
             </div>
-            <DialogFooter>
-              <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders}>Adicionar ao Carrinho</Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
         <Dialog open={isFinalizarPedidoModalOpen} onOpenChange={setIsFinalizarPedidoModalOpen}>
-          <DialogContent>
+          <DialogContent className="w-full max-w-xl rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
             <FinalizarPedido
               pedidoType={selectedPedidoType}
               onClose={handleCloseFinalizarPedidoModal}
@@ -785,12 +881,12 @@ const PublicCardapioPage = ({ user: userProp }) => {
           </DialogContent>
         </Dialog>
         <Dialog open={isLoginRegisterModalOpen} onOpenChange={setIsLoginRegisterModalOpen}>
-          <DialogContent>
+          <DialogContent className="w-full max-w-md rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
             <LoginRegisterModal onClose={() => setIsLoginRegisterModalOpen(false)} />
           </DialogContent>
         </Dialog>
         <Dialog open={isPedidoTypeSelectionModalOpen} onOpenChange={setIsPedidoTypeSelectionModalOpen}>
-          <DialogContent>
+          <DialogContent className="w-full max-w-md rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
             <PedidoTypeSelectionModal
               onSelectType={handlePedidoTypeSelected}
               onClose={() => setIsPedidoTypeSelectionModalOpen(false)}
@@ -799,57 +895,32 @@ const PublicCardapioPage = ({ user: userProp }) => {
           </DialogContent>
         </Dialog>
         <Dialog open={isMinimoDeliveryModalOpen} onOpenChange={setIsMinimoDeliveryModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogDescription>
-                <div style={{
-                  background: '#e0edff',
-                  border: '1px solid #93c5fd',
-                  borderRadius: 8,
-                  padding: 16,
-                  margin: '16px 0',
-                  textAlign: 'center'
-                }}>
-                  <span style={{ fontWeight: 'bold', fontSize: 18 }}>O valor mínimo para delivery</span> é de <b style={{ color: '#2563eb', fontSize: 18 }}>
-                    R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}
-                  </b>.<br />
-                  <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: 15 }}>
-                    Faltam R$ {valorFaltanteDelivery.toFixed(2).replace('.', ',')}
-                  </span> para você conseguir finalizar seu pedido.
-                </div>
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                onClick={() => setIsMinimoDeliveryModalOpen(false)}
-                style={{
-                  background: '#2563eb',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  fontSize: 16,
-                  borderRadius: 8,
-                  padding: '10px 24px'
-                }}
-              >
-                OK, voltar ao cardápio
-              </Button>
-            </DialogFooter>
+          <DialogContent className="w-full max-w-md rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
+            <div className="p-8 text-center">
+              <DialogHeader>
+                <DialogDescription>
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-4">
+                    <span className="font-bold text-xl block mb-2">O valor mínimo para delivery</span>
+                    <span className="text-blue-700 font-bold text-2xl">R$ {parseFloat(empresa.pedido_minimo_delivery).toFixed(2).replace('.', ',')}</span>
+                    <br />
+                    <span className="font-bold text-red-600 text-lg block mt-2">
+                      Faltam R$ {valorFaltanteDelivery.toFixed(2).replace('.', ',')}
+                    </span> para você conseguir finalizar seu pedido.
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex justify-center mt-4">
+                <Button
+                  onClick={() => setIsMinimoDeliveryModalOpen(false)}
+                  className="bg-blue-600 text-white font-bold text-lg rounded-full px-8 py-3 shadow-lg hover:bg-blue-700 transition-all"
+                >
+                  OK, voltar ao cardápio
+                </Button>
+              </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
-      </div>
-      <style>{`.botao-flutuante-finalizar {
-        background: #fff !important;
-        color: ${corPrimaria} !important;
-        border: 2px solid #fff !important;
-        border-radius: 9999px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
-        font-weight: bold !important;
-        opacity: 1 !important;
-        padding: 0.5rem 1rem !important;
-        display: flex !important;
-        align-items: center !important;
-      }`}</style>
-    </>
+      </LayoutCardapio>
   );
 };
 export default PublicCardapioPage;

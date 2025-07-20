@@ -57,9 +57,9 @@ function App() {
               {/* Rotas do Cardápio Digital (PÚBLICAS) */}
               {/* Cada rota define seu layout e página */}
               <Route path="/:slug" element={
-                <LayoutCardapio>
+                
                   <PublicCardapioPage />
-                </LayoutCardapio>
+                
               }/>
               <Route path="/:slug/comanda" element={
                 <LayoutCardapio>
