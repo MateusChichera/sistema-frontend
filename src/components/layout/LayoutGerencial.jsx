@@ -23,12 +23,14 @@ import {
   ChefHat,
   NotebookPen,
   Bike,
-  DollarSign
+  DollarSign,
+  QrCode
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import api from '../../services/api';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
+import QRCodeGerador from '../gerencial/QRCodeGerador';
 
 const LayoutGerencial = ({ children }) => {
   const { user, logout } = useAuth();
@@ -41,6 +43,7 @@ const LayoutGerencial = ({ children }) => {
   const [openParentMenu, setOpenParentMenu] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentResolvedSlug, setCurrentResolvedSlug] = useState(null);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   // Estado local para switches
   const [deliveryAtivo, setDeliveryAtivo] = useState(!empresa?.desativar_entrega);
@@ -80,6 +83,16 @@ const LayoutGerencial = ({ children }) => {
     { name: 'Delivery', icon: Bike, path: `/gerencial/${currentSlug}/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Cozinha', icon: ChefHat, path: `/gerencial/${currentSlug}/cozinha`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     {
+      name: 'Cardápio Digital',
+      icon: UtensilsCrossed,
+      isParent: true,
+      roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'],
+      subMenu: [
+        { name: 'Acessar Cardápio', icon: Utensils, path: `/${currentSlug}`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+        { name: 'QRCode', icon: QrCode, action: () => setShowQrModal(true), roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+      ]
+    },
+    {
       name: 'Cadastros',
       icon: Users,
       isParent: true,
@@ -96,7 +109,7 @@ const LayoutGerencial = ({ children }) => {
     
     { name: 'Relatórios', icon: BarChart3, isParent: true, path: `/gerencial/${currentSlug}/relatorios`, roles: ['Proprietario', 'Gerente'],
       subMenu: [{ name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] }],},
-    { name: 'Configurações', icon: Settings, path: `/gerencial/${currentSlug}/configuracoes`, roles: ['Proprietario', 'Gerente'] }
+    { name: 'Configurações', icon: Settings, path: `/gerencial/${currentSlug}/configuracoes`, roles: ['Proprietario', 'Gerente'] },
   ];
 
   const handleLogout = () => {
@@ -178,17 +191,30 @@ const LayoutGerencial = ({ children }) => {
                 {item.subMenu.map((subItem) => {
                   if (!subItem.roles.includes(user?.role)) return null;
                   const SubIcon = subItem.icon;
-                  return (
-                    <NavLink
-                      key={subItem.name}
-                      to={subItem.path}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                    >
-                      <SubIcon className="mr-3 h-4 w-4" />
-                      {subItem.name}
-                    </NavLink>
-                  );
+                  if (subItem.action) {
+                    return (
+                      <button
+                        key={subItem.name}
+                        onClick={() => { subItem.action(); setIsMobileMenuOpen(false); }}
+                        className="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      >
+                        <SubIcon className="mr-3 h-4 w-4" />
+                        {subItem.name}
+                      </button>
+                    );
+                  } else {
+                    return (
+                      <NavLink
+                        key={subItem.name}
+                        to={subItem.path}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      >
+                        <SubIcon className="mr-3 h-4 w-4" />
+                        {subItem.name}
+                      </NavLink>
+                    );
+                  }
                 })}
               </div>
             )}
@@ -332,7 +358,18 @@ const LayoutGerencial = ({ children }) => {
       </div>
 
       {/* Main */}
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1 p-6">
+        {children}
+        {showQrModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" tabIndex={-1} onClick={e => { if (e.target === e.currentTarget) setShowQrModal(false); }} onKeyDown={e => { if (e.key === 'Escape') setShowQrModal(false); }}>
+            <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 relative w-full max-w-md animate-fade-in-up border flex flex-col">
+              <button onClick={() => setShowQrModal(false)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-xl font-bold">×</button>
+              <h2 className="text-xl font-bold mb-4 text-center">QR Code do Cardápio Digital</h2>
+              <QRCodeGerador slug={currentSlug} />
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
