@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import QRCode from 'react-qr-code';
-
+//opção de impressão de QRCode para o cardápio online
 const QRCodeGerador = ({ slug }) => {
   const [tipoImpressao, setTipoImpressao] = useState('80mm');
   const [quantidade, setQuantidade] = useState('');
