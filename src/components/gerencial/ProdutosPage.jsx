@@ -1,5 +1,5 @@
 // frontend/src/components/gerencial/ProdutosPage.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useEmpresa } from '../../contexts/EmpresaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -13,6 +13,7 @@ import { Textarea } from '../ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Checkbox } from '../ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { useState as useStateReact } from 'react';
 
 const ProdutosPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa();
@@ -33,6 +34,8 @@ const ProdutosPage = () => {
   const [novoPromoAtiva, setNovoPromoAtiva] = useState(false);
   const [novoAtivo, setNovoAtivo] = useState(true);
   const [novaFoto, setNovaFoto] = useState(null);
+  const [ncm, setNcm] = useState('');
+  const [perfilTributarioId, setPerfilTributarioId] = useState('');
 
   const [editandoProduto, setEditandoProduto] = useState(null);
   const [editIdCategoria, setEditIdCategoria] = useState('');
@@ -47,6 +50,26 @@ const ProdutosPage = () => {
   const [adicionais, setAdicionais] = useState([]);
   const [produtoAdicionais, setProdutoAdicionais] = useState({});
   const [editProdutoAdicionais, setEditProdutoAdicionais] = useState([]);
+  const [editNcm, setEditNcm] = useState('');
+  const [editPerfilTributarioId, setEditPerfilTributarioId] = useState('');
+  const [perfisTributarios, setPerfisTributarios] = useState([]);
+
+  // Ajuda do perfil tributário
+  const ajudaRef = useRef();
+  const [showAjudaPerfil, setShowAjudaPerfil] = useStateReact(false);
+
+  // Buscar perfis tributários ao carregar
+  useEffect(() => {
+    const fetchPerfis = async () => {
+      try {
+        const res = await api.get('/perfis-tributarios');
+        setPerfisTributarios(res.data || []);
+      } catch (err) {
+        setPerfisTributarios([]);
+      }
+    };
+    fetchPerfis();
+  }, []);
 
   const fetchProductsAndCategories = async () => {
     if (empresaLoading || !empresa || !empresa.slug || !user) {
@@ -139,6 +162,8 @@ const ProdutosPage = () => {
     if (novaFoto) {
       formData.append('foto_produto', novaFoto);
     }
+    if (ncm) formData.append('ncm', ncm);
+    if (perfilTributarioId) formData.append('perfil_tributario_id', parseInt(perfilTributarioId));
 
     try {
       await api.post(`/gerencial/${empresa.slug}/produtos`, formData, {
@@ -149,6 +174,7 @@ const ProdutosPage = () => {
       await fetchProductsAndCategories();
       setNovoIdCategoria(''); setNovoNome(''); setNovaDescricao(''); setNovoPreco('');
       setNovoPromocao(''); setNovoPromoAtiva(false); setNovoAtivo(true); setNovaFoto(null);
+      setNcm(''); setPerfilTributarioId('');
       
       // Limpar o input de foto de forma segura
       const novaFotoInput = document.getElementById('novaFotoInput');
@@ -178,6 +204,11 @@ const ProdutosPage = () => {
     setEditAtivo(!!produto.ativo);
     setEditFoto(null);
     setRemoverFotoExistente(false);
+    setEditNcm(produto.ncm || '');
+    setEditPerfilTributarioId(
+      produto.perfil_tributario_id ? String(produto.perfil_tributario_id) :
+      produto.id_perfil_tributario ? String(produto.id_perfil_tributario) : ''
+    );
     
     // Carregar adicionais do produto
     fetchProdutoAdicionais(produto.id);
@@ -232,6 +263,8 @@ const ProdutosPage = () => {
     if (removerFotoExistente) {
       formData.append('remover_foto', true);
     }
+    if (editNcm) formData.append('ncm', editNcm);
+    if (editPerfilTributarioId) formData.append('perfil_tributario_id', parseInt(editPerfilTributarioId));
 
     try {
       await api.put(`/gerencial/${empresa.slug}/produtos/${editandoProduto.id}`, formData, {
@@ -453,6 +486,63 @@ const ProdutosPage = () => {
                 </div>
               )}
             </div>
+            <div>
+              <Label htmlFor="ncm" className="text-sm">NCM</Label>
+              <Input
+                id="ncm"
+                type="text"
+                placeholder="NCM"
+                value={editandoProduto ? editNcm : ncm}
+                onChange={e => editandoProduto ? setEditNcm(e.target.value) : setNcm(e.target.value)}
+                className="h-9 sm:h-10 text-sm"
+              />
+            </div>
+            <div>
+              <Label htmlFor="perfilTributario" className="text-sm">Perfil Tributário</Label>
+               <button
+                 type="button"
+                 ref={ajudaRef}
+                 onMouseEnter={() => setShowAjudaPerfil(true)}
+                 onMouseLeave={() => setShowAjudaPerfil(false)}
+                 className="ml-2 text-gray-500 bg-gray-200 rounded-full w-6 h-6 flex items-center justify-center text-base font-bold align-middle border border-gray-300 hover:bg-gray-300"
+                 style={{ cursor: 'pointer' }}
+                 tabIndex={-1}
+                 aria-label="Ajuda sobre perfis tributários"
+               >
+                 ?
+               </button>
+              <Select
+                value={editandoProduto ? editPerfilTributarioId : perfilTributarioId}
+                onValueChange={value => editandoProduto ? setEditPerfilTributarioId(value) : setPerfilTributarioId(value)}
+              >
+                <SelectTrigger id="perfilTributario" className="h-9 sm:h-10 text-sm">
+                  <SelectValue placeholder="Selecione o perfil tributário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {perfisTributarios.map(perfil => (
+                    <SelectItem key={perfil.id} value={perfil.id.toString()}>{perfil.descricao}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+               {showAjudaPerfil && (
+                 <div
+                   className="absolute z-50 mt-2 p-3 bg-blue-50 border border-blue-200 rounded text-xs text-gray-800 shadow max-w-md"
+                   style={{ left: '50%', transform: 'translateX(-50%)', minWidth: 260 }}
+                   onMouseEnter={() => setShowAjudaPerfil(true)}
+                   onMouseLeave={() => setShowAjudaPerfil(false)}
+                 >
+                   <strong>Explicação dos Perfis Tributários:</strong>
+                   <ul className="list-disc ml-4 mt-1 space-y-1">
+                     <li><b>ICMS 18%</b> - Venda padrão com ICMS cheio (CFOP 5102, CSOSN 102)</li>
+                     <li><b>ICMS 7%</b> - Venda com redução de ICMS (CFOP 5102, CSOSN 102)</li>
+                     <li><b>Isento</b> - Produto isento de impostos (CFOP 5102, CSOSN 400)</li>
+                     <li><b>Substituição Tributária</b> - ICMS recolhido na fonte (CFOP 5405, CSOSN 500)</li>
+                     <li><b>ICMS Fixo 12%</b> - Perfil personalizado com alíquota específica (CSOSN 900)</li>
+                     <li><b>Não Tributado</b> - Produto sem incidência de impostos (CFOP 5102, CSOSN 400)</li>
+                   </ul>
+                 </div>
+               )}
+            </div>
 
             {/* Seção de Adicionais - Apenas na edição */}
             {editandoProduto && adicionais.length > 0 && (
@@ -599,6 +689,7 @@ const ProdutosPage = () => {
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Categoria</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Preço</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Promoção</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Tributação</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Adicionais</TableHead>
                   {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
@@ -631,6 +722,14 @@ const ProdutosPage = () => {
                           '-'
                         )
                       )}
+                    </TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      {(() => {
+                        const perfilId = prod.perfil_tributario_id || prod.id_perfil_tributario;
+                        if (!perfilId) return '-';
+                        const perfil = perfisTributarios.find(p => String(p.id) === String(perfilId));
+                        return perfil ? perfil.descricao : '-';
+                      })()}
                     </TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
