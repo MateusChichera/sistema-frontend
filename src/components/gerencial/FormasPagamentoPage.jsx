@@ -265,7 +265,6 @@ const FormasPagamentoPage = () => {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-gray-800">{forma.descricao}</h4>
-                    <p className="text-xs text-gray-500">ID: {forma.id}</p>
                     <p className="text-sm font-semibold text-blue-600 mt-1">
                       Desconto: {parseFloat(forma.porcentagem_desconto_geral).toFixed(2)}%
                     </p>
@@ -305,7 +304,6 @@ const FormasPagamentoPage = () => {
             <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
               <TableHeader className="bg-gray-100">
                 <TableRow>
-                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">ID</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Descrição</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Desconto (%)</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
@@ -315,7 +313,6 @@ const FormasPagamentoPage = () => {
               <TableBody>
                 {formasPagamento.map((forma) => (
                   <TableRow key={forma.id} className="hover:bg-gray-50">
-                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{forma.id}</TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{forma.descricao}</TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{parseFloat(forma.porcentagem_desconto_geral).toFixed(2)}%</TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
