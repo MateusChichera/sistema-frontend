@@ -15,6 +15,7 @@ import { format, parseISO } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Switch } from '../ui/switch';
 import socket from '../../services/socket.js';
 
 // --- Funções Auxiliares (fora do componente para evitar re-criação) ---
@@ -29,6 +30,14 @@ const getStatusBadge = (status) => {
         default: colorClass = 'bg-gray-100 text-gray-800';
     }
     return <Badge className={`${colorClass}`}>{status}</Badge>;
+};
+
+const statusColorMap = {
+  Pendente: 'bg-yellow-100 text-yellow-800',
+  Preparando: 'bg-blue-100 text-blue-800',
+  Pronto: 'bg-purple-100 text-purple-800',
+  Entregue: 'bg-green-100 text-green-800',
+  Cancelado: 'bg-red-100 text-red-800',
 };
 
 const formatDateTime = (dateTimeString) => {
@@ -50,7 +59,6 @@ const PedidosPage = () => {
     const [error, setError] = useState(null);
     const [updatingStatusPedidoId, setUpdatingStatusPedidoId] = useState(null);
 
-    const [filterStatus, setFilterStatus] = useState('all');
     const [filterTipoEntrega, setFilterTipoEntrega] = useState('Delivery'); // Padrão: Delivery
     const [filterDateRange, setFilterDateRange] = useState({ from: undefined, to: undefined });
     const [searchTerm, setSearchTerm] = useState('');
@@ -59,6 +67,15 @@ const PedidosPage = () => {
 
     const statusOptions = ['Pendente', 'Preparando', 'Pronto', 'Entregue', 'Cancelado'];
     const tipoEntregaOptions = ['Mesa', 'Balcao', 'Delivery'];
+
+    // Estado para os filtros de status visíveis (por padrão, todos os status estão ativos)
+    const [activeStatuses, setActiveStatuses] = useState(() => {
+        const initialStates = {};
+        statusOptions.forEach(status => {
+            initialStates[status] = true; // Todos os status ativos por padrão
+        });
+        return initialStates;
+    });
 
     const allowedRoles = useMemo(() => ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'], []);
 
@@ -94,13 +111,11 @@ const PedidosPage = () => {
     }, [empresa]);
 
     // Função para abrir o modal de detalhes do pedido
-    // Definida AQUI para garantir que esteja no escopo correto
     const handleViewDetails = useCallback((pedido) => {
         setSelectedPedido(pedido);
     }, []);
 
     // Função para gerar o conteúdo do cupom para impressão
-    // Definida AQUI para garantir que esteja no escopo correto
     const generatePrintContent = useCallback((pedido) => {
         const headerStyle = `font-family: 'monospace', 'Courier New', monospace; font-size: 10px; line-height: 1.2; width: 80mm; margin: 0 auto;`;
         const itemStyle = `font-family: 'monospace', 'Courier New', monospace; font-size: 10px; line-height: 1.2;`;
@@ -176,7 +191,7 @@ const PedidosPage = () => {
                 <tbody>
         `;
 
-        (pedido.itens || []).forEach(item => { // Garante que itens é um array
+        (pedido.itens || []).forEach(item => {
             content += `
                     <tr class="item-row">
                         <td>${item.quantidade}x</td>
@@ -223,10 +238,9 @@ const PedidosPage = () => {
             </html>
         `;
         return content;
-    }, [empresa]); // Dependência da empresa para dados do cupom
+    }, [empresa]);
 
     // Função para imprimir o cupom
-    // Definida AQUI para garantir que esteja no escopo correto
     const handlePrint = useCallback((pedido) => {
         const printContent = generatePrintContent(pedido);
         const printWindow = window.open('', '_blank', 'height=600,width=400');
@@ -239,10 +253,10 @@ const PedidosPage = () => {
         } else {
             toast.error("Não foi possível abrir a janela de impressão. Verifique se pop-ups estão bloqueados.");
         }
-    }, [generatePrintContent]); // Dependência de generatePrintContent
+    }, [generatePrintContent]);
 
     // Função para buscar pedidos (memoizada para estabilidade no useEffect)
-    const fetchPedidosData = useCallback(async () => {
+    const fetchPedidosData = useCallback(async (searchQuery = '') => {
         if (!isReady || empresaLoading || !empresa?.slug || !user) {
             setLoadingPedidos(true);
             return;
@@ -258,9 +272,6 @@ const PedidosPage = () => {
         setError(null);
         try {
             const queryParams = new URLSearchParams();
-            if (filterStatus !== 'all') {
-                queryParams.append('status', filterStatus);
-            }
             if (filterTipoEntrega !== 'all') {
                 queryParams.append('tipo_entrega', filterTipoEntrega);
             }
@@ -270,8 +281,8 @@ const PedidosPage = () => {
             if (filterDateRange.to) {
                 queryParams.append('data_fim', format(filterDateRange.to, 'yyyy-MM-dd'));
             }
-            if (searchTerm) {
-                queryParams.append('search', searchTerm);
+            if (searchQuery) {
+                queryParams.append('search', searchQuery);
             }
 
             const response = await api.get(`/gerencial/${empresa.slug}/pedidos?${queryParams.toString()}`, {
@@ -280,14 +291,11 @@ const PedidosPage = () => {
 
             const processedPedidos = (response.data || []).map(pedido => ({
                 ...pedido,
-                // Garante que 'itens' é um array e seus 'observacoes' são strings
                 itens: (pedido.itens || []).map(item => ({
                     ...item,
                     observacoes: item.observacoes || ''
                 })),
-                // Garante que 'observacoes' do pedido é uma string
                 observacoes: pedido.observacoes || '',
-                // Garantir campos de endereço para impressão, se não existirem
                 endereco_entrega: pedido.endereco_entrega || '',
                 complemento_entrega: pedido.complemento_entrega || '',
                 numero_entrega: pedido.numero_entrega || '',
@@ -313,21 +321,31 @@ const PedidosPage = () => {
         } finally {
             setLoadingPedidos(false);
         }
-    }, [empresa, empresaLoading, isReady, user, token, allowedRoles, filterStatus, filterTipoEntrega, filterDateRange, searchTerm]);
+    }, [empresa, empresaLoading, isReady, user, token, allowedRoles, filterTipoEntrega, filterDateRange]);
 
-    // Efeito para carregar pedidos e integrar Socket.IO (estrutura replicada da OrderStatusPage)
+    // Função para buscar com o termo de pesquisa atual
+    const handleSearch = useCallback(() => {
+        fetchPedidosData(searchTerm);
+    }, [fetchPedidosData, searchTerm]);
+
+    // Função para lidar com a tecla Enter no campo de busca
+    const handleSearchKeyPress = useCallback((e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    }, [handleSearch]);
+
+    // Efeito para carregar pedidos e integrar Socket.IO
     useEffect(() => {
-        // Só configura quando empresa e token estiverem prontos
         if (!empresa?.id || !token) return;
 
-        fetchPedidosData(); // Primeira carga dos pedidos
+        // Carrega pedidos iniciais sem o termo de busca
+        fetchPedidosData();
 
-        // ---- Integração com socket singleton ----
         if (!socket.connected) {
             socket.connect();
         }
 
-        // ----- Handlers nomeados (para remover depois) -----
         const handleConnect = () => {
             console.log('Socket.IO: Conectado ao servidor de PedidosPage.');
         };
@@ -339,20 +357,16 @@ const PedidosPage = () => {
         const handleNewOrder = (newOrder) => {
             console.log('Socket.IO: Novo pedido recebido:', newOrder);
             toast.info(`Novo pedido recebido: #${newOrder.numero_pedido} (${newOrder.tipo_entrega})`);
-            // Toca som de notificação, se permitido
             playDeliverySound();
             setPedidos(prevPedidos => {
-                // Verifica se já existe ou se não corresponde ao filtro de tipo de entrega
                 if (prevPedidos.some(p => p.id === newOrder.id) ||
                     (filterTipoEntrega !== 'all' && newOrder.tipo_entrega !== filterTipoEntrega)) {
                     return prevPedidos;
                 }
-                // Processa o novo pedido para garantir a consistência dos dados
                 const processedNewOrder = {
                     ...newOrder,
                     itens: (newOrder.itens || []).map(item => ({ ...item, observacoes: item.observacoes || '' })),
                     observacoes: newOrder.observacoes || '',
-                    // Garante campos de endereço (mesmo que vazios) para evitar erros
                     endereco_entrega: newOrder.endereco_entrega || '',
                     complemento_entrega: newOrder.complemento_entrega || '',
                     numero_entrega: newOrder.numero_entrega || '',
@@ -362,12 +376,7 @@ const PedidosPage = () => {
                     cep_entrega: newOrder.cep_entrega || '',
                 };
 
-                // Adiciona o novo pedido e filtra por status se o filtro de status estiver ativo
-                const updatedList = [...prevPedidos, processedNewOrder].filter(p => 
-                    filterStatus === 'all' || p.status === filterStatus
-                );
-                
-                // Mantenha a ordenação após adicionar o novo pedido
+                const updatedList = [...prevPedidos, processedNewOrder];
                 return updatedList.sort((a, b) => new Date(a.data_pedido).getTime() - new Date(b.data_pedido).getTime());
             });
         };
@@ -376,7 +385,6 @@ const PedidosPage = () => {
             console.log('Socket.IO: Pedido atualizado:', updatedOrder);
             toast.info(`Pedido #${updatedOrder.numero_pedido} atualizado para ${updatedOrder.status}!`);
             setPedidos(prevPedidos => {
-                // Processa o pedido atualizado para garantir a consistência dos dados
                 const processedUpdatedOrder = {
                     ...updatedOrder,
                     itens: (updatedOrder.itens || []).map(item => ({ ...item, observacoes: item.observacoes || '' })),
@@ -393,23 +401,17 @@ const PedidosPage = () => {
                 const updatedList = prevPedidos.map(p =>
                     p.id === processedUpdatedOrder.id ? processedUpdatedOrder : p
                 ).filter(p => {
-                    // Remove da lista se não corresponder mais ao filtro de tipo de entrega E filtro de status
-                    return (filterTipoEntrega === 'all' || p.tipo_entrega === filterTipoEntrega) &&
-                           (filterStatus === 'all' || p.status === filterStatus);
+                    return (filterTipoEntrega === 'all' || p.tipo_entrega === filterTipoEntrega);
                 });
 
-                // Se o pedido atualizado não estava na lista e agora corresponde aos filtros, adicione-o
                 if (!prevPedidos.some(p => p.id === processedUpdatedOrder.id) &&
-                    (filterTipoEntrega === 'all' || processedUpdatedOrder.tipo_entrega === filterTipoEntrega) &&
-                    (filterStatus === 'all' || processedUpdatedOrder.status === filterStatus)) {
+                    (filterTipoEntrega === 'all' || processedUpdatedOrder.tipo_entrega === filterTipoEntrega)) {
                         updatedList.push(processedUpdatedOrder);
                 }
 
-                // Atualiza o pedido selecionado no modal, se for o caso
                 if (selectedPedido && selectedPedido.id === processedUpdatedOrder.id) {
                     setSelectedPedido(processedUpdatedOrder);
                 }
-                // Mantenha a ordenação após a atualização
                 return updatedList.sort((a, b) => new Date(a.data_pedido).getTime() - new Date(b.data_pedido).getTime());
             });
         };
@@ -427,7 +429,6 @@ const PedidosPage = () => {
             }
         });
 
-        // Entrar na sala da empresa após configurar listeners
         socket.emit('join_company_room', empresa.id);
 
         return () => {
@@ -441,13 +442,10 @@ const PedidosPage = () => {
             socket.off('orderDeleted');
             console.log('Socket.IO: Componente PedidosPage desmontado, listeners removidos.');
         };
-    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega, playDeliverySound, token]); // Dependências do useEffect
+    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega, playDeliverySound, token]);
 
     // Lógica para mudar o status do pedido via API (PUT)
     const handleChangeStatus = async (pedidoId, newStatus) => {
-        if (!window.confirm(`Tem certeza que deseja mudar o status do pedido para "${newStatus}"?`)) {
-            return;
-        }
         setUpdatingStatusPedidoId(pedidoId);
         setError(null);
         try {
@@ -465,34 +463,25 @@ const PedidosPage = () => {
     };
 
     const groupedPedidos = useMemo(() => {
-        const groups = {
-            'Pendente': [],
-            'Preparando': [],
-            'Pronto': [],
-            'Entregue': [],
-            'Cancelado': []
-        };
+        const groups = {};
 
+        // Filtra por tipo de entrega
         const filteredByDeliveryType = filterTipoEntrega !== 'all'
             ? pedidos.filter(p => p.tipo_entrega === filterTipoEntrega)
             : pedidos;
 
-        // Filtra por status também, se selecionado
-        const filteredByStatus = filterStatus !== 'all'
-            ? filteredByDeliveryType.filter(p => p.status === filterStatus)
-            : filteredByDeliveryType;
+        // Filtra por status usando activeStatuses
+        const filteredByStatus = filteredByDeliveryType.filter(p => activeStatuses[p.status]);
 
-        filteredByStatus.forEach(pedido => {
-            if (groups[pedido.status]) {
-                groups[pedido.status].push(pedido);
+        // Agrupa por status apenas os que estão ativos
+        statusOptions.forEach(status => {
+            if (activeStatuses[status]) {
+                groups[status] = filteredByStatus.filter(pedido => pedido.status === status);
             }
         });
 
-        // Retorna apenas os grupos que contêm pedidos (para não renderizar colunas vazias desnecessárias)
-        return Object.fromEntries(
-            Object.entries(groups).filter(([status, list]) => list.length > 0 || status === filterStatus || filterStatus === 'all')
-        );
-    }, [pedidos, filterTipoEntrega, filterStatus]); // Adicionado filterStatus nas dependências
+        return groups;
+    }, [pedidos, filterTipoEntrega, activeStatuses]);
 
     if (empresaLoading || loadingPedidos || !isReady) {
         return (
@@ -508,24 +497,25 @@ const PedidosPage = () => {
 
     return (
         <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Pedidos - {empresa.nome_fantasia}</h2>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 text-center">Pedidos - {empresa.nome_fantasia}</h1>
+            <p className="text-center text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">Gerencie e acompanhe todos os pedidos da empresa.</p>
 
-            {/* Filtros */}
+            {/* Filtros de Status (Switches) */}
+            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50 flex flex-wrap gap-3 sm:gap-4 justify-center">
+                {statusOptions.map(status => (
+                    <div key={status} className="flex items-center space-x-2">
+                        <Switch
+                            id={`switch-${status}`}
+                            checked={activeStatuses[status]}
+                            onCheckedChange={() => setActiveStatuses(prev => ({ ...prev, [status]: !prev[status] }))}
+                        />
+                        <Label htmlFor={`switch-${status}`} className="text-sm">{status}</Label>
+                    </div>
+                ))}
+            </div>
+
+            {/* Filtros Adicionais */}
             <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                <div>
-                    <Label htmlFor="filterStatus" className="text-sm">Status</Label>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger id="filterStatus" className="h-9 sm:h-10">
-                            <SelectValue placeholder="Todos os Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            {statusOptions.map(status => (
-                                <SelectItem key={status} value={status}>{status}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
                 <div>
                     <Label htmlFor="filterTipoEntrega" className="text-sm">Tipo de Entrega</Label>
                     <Select value={filterTipoEntrega} onValueChange={setFilterTipoEntrega}>
@@ -584,11 +574,12 @@ const PedidosPage = () => {
                         placeholder="Número do pedido, nome do cliente..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyPress={handleSearchKeyPress}
                         className="w-full h-9 sm:h-10 text-sm"
                     />
                 </div>
                 <div className="sm:col-span-2 lg:col-span-1 flex items-end">
-                    <Button onClick={fetchPedidosData} className="w-full h-9 sm:h-10 text-sm">
+                    <Button onClick={handleSearch} className="w-full h-9 sm:h-10 text-sm">
                         <SearchIcon className="mr-2 h-4 w-4" /> Buscar
                     </Button>
                 </div>
@@ -600,90 +591,142 @@ const PedidosPage = () => {
                     {pedidos.length === 0 ? "Nenhum pedido ativo para exibir." : "Nenhum pedido para exibir com os filtros selecionados."}
                  </p>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                    {Object.keys(groupedPedidos).sort((a,b) => statusOptions.indexOf(a) - statusOptions.indexOf(b)).map(statusKey => (
-                        <div key={statusKey} className="bg-gray-100 p-3 sm:p-4 rounded-lg shadow-sm max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
-                            <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800 border-b pb-2">
-                                {statusKey} ({groupedPedidos[statusKey].length})
-                            </h3>
-                            {groupedPedidos[statusKey].length === 0 ? (
-                                <p className="text-gray-600 text-sm">Nenhum pedido neste status.</p>
-                            ) : (
-                                <div className="space-y-3 sm:space-y-4">
-                                    {groupedPedidos[statusKey].map(pedido => (
-                                        <Card key={pedido.id} className="bg-white border rounded-lg shadow-md">
-                                            <CardHeader className="pb-2 px-3 sm:px-4 py-3">
-                                                <CardTitle className="text-base sm:text-lg flex justify-between items-center">
-                                                    <span className="truncate">Pedido #{pedido.numero_pedido}</span>
-                                                    {getStatusBadge(pedido.status)}
-                                                </CardTitle>
-                                                <CardDescription className="text-xs sm:text-sm">
-                                                    <div className="space-y-1">
-                                                        <div><strong>Cliente:</strong> {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</div>
-                                                        <div><strong>Tipo:</strong> {pedido.tipo_entrega} {pedido.numero_mesa ? `(Mesa ${pedido.numero_mesa})` : ''}</div>
-                                                        <div><strong>Valor:</strong> R$ {parseFloat(pedido.valor_total).toFixed(2).replace('.', ',')}</div>
-                                                        <div><strong>Pagamento:</strong> {pedido.formapagamento || 'N/A'}</div>
-                                                        {pedido.troco > 0 && (
-                                                            <div><strong>Troco:</strong> R$ {parseFloat(pedido.troco || 0).toFixed(2).replace('.', ',')}</div>
-                                                        )}
-                                                    </div>
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="text-xs sm:text-sm pt-2 px-3 sm:px-4">
-                                                {pedido.tipo_entrega === 'Delivery' && pedido.endereco_entrega && (
-                                                    <p className="font-semibold text-gray-700 text-xs sm:text-sm mb-1">Endereço: {pedido.endereco_entrega}</p>
-                                                )}
-                                                {pedido.observacoes && (
-                                                    <p className="text-xs text-gray-600 mt-1">Obs: {pedido.observacoes}</p>
-                                                )}
-                                                <p className="text-xs text-gray-500 mt-2">Criado em: {formatDateTime(pedido.data_pedido)}</p>
-                                            </CardContent>
-                                            <CardFooter className="pt-2 px-3 sm:px-4 pb-3 flex flex-wrap gap-1 sm:gap-2 justify-end">
-                                                <Button variant="outline" size="sm" onClick={() => handleViewDetails(pedido)} className="text-xs h-8 px-2">
-                                                    Detalhes
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handlePrint(pedido)}
-                                                    title="Imprimir Cupom"
-                                                    className="text-xs h-8 px-2"
-                                                >
-                                                    <PrinterIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                    {/* Renderiza as colunas na ordem lógica de status */}
+                    {['Pendente', 'Preparando', 'Pronto', 'Entregue', 'Cancelado'].map(status => {
+                        if (!activeStatuses[status]) return null;
 
-                                                {/* Lógica de mudança de status (mantida via Select) */}
-                                                {
-                                                    (['Proprietario', 'Gerente', 'Caixa', 'Funcionario'].includes(user?.role)) &&
-                                                    pedido.status !== 'Entregue' && pedido.status !== 'Cancelado' && (
-                                                        <Select
-                                                            value={pedido.status}
-                                                            onValueChange={(newStatus) => handleChangeStatus(pedido.id, newStatus)}
-                                                            disabled={updatingStatusPedidoId === pedido.id}
+                        const pedidosInColumn = groupedPedidos[status] || [];
+                        
+                        return (
+                            <div 
+                                key={status} 
+                                className="bg-gray-100 rounded-lg shadow-inner p-3 sm:p-4 flex flex-col min-h-[60vh] sm:min-h-[70vh]" 
+                            >
+                                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2 text-center">
+                                    {status} ({pedidosInColumn.length})
+                                </h2>
+                                <div className="space-y-3 sm:space-y-4 flex-grow overflow-y-auto pr-1 sm:pr-2">
+                                    {pedidosInColumn.length === 0 ? (
+                                        <p className="text-gray-500 text-sm text-center">Nenhum pedido neste status.</p>
+                                    ) : (
+                                        pedidosInColumn.map(pedido => {
+                                            const isUpdatingThisPedido = updatingStatusPedidoId === pedido.id;
+                                            
+                                            return (
+                                                <Card key={pedido.id} className="relative overflow-hidden bg-white shadow-md">
+                                                    {isUpdatingThisPedido && (
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                                                            <Loader2 className="animate-spin text-primary h-6 w-6 sm:h-8 sm:w-8" />
+                                                        </div>
+                                                    )}
+                                                    <CardHeader className="pb-2 px-3 sm:px-4 py-3">
+                                                        <CardTitle className="flex justify-between items-center text-base sm:text-lg">
+                                                            <span className="truncate">#{pedido.numero_pedido}</span>
+                                                            {getStatusBadge(pedido.status)}
+                                                        </CardTitle>
+                                                        <CardDescription className="text-xs sm:text-sm">
+                                                            {pedido.tipo_entrega === 'Mesa' ? `Mesa: ${pedido.numero_mesa || 'N/A'}` : `Tipo: ${pedido.tipo_entrega}`}
+                                                        </CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-2 text-xs sm:text-sm pt-2 px-3 sm:px-4">
+                                                        <div className="space-y-1">
+                                                            <div><strong>Cliente:</strong> {pedido.nome_cliente || pedido.nome_cliente_convidado || 'Convidado'}</div>
+                                                            <div><strong>Criado:</strong> {formatDateTime(pedido.data_pedido)}</div>
+                                                            <div><strong>Atualizado:</strong> {formatDateTime(pedido.data_atualizacao)}</div>
+                                                            <div><strong>Valor:</strong> R$ {parseFloat(pedido.valor_total).toFixed(2).replace('.', ',')}</div>
+                                                            <div><strong>Pagamento:</strong> {pedido.formapagamento || 'N/A'}</div>
+                                                            {pedido.troco > 0 && (
+                                                                <div><strong>Troco:</strong> R$ {parseFloat(pedido.troco || 0).toFixed(2).replace('.', ',')}</div>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-2">
+                                                            <p className="font-semibold">Itens:</p>
+                                                            {(pedido.itens && pedido.itens.length > 0) ? (
+                                                                <ul className="list-disc list-inside ml-2 text-gray-700 space-y-1">
+                                                                    {pedido.itens.map((item, idx) => ( 
+                                                                        <li key={item.id || idx} className="text-xs">
+                                                                            <div>
+                                                                                {item.quantidade}x {item.nome_produto}
+                                                                                {item.observacoes && item.observacoes.trim() !== '' ? <span className="italic text-gray-500"> ({item.observacoes})</span> : ''}
+                                                                            </div>
+                                                                            {item.adicionais && item.adicionais.length > 0 && (
+                                                                                <div className="ml-4 mt-1">
+                                                                                    {item.adicionais.map((adicional, adicIdx) => (
+                                                                                        <div key={adicIdx} className="text-xs text-blue-600">
+                                                                                            + {adicional.quantidade}x {adicional.nome}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            ) : (
+                                                                <p className="text-gray-500 text-xs">Nenhum item listado.</p>
+                                                            )}
+                                                        </div>
+                                                        {pedido.tipo_entrega === 'Delivery' && pedido.endereco_entrega && (
+                                                            <div className="mt-2 text-gray-700">
+                                                                <strong>Endereço:</strong> {pedido.endereco_entrega}
+                                                            </div>
+                                                        )}
+                                                        <div className="mt-2 text-gray-700">
+                                                            <strong>Obs. Pedido:</strong> {pedido.observacoes && pedido.observacoes.trim() !== '' ? pedido.observacoes : 'Nenhuma observação'}
+                                                        </div>
+                                                    </CardContent>
+                                                    <CardFooter className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 flex flex-wrap gap-2 justify-center">
+                                                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(pedido)} className="text-xs h-8 px-2">
+                                                            Detalhes
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handlePrint(pedido)}
+                                                            title="Imprimir Cupom"
+                                                            className="text-xs h-8 px-2"
                                                         >
-                                                            <SelectTrigger className="w-[100px] sm:w-[120px] h-8 text-xs">
-                                                                <SelectValue placeholder="Mudar Status" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {statusOptions.filter(s => s !== pedido.status).map(s => (
-                                                                    <SelectItem key={s} value={s}>
-                                                                        {s} {updatingStatusPedidoId === pedido.id && s === pedido.status ? ' (Atualizando...)' : ''}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )
-                                                }
-                                            </CardFooter>
-                                        </Card>
-                                    ))}
+                                                            <PrinterIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                        </Button>
+
+                                                        {/* Select para mudança de status no padrão da OrderStatusPage */}
+                                                        {
+                                                            (['Proprietario', 'Gerente', 'Caixa', 'Funcionario'].includes(user?.role)) && (
+                                                                <Select
+                                                                    value={pedido.status}
+                                                                    onValueChange={(newStatus) => handleChangeStatus(pedido.id, newStatus)}
+                                                                    disabled={isUpdatingThisPedido}
+                                                                >
+                                                                    <SelectTrigger
+                                                                        className={`w-full border-blue-500 focus:border-blue-600 focus:ring-blue-500 flex items-center text-xs sm:text-sm h-8 sm:h-9 ${statusColorMap[pedido.status]}`}
+                                                                    >
+                                                                        <SelectValue placeholder="Mudar Status" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {statusOptions.map(status => (
+                                                                            <SelectItem
+                                                                                key={status}
+                                                                                value={status}
+                                                                                className="data-[state=checked]:bg-blue-500 data-[state=checked]:text-white focus:bg-blue-100 focus:text-blue-900 text-xs sm:text-sm"
+                                                                            >
+                                                                                {status} {status === pedido.status ? ' (Atual)' : ''}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            )
+                                                        }
+                                                    </CardFooter>
+                                                </Card>
+                                            );
+                                        })
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    ))}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
-
 
             {/* Modal de Detalhes do Pedido */}
             {selectedPedido && (

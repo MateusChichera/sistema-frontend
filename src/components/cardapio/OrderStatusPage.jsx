@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from 'sonner';
-import { Loader2, ArrowRight, ChevronDown } from 'lucide-react';
+import { Loader2, ArrowRight, ChevronDown, Search as SearchIcon, Calendar as CalendarIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -14,6 +14,9 @@ import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import socket from '../../services/socket.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Input } from '../ui/input';
+import { Calendar } from '../ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 
 // --- Funções Auxiliares (mantidas globais pois não dependem do estado do componente) ---
@@ -69,6 +72,11 @@ const OrderStatusPage = () => {
     const [error, setError] = useState(null);
     const [updatingStatus, setUpdatingStatus] = useState(null); 
 
+    // Estados para os filtros
+    const [filterTipoEntrega, setFilterTipoEntrega] = useState('all');
+    const [filterDateRange, setFilterDateRange] = useState({ from: undefined, to: undefined });
+    const [searchTerm, setSearchTerm] = useState('');
+
     // Estado para os filtros de status visíveis (por padrão, tudo menos 'Entregue' e 'Cancelado' estão ativos)
     const [activeStatuses, setActiveStatuses] = useState(() => {
         const initialStates = {};
@@ -77,6 +85,8 @@ const OrderStatusPage = () => {
         });
         return initialStates;
     });
+
+    const tipoEntregaOptions = ['Mesa', 'Balcao', 'Delivery'];
 
     const allowedRoles = useMemo(() => ['Funcionario', 'Caixa', 'Gerente', 'Proprietario'], []);
 
@@ -114,7 +124,23 @@ const OrderStatusPage = () => {
             setError(null);
             try {
                 const statusQuery = allKitchenStatuses.join(','); 
-                const response = await api.get(`/gerencial/${empresa.slug}/pedidos?status=${statusQuery}`, {
+                const queryParams = new URLSearchParams();
+                queryParams.append('status', statusQuery);
+                
+                if (filterTipoEntrega !== 'all') {
+                    queryParams.append('tipo_entrega', filterTipoEntrega);
+                }
+                if (filterDateRange.from) {
+                    queryParams.append('data_inicio', format(filterDateRange.from, 'yyyy-MM-dd'));
+                }
+                if (filterDateRange.to) {
+                    queryParams.append('data_fim', format(filterDateRange.to, 'yyyy-MM-dd'));
+                }
+                if (searchTerm) {
+                    queryParams.append('search', searchTerm);
+                }
+
+                const response = await api.get(`/gerencial/${empresa.slug}/pedidos?${queryParams.toString()}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 
@@ -241,7 +267,7 @@ const OrderStatusPage = () => {
 
         fetchAndSetupSocket();
 
-    }, [empresa?.id, empresa?.slug, isReady, user, token, allowedRoles, empresaLoading, playKitchenSound]);
+    }, [empresa?.id, empresa?.slug, isReady, user, token, allowedRoles, empresaLoading, playKitchenSound, filterTipoEntrega, filterDateRange]);
 
 
     // Função para mudar o status do pedido (avançar ou voltar)
@@ -287,6 +313,71 @@ const OrderStatusPage = () => {
         return { text: `Avançar para ${nextStatus}`, color: buttonColorClass, disabled: false };
     }, []); 
 
+    // Função para buscar com os filtros atuais
+    const handleSearch = useCallback(async () => {
+        if (!isReady || empresaLoading || !empresa?.slug || !user) {
+            return;
+        }
+
+        if (!allowedRoles.includes(user.role)) {
+            return;
+        }
+
+        setLoadingPedidos(true);
+        setError(null);
+        try {
+            const statusQuery = allKitchenStatuses.join(','); 
+            const queryParams = new URLSearchParams();
+            queryParams.append('status', statusQuery);
+            
+            if (filterTipoEntrega !== 'all') {
+                queryParams.append('tipo_entrega', filterTipoEntrega);
+            }
+            if (filterDateRange.from) {
+                queryParams.append('data_inicio', format(filterDateRange.from, 'yyyy-MM-dd'));
+            }
+            if (filterDateRange.to) {
+                queryParams.append('data_fim', format(filterDateRange.to, 'yyyy-MM-dd'));
+            }
+            if (searchTerm) {
+                queryParams.append('search', searchTerm);
+            }
+
+            const response = await api.get(`/gerencial/${empresa.slug}/pedidos?${queryParams.toString()}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            const processedPedidos = (response.data || []).map(pedido => ({
+                ...pedido,
+                itens: (pedido.itens || []).map(item => ({
+                    ...item,
+                    observacoes: item.observacoes || ''
+                })),
+                observacoes: pedido.observacoes || ''
+            }));
+
+            const sortedPedidos = processedPedidos.sort((a, b) => {
+                return new Date(a.data_pedido).getTime() - new Date(b.data_pedido).getTime();
+            });
+            
+            setPedidos(sortedPedidos);
+            toast.success("Pedidos filtrados carregados!");
+        } catch (err) {
+            setError(err.response?.data?.message || 'Erro ao carregar pedidos filtrados.');
+            console.error("Erro ao carregar pedidos filtrados:", err);
+            toast.error(err.response?.data?.message || 'Erro ao carregar pedidos filtrados.');
+        } finally {
+            setLoadingPedidos(false);
+        }
+    }, [empresa, empresaLoading, isReady, user, token, allowedRoles, filterTipoEntrega, filterDateRange, searchTerm]);
+
+    // Função para lidar com a tecla Enter no campo de busca
+    const handleSearchKeyPress = useCallback((e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    }, [handleSearch]);
+
     // Agrupa os pedidos por status para as colunas visíveis
     const groupedPedidos = useMemo(() => {
         const groups = {};
@@ -329,6 +420,77 @@ const OrderStatusPage = () => {
                         <Label htmlFor={`switch-${status}`} className="text-sm">{status}</Label>
                     </div>
                 ))}
+            </div>
+
+            {/* Filtros Adicionais */}
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div>
+                    <Label htmlFor="filterTipoEntrega" className="text-sm">Tipo de Entrega</Label>
+                    <Select value={filterTipoEntrega} onValueChange={setFilterTipoEntrega}>
+                        <SelectTrigger id="filterTipoEntrega" className="h-9 sm:h-10">
+                            <SelectValue placeholder="Todos os Tipos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {tipoEntregaOptions.map(tipo => (
+                                <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label htmlFor="filterDateRange" className="text-sm">Período</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="filterDateRange"
+                                variant={"outline"}
+                                className={"w-full h-9 sm:h-10 justify-start text-left font-normal text-sm"}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {filterDateRange.from ? (
+                                    filterDateRange.to ? (
+                                        <>
+                                            {format(filterDateRange.from, "dd/MM/yyyy")} -{" "}
+                                            {format(filterDateRange.to, "dd/MM/yyyy")}
+                                        </>
+                                    ) : (
+                                        format(filterDateRange.from, "dd/MM/yyyy")
+                                    )
+                                ) : (
+                                    <span>Selecione uma data</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="range"
+                                selected={filterDateRange}
+                                onSelect={setFilterDateRange}
+                                initialFocus
+                            />
+                            <div className="flex justify-end p-2 border-t">
+                                <Button onClick={() => setFilterDateRange({ from: undefined, to: undefined })} variant="ghost" size="sm">Limpar</Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                <div className="sm:col-span-2 lg:col-span-1">
+                    <Label htmlFor="searchTerm" className="text-sm">Buscar por Pedido/Cliente</Label>
+                    <Input
+                        id="searchTerm"
+                        placeholder="Número do pedido, nome do cliente..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyPress={handleSearchKeyPress}
+                        className="w-full h-9 sm:h-10 text-sm"
+                    />
+                </div>
+                <div className="sm:col-span-2 lg:col-span-1 flex items-end">
+                    <Button onClick={handleSearch} className="w-full h-9 sm:h-10 text-sm">
+                        <SearchIcon className="mr-2 h-4 w-4" /> Buscar
+                    </Button>
+                </div>
             </div>
 
             {/* Colunas de Pedidos por Status */}
