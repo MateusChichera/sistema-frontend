@@ -307,7 +307,16 @@ const ConfiguracoesPage = () => {
 
                 {/* Horário de Funcionamento */}
                 <div className="col-span-full">
-                  <Label htmlFor="horario_funcionamento" className="text-sm">Horário de Funcionamento</Label>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Label htmlFor="horario_funcionamento" className="text-sm">Horário de Funcionamento</Label>
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-800">
+                        <span className="font-semibold">📋 Padrão aceito:</span> 
+                        <span className="font-bold text-blue-900 bg-blue-100 px-1 rounded">Seg-Dom: 08h-07h</span> 
+                        <span className="text-blue-700">(Segunda a Domingo das 08h às 07h)</span>
+                      </p>
+                    </div>
+                  </div>
                   <Textarea
                     id="horario_funcionamento"
                     placeholder="Ex: Seg-Sex: 09h-18h, Sáb: 09h-14h"
