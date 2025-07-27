@@ -12,6 +12,7 @@ import { Loader2, Plus, Edit, Trash2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 
 const AdicionaisPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa();
@@ -19,7 +20,8 @@ const AdicionaisPage = () => {
   
   const [adicionais, setAdicionais] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // mantido para permissões
+  const { showError, ErrorDialogElement } = useErrorDialog();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdicional, setEditingAdicional] = useState(null);
@@ -52,9 +54,11 @@ const AdicionaisPage = () => {
       });
       setAdicionais(response.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao carregar adicionais.');
+      const msg = err.response?.data?.message || 'Erro ao carregar adicionais.';
+      toast.error(msg);
+      showError(msg);
       console.error("Erro ao carregar adicionais:", err);
-      toast.error(err.response?.data?.message || 'Erro ao carregar adicionais.');
+      setError(null);
     } finally {
       setLoading(false);
     }
@@ -145,7 +149,9 @@ const AdicionaisPage = () => {
       closeModal();
       fetchAdicionais();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Erro ao salvar adicional.');
+      const msgSave = err.response?.data?.message || 'Erro ao salvar adicional.';
+      toast.error(msgSave);
+      showError(msgSave);
       console.error("Erro ao salvar adicional:", err);
     } finally {
       setLoading(false);
@@ -163,7 +169,9 @@ const AdicionaisPage = () => {
       toast.success('Adicional excluído com sucesso!');
       fetchAdicionais();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Erro ao excluir adicional.');
+      const msgDel = err.response?.data?.message || 'Erro ao excluir adicional.';
+      toast.error(msgDel);
+      showError(msgDel);
       console.error("Erro ao excluir adicional:", err);
     } finally {
       setLoading(false);
@@ -188,6 +196,7 @@ const AdicionaisPage = () => {
 
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      {ErrorDialogElement}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Gerenciar Adicionais - {empresa.nome_fantasia}</h2>
         <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">

@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const FuncionariosPage = () => {
@@ -17,6 +18,7 @@ const FuncionariosPage = () => {
   const [funcionarios, setFuncionarios] = useState([]);
   const [loadingFuncionarios, setLoadingFuncionarios] = useState(true);
   const [error, setError] = useState(null);
+  const { showError, ErrorDialogElement } = useErrorDialog();
 
   const [novoNome, setNovoNome] = useState('');
   const [novoEmail, setNovoEmail] = useState('');
@@ -58,9 +60,10 @@ const FuncionariosPage = () => {
       toast.success("Funcionários carregados com sucesso!"); // Notificação de sucesso
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao carregar funcionários.');
-      console.error("Erro ao carregar funcionários:", err);
-      toast.error(err.response?.data?.message || 'Erro ao carregar funcionários.');
+      const msg = err.response?.data?.message || 'Erro ao carregar funcionários.';
+      toast.error(msg);
+      showError(msg);
+      setError(null);
     } finally {
       setLoadingFuncionarios(false);
     }
@@ -143,7 +146,7 @@ const FuncionariosPage = () => {
         handleCancelEdit();
         toast.success('Funcionário atualizado com sucesso!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao atualizar funcionário.');
+     // setError(err.response?.data?.message || 'Erro ao atualizar funcionário.');
       toast.error(err.response?.data?.message || 'Erro ao atualizar funcionário.');
       console.error("Erro ao atualizar funcionário:", err);
     } finally {
@@ -165,7 +168,7 @@ const FuncionariosPage = () => {
         setFuncionarios(prev => prev.filter(func => func.id !== id));
         toast.success('Funcionário excluído com sucesso!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao excluir funcionário.');
+      //setError(err.response?.data?.message || 'Erro ao excluir funcionário.');
       toast.error(err.response?.data?.message || 'Erro ao excluir funcionário.');
       console.error("Erro ao excluir funcionário:", err);
     } finally {
@@ -384,6 +387,7 @@ const FuncionariosPage = () => {
           </div>
         </div>
       )}
+      {ErrorDialogElement}
     </div>
   );
 };

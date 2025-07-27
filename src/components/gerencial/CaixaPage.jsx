@@ -20,6 +20,7 @@ import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
 import socket from '../../services/socket.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 
 
 
@@ -30,6 +31,7 @@ const CaixaPage = () => {
     const [pedidos, setPedidos] = useState([]);
     const [loadingPedidos, setLoadingPedidos] = useState(true);
     const [error, setError] = useState(null);
+    const { showError, ErrorDialogElement } = useErrorDialog();
 
     const [isPedidoDetailModalOpen, setIsPedidoDetailModalOpen] = useState(false);
     const [isItemDetailModalOpen, setIsItemDetailModalOpen] = useState(false);
@@ -343,9 +345,10 @@ const CaixaPage = () => {
             setPedidos(processedInitialPedidos);
             console.log("Pedidos carregados via fetch:", processedInitialPedidos.map(p => p.numero_pedido));
         } catch (err) {
-            setError(err.response?.data?.message || 'Erro ao carregar pedidos para o Caixa.');
-            console.error("Erro ao carregar pedidos:", err);
-            toast.error(err.response?.data?.message || 'Erro ao carregar pedidos para o Caixa.');
+            const msg = err.response?.data?.message || 'Erro ao carregar pedidos para o Caixa.';
+            toast.error(msg);
+            showError(msg);
+            setError(null);
         } finally {
             setLoadingPedidos(false);
         }

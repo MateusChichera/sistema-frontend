@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { useState as useStateReact } from 'react';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 
 const ProdutosPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa();
@@ -23,6 +24,7 @@ const ProdutosPage = () => {
   const [categorias, setCategorias] = useState([]);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
   const [error, setError] = useState(null);
+  const { showError, ErrorDialogElement } = useErrorDialog();
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -142,9 +144,11 @@ const ProdutosPage = () => {
       toast.success("Produtos e Categorias carregados!");
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao carregar dados.');
+      const msg = err.response?.data?.message || 'Erro ao carregar dados.';
+      setError(msg);
+      showError(msg);
       console.error("Erro ao carregar produtos/categorias:", err);
-      toast.error(err.response?.data?.message || 'Erro ao carregar produtos/categorias.');
+      toast.error(msg);
     } finally {
       setLoadingProdutos(false);
     }
@@ -210,8 +214,10 @@ const ProdutosPage = () => {
       toast.success('Produto adicionado com sucesso!');
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao adicionar produto.');
-      toast.error(err.response?.data?.message || 'Erro ao adicionar produto.');
+      const msgAdd = err.response?.data?.message || 'Erro ao adicionar produto.';
+      setError(msgAdd);
+      showError(msgAdd);
+      toast.error(msgAdd);
       console.error("Erro ao adicionar produto:", err);
     } finally {
       setLoadingProdutos(false);
@@ -312,8 +318,10 @@ const ProdutosPage = () => {
       toast.success('Produto atualizado com sucesso!');
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao atualizar produto.');
-      toast.error(err.response?.data?.message || 'Erro ao atualizar produto.');
+      const msgUpdate = err.response?.data?.message || 'Erro ao atualizar produto.';
+      setError(msgUpdate);
+      showError(msgUpdate);
+      toast.error(msgUpdate);
       console.error("Erro ao atualizar produto:", err);
     } finally {
       setLoadingProdutos(false);
@@ -353,8 +361,10 @@ const ProdutosPage = () => {
       setProdutos(prev => prev.filter(prod => prod.id !== id));
       toast.success('Produto excluído com sucesso!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao excluir produto.');
-      toast.error(err.response?.data?.message || 'Erro ao excluir produto.');
+      const msgDel = err.response?.data?.message || 'Erro ao excluir produto.';
+      setError(msgDel);
+      showError(msgDel);
+      toast.error(msgDel);
       console.error("Erro ao excluir produto:", err);
     } finally {
       setLoadingProdutos(false);
@@ -381,12 +391,12 @@ const ProdutosPage = () => {
     return <div className="p-4 text-center text-gray-600">Carregando produtos...</div>;
   }
 
-  if (error) {
-    return <div className="p-4 text-red-600 text-center">{error}</div>;
-  }
+  // Não fazemos early return. O aviso será mostrado via diálogo.
   
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      {/* Dialogo de Erro */}
+      {ErrorDialogElement}
       <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Produtos - {empresa.nome_fantasia}</h2>
 
       {/* Campo de Busca */}

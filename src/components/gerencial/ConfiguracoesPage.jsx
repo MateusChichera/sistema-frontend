@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 import { Textarea } from '../ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -40,6 +41,7 @@ const ConfiguracoesPage = () => {
   
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [error, setError] = useState(null);
+  const { showError, ErrorDialogElement } = useErrorDialog();
 
   const [formData, setFormData] = useState({
     logo_file: null,
@@ -128,9 +130,11 @@ const ConfiguracoesPage = () => {
         toast.success("Configurações carregadas com sucesso!");
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao carregar configurações.');
+      const msg = err.response?.data?.message || 'Erro ao carregar configurações.';
       console.error("Erro ao carregar configurações:", err);
-      toast.error(err.response?.data?.message || 'Erro ao carregar configurações.');
+      toast.error(msg);
+      showError(msg);
+      setError(null);
     } finally {
       setLoadingConfig(false);
     }
@@ -227,8 +231,9 @@ const ConfiguracoesPage = () => {
       toast.success('Configurações salvas com sucesso!');
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao salvar configurações.');
-      toast.error(err.response?.data?.message || 'Erro ao salvar configurações.');
+      const msg = err.response?.data?.message || 'Erro ao salvar configurações.';
+      toast.error(msg);
+      showError(msg);
       console.error("Erro ao salvar configurações:", err);
     } finally {
       setLoadingConfig(false);
@@ -644,6 +649,7 @@ const ConfiguracoesPage = () => {
           )}
         </form>
       </Tabs>
+      {ErrorDialogElement}
     </div>
   );
 };

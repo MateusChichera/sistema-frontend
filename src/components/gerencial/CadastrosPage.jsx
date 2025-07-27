@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 
 const CadastrosPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa(); // Remove isReady aqui, pois o LayoutGerencial já a trata
@@ -16,6 +17,7 @@ const CadastrosPage = () => {
   const [categorias, setCategorias] = useState([]);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [error, setError] = useState(null);
+  const { showError, ErrorDialogElement } = useErrorDialog();
 
   const [novaDescricao, setNovaDescricao] = useState('');
   const [editandoCategoria, setEditandoCategoria] = useState(null);
@@ -49,7 +51,10 @@ const CadastrosPage = () => {
         setCategorias(response.data);
         console.log("CadastrosPage: Categorias carregadas:", response.data);
       } catch (err) {
-        setError(err.response?.data?.message || 'Erro ao carregar categorias.');
+        const msg = err.response?.data?.message || 'Erro ao carregar categorias.';
+        toast.error(msg);
+        showError(msg);
+        setError(null);
         console.error("CadastrosPage: Erro ao carregar categorias:", err);
       } finally {
         setLoadingCategorias(false);
@@ -72,7 +77,12 @@ const CadastrosPage = () => {
       const response = await api.post(`/gerencial/${empresa.slug}/categorias`, { descricao: novaDescricao });
       setCategorias(prev => [...prev, response.data.categoria]); setNovaDescricao('');
       toast.success('Categoria adicionada com sucesso!');
-    } catch (err) { setError(err.response?.data?.message || 'Erro ao adicionar categoria.'); toast.error(err.response?.data?.message || 'Erro ao adicionar categoria.'); console.error("Erro ao adicionar categoria:", err); } finally { setLoadingCategorias(false); }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao adicionar categoria.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao adicionar categoria:", err);
+    } finally { setLoadingCategorias(false); }
   };
 
   const handleEditClick = (categoria) => { setEditandoCategoria(categoria); setEditDescricao(categoria.descricao); setEditAtivo(categoria.ativo); };
@@ -88,7 +98,12 @@ const CadastrosPage = () => {
       setCategorias(prev => prev.map(cat => cat.id === editandoCategoria.id ? { ...cat, descricao: editDescricao, ativo: editAtivo } : cat));
       handleCancelEdit();
       toast.success('Categoria atualizada com sucesso!');
-    } catch (err) { setError(err.response?.data?.message || 'Erro ao atualizar categoria.'); toast.error(err.response?.data?.message || 'Erro ao atualizar categoria.'); console.error("Erro ao atualizar categoria:", err); } finally { setLoadingCategorias(false); }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao atualizar categoria.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao atualizar categoria:", err);
+    } finally { setLoadingCategorias(false); }
   };
 
   const handleDeleteCategoria = async (id) => {
@@ -99,7 +114,12 @@ const CadastrosPage = () => {
       await api.delete(`/gerencial/${empresa.slug}/categorias/${id}`);
       setCategorias(prev => prev.filter(cat => cat.id !== id));
       toast.success('Categoria excluída com sucesso!');
-    } catch (err) { setError(err.response?.data?.message || 'Erro ao excluir categoria.'); toast.error(err.response?.data?.message || 'Erro ao excluir categoria.'); console.error("Erro ao excluir categoria:", err); } finally { setLoadingCategorias(false); }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao excluir categoria.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao excluir categoria:", err);
+    } finally { setLoadingCategorias(false); }
   };
 
   // Renderização condicional para CadastrosPage
@@ -114,6 +134,7 @@ const CadastrosPage = () => {
   // Se chegamos até aqui, categorias foram carregadas (mesmo que vazias) e não há erro.
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      {ErrorDialogElement}
       <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Categorias - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Categoria */}

@@ -1,5 +1,6 @@
 // frontend/src/services/api.js
 import axios from 'axios';
+import { notifyGlobalError } from '../lib/errorHandler';
 
 // A URL do seu backend.
 // Em desenvolvimento, é localhost:PORTA_DO_BACKEND
@@ -41,6 +42,9 @@ api.interceptors.response.use(
          // Ou em um contexto, você chamaria a função logout
       }
     }
+    // Notifica globalmente
+    const msg = error.response?.data?.message || error.message || 'Erro inesperado.';
+    notifyGlobalError(msg);
     return Promise.reject(error);
   }
 );

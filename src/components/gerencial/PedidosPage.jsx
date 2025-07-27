@@ -315,7 +315,7 @@ const PedidosPage = () => {
 
             setPedidos(sortedPedidos);
         } catch (err) {
-            setError(err.response?.data?.message || 'Erro ao carregar pedidos.');
+            //setError(err.response?.data?.message || 'Erro ao carregar pedidos.');
             console.error("Erro ao carregar pedidos:", err);
             toast.error(err.response?.data?.message || 'Erro ao carregar pedidos.');
         } finally {
@@ -454,7 +454,7 @@ const PedidosPage = () => {
             });
             toast.success(`Status do pedido atualizado para "${newStatus}"!`);
         } catch (err) {
-            setError(err.response?.data?.message || 'Erro ao atualizar status do pedido.');
+            //setError(err.response?.data?.message || 'Erro ao atualizar status do pedido.');
             toast.error(err.response?.data?.message || 'Erro ao atualizar status do pedido.');
             console.error("Erro ao atualizar status:", err);
         } finally {

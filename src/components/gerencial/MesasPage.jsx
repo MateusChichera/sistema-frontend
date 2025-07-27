@@ -10,6 +10,7 @@ import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 
 const MesasPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa();
@@ -17,7 +18,8 @@ const MesasPage = () => {
   
   const [mesas, setMesas] = useState([]);
   const [loadingMesas, setLoadingMesas] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // mantido para mensagens de permissão
+  const { showError, ErrorDialogElement } = useErrorDialog();
 
   // Estados para o formulário de adicionar/editar
   const [novoNumero, setNovoNumero] = useState('');
@@ -58,9 +60,11 @@ const MesasPage = () => {
       toast.success("Mesas carregadas com sucesso!");
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao carregar mesas.');
+      const msg = err.response?.data?.message || 'Erro ao carregar mesas.';
+      toast.error(msg);
+      showError(msg);
       console.error("Erro ao carregar mesas:", err);
-      toast.error(err.response?.data?.message || 'Erro ao carregar mesas.');
+      setError(null);
     } finally {
       setLoadingMesas(false);
     }
@@ -94,8 +98,10 @@ const MesasPage = () => {
         toast.success('Mesa adicionada com sucesso!');
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao adicionar mesa.');
-      toast.error(err.response?.data?.message || 'Erro ao adicionar mesa.');
+      const msgAdd = err.response?.data?.message || 'Erro ao adicionar mesa.';
+      toast.error(msgAdd);
+      showError(msgAdd);
+      setError(null);
       console.error("Erro ao adicionar mesa:", err);
     } finally {
       setLoadingMesas(false);
@@ -142,8 +148,10 @@ const MesasPage = () => {
         handleCancelEdit();
         toast.success('Mesa atualizada com sucesso!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao atualizar mesa.');
-      toast.error(err.response?.data?.message || 'Erro ao atualizar mesa.');
+      const msgUp = err.response?.data?.message || 'Erro ao atualizar mesa.';
+      toast.error(msgUp);
+      showError(msgUp);
+      setError(null);
       console.error("Erro ao atualizar mesa:", err);
     } finally {
       setLoadingMesas(false);
@@ -164,8 +172,10 @@ const MesasPage = () => {
         setMesas(prev => prev.filter(m => m.id !== id));
         toast.success('Mesa excluída com sucesso!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao excluir mesa.');
-      toast.error(err.response?.data?.message || 'Erro ao excluir mesa.');
+      const msgDel = err.response?.data?.message || 'Erro ao excluir mesa.';
+      toast.error(msgDel);
+      showError(msgDel);
+      setError(null);
       console.error("Erro ao excluir mesa:", err);
     } finally {
       setLoadingMesas(false);
@@ -194,12 +204,14 @@ const MesasPage = () => {
     return <div className="p-4 text-center text-gray-600">Carregando mesas...</div>;
   }
 
+  // Se error tem valor relacionado a permissão, continua exibindo.
   if (error) {
     return <div className="p-4 text-red-600 text-center">{error}</div>;
   }
   
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      {ErrorDialogElement}
       <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Mesas - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Mesa - Visível apenas para quem pode gerenciar */}

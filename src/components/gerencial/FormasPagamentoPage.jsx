@@ -8,6 +8,8 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
+import { notifyGlobalError } from '../../lib/errorHandler';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 const FormasPagamentoPage = () => {
@@ -17,6 +19,7 @@ const FormasPagamentoPage = () => {
   const [formasPagamento, setFormasPagamento] = useState([]);
   const [loadingFormas, setLoadingFormas] = useState(true);
   const [error, setError] = useState(null);
+  const { showError, ErrorDialogElement } = useErrorDialog();
 
   // Estados para o formulário de adicionar/editar
   const [novaDescricao, setNovaDescricao] = useState('');
@@ -53,9 +56,11 @@ const FormasPagamentoPage = () => {
       toast.success("Formas de pagamento carregadas com sucesso!");
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao carregar formas de pagamento.');
+      const msg = err.response?.data?.message || 'Erro ao carregar formas de pagamento.';
+      toast.error(msg);
+      showError(msg);
+      setError(null);
       console.error("Erro ao carregar formas de pagamento:", err);
-      toast.error(err.response?.data?.message || 'Erro ao carregar formas de pagamento.');
     } finally {
       setLoadingFormas(false);
     }
@@ -89,8 +94,9 @@ const FormasPagamentoPage = () => {
         toast.success('Forma de pagamento adicionada com sucesso!');
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao adicionar forma de pagamento.');
-      toast.error(err.response?.data?.message || 'Erro ao adicionar forma de pagamento.');
+      const msgAdd = err.response?.data?.message || 'Erro ao adicionar forma de pagamento.';
+      toast.error(msgAdd);
+      notifyGlobalError(msgAdd);
       console.error("Erro ao adicionar forma de pagamento:", err);
     } finally {
       setLoadingFormas(false);
@@ -135,8 +141,9 @@ const FormasPagamentoPage = () => {
         handleCancelEdit();
         toast.success('Forma de pagamento atualizada com sucesso!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao atualizar forma de pagamento.');
-      toast.error(err.response?.data?.message || 'Erro ao atualizar forma de pagamento.');
+      const msgUp = err.response?.data?.message || 'Erro ao atualizar forma de pagamento.';
+      toast.error(msgUp);
+      notifyGlobalError(msgUp);
       console.error("Erro ao atualizar forma de pagamento:", err);
     } finally {
       setLoadingFormas(false);
@@ -157,8 +164,9 @@ const FormasPagamentoPage = () => {
         setFormasPagamento(prev => prev.filter(fp => fp.id !== id));
         toast.success('Forma de pagamento excluída com sucesso!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao excluir forma de pagamento.');
-      toast.error(err.response?.data?.message || 'Erro ao excluir forma de pagamento.');
+      const msgDel = err.response?.data?.message || 'Erro ao excluir forma de pagamento.';
+      toast.error(msgDel);
+      notifyGlobalError(msgDel);
       console.error("Erro ao excluir forma de pagamento:", err);
     } finally {
       setLoadingFormas(false);
@@ -192,6 +200,7 @@ const FormasPagamentoPage = () => {
   
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
+      {ErrorDialogElement}
       <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Formas de Pagamento - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Forma de Pagamento - Visível apenas para quem pode gerenciar */}

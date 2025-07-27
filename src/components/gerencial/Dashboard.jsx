@@ -4,6 +4,7 @@ import { useEmpresa } from '../../contexts/EmpresaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { toast } from 'sonner';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 // Adicione CardDescription aqui
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../ui/card'; 
 import { Loader2, DollarSign, ListOrdered, Package, TrendingUp, CheckCircle } from 'lucide-react';
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [error, setError] = useState(null);
+  const { showError, ErrorDialogElement } = useErrorDialog();
 
   // Acessos x Pedidos
   const [acessosPedidosData, setAcessosPedidosData] = useState([]);
@@ -53,9 +55,10 @@ const Dashboard = () => {
       setDashboardData(response.data);
       toast.success("Dados do dashboard carregados!");
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao carregar dados do dashboard.');
-      console.error("Erro ao carregar dashboard:", err);
-      toast.error(err.response?.data?.message || 'Erro ao carregar dashboard.');
+      const msg = err.response?.data?.message || 'Erro ao carregar dados do dashboard.';
+      toast.error(msg);
+      showError(msg);
+      setError(null);
     } finally {
       setLoadingDashboard(false);
     }
