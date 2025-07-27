@@ -49,6 +49,8 @@ const ConfiguracoesPage = () => {
     tempo_medio_preparo: '',
     config_impressora: '',
     permitir_pedido_online: true,
+    permitir_pedidos_estoque_zerado: false,
+    nao_mostrar_cardapio_estoque_zerado: false,
     pedido_minimo_delivery: '',
     desativar_entrega: false,
     desativar_retirada: false,
@@ -100,6 +102,8 @@ const ConfiguracoesPage = () => {
           tempo_medio_preparo: empresa.tempo_medio_preparo || '',
           config_impressora: empresa.config_impressora || '',
           permitir_pedido_online: !!empresa.permitir_pedido_online,
+          permitir_pedidos_estoque_zerado: !!empresa.permitir_pedidos_estoque_zerado,
+          nao_mostrar_cardapio_estoque_zerado: !!empresa.nao_mostrar_cardapio_estoque_zerado,
           pedido_minimo_delivery: empresa.pedido_minimo_delivery || '',
           desativar_entrega: !!empresa.desativar_entrega,
           desativar_retirada: !!empresa.desativar_retirada,
@@ -170,6 +174,8 @@ const ConfiguracoesPage = () => {
         tempo_medio_preparo: formData.tempo_medio_preparo,
         config_impressora: formData.config_impressora,
         permitir_pedido_online: formData.permitir_pedido_online ? 1 : 0,
+        permitir_pedidos_estoque_zerado: formData.permitir_pedidos_estoque_zerado ? 1 : 0,
+        nao_mostrar_cardapio_estoque_zerado: formData.nao_mostrar_cardapio_estoque_zerado ? 1 : 0,
         pedido_minimo_delivery: parseFloat(formData.pedido_minimo_delivery) || 0.00,
         desativar_entrega: formData.desativar_entrega ? 1 : 0,
         desativar_retirada: formData.desativar_retirada ? 1 : 0,
@@ -401,6 +407,27 @@ const ConfiguracoesPage = () => {
                   disabled={!canManage}
                 />
                 <Label htmlFor="permitir_pedido_online" className="text-sm">Permitir Pedido Online (Cardápio Digital)</Label>
+              </div>
+              {/* Permitir pedidos mesmo com estoque zerado */}
+              <div className="flex items-center space-x-2 col-span-full">
+                <Switch
+                  id="permitir_pedidos_estoque_zerado"
+                  checked={formData.permitir_pedidos_estoque_zerado}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, permitir_pedidos_estoque_zerado: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="permitir_pedidos_estoque_zerado" className="text-sm">Permitir pedidos com estoque zerado</Label>
+              </div>
+
+              {/* Ocultar itens com estoque zerado no cardápio */}
+              <div className="flex items-center space-x-2 col-span-full">
+                <Switch
+                  id="nao_mostrar_cardapio_estoque_zerado"
+                  checked={formData.nao_mostrar_cardapio_estoque_zerado}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, nao_mostrar_cardapio_estoque_zerado: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="nao_mostrar_cardapio_estoque_zerado" className="text-sm">Não mostrar no cardápio itens sem estoque</Label>
               </div>
 
               {/* NOVO: Permitir acompanhar status dos pedidos */}

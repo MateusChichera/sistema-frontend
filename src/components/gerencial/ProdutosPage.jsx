@@ -31,6 +31,10 @@ const ProdutosPage = () => {
   const [novaDescricao, setNovaDescricao] = useState('');
   const [novoPreco, setNovoPreco] = useState('');
   const [novoPromocao, setNovoPromocao] = useState('');
+  // Novos campos
+  const [novoCusto, setNovoCusto] = useState('');
+  const [novoEstoque, setNovoEstoque] = useState('');
+  const [novoMargem, setNovoMargem] = useState('');
   const [novoPromoAtiva, setNovoPromoAtiva] = useState(false);
   const [novoAtivo, setNovoAtivo] = useState(true);
   const [novaFoto, setNovaFoto] = useState(null);
@@ -43,6 +47,10 @@ const ProdutosPage = () => {
   const [editDescricao, setEditDescricao] = useState('');
   const [editPreco, setEditPreco] = useState('');
   const [editPromocao, setEditPromocao] = useState('');
+  // Novos campos (edição)
+  const [editCusto, setEditCusto] = useState('');
+  const [editEstoque, setEditEstoque] = useState('');
+  const [editMargem, setEditMargem] = useState('');
   const [editPromoAtiva, setEditPromoAtiva] = useState(false);
   const [editAtivo, setEditAtivo] = useState(true);
   const [editFoto, setEditFoto] = useState(null);
@@ -53,6 +61,21 @@ const ProdutosPage = () => {
   const [editNcm, setEditNcm] = useState('');
   const [editPerfilTributarioId, setEditPerfilTributarioId] = useState('');
   const [perfisTributarios, setPerfisTributarios] = useState([]);
+
+  // Funções auxiliares para cálculo de preço e margem
+  const calculatePrecoFromMargem = (custo, margem) => {
+    const c = parseFloat(custo);
+    const m = parseFloat(margem);
+    if (isNaN(c) || isNaN(m)) return '';
+    return (c * (1 + m / 100)).toFixed(2);
+  };
+
+  const calculateMargemFromPreco = (custo, preco) => {
+    const c = parseFloat(custo);
+    const p = parseFloat(preco);
+    if (isNaN(c) || c === 0 || isNaN(p)) return '';
+    return (((p - c) / c) * 100).toFixed(2);
+  };
 
   // Ajuda do perfil tributário
   const ajudaRef = useRef();
@@ -156,6 +179,8 @@ const ProdutosPage = () => {
     formData.append('nome', novoNome);
     formData.append('descricao', novaDescricao);
     formData.append('preco', parseFloat(novoPreco));
+    formData.append('custo', parseFloat(novoCusto) || 0);
+    formData.append('estoque', parseInt(novoEstoque) || 0);
     formData.append('promocao', parseFloat(novoPromocao) || 0);
     formData.append('promo_ativa', novoPromoAtiva ? 1 : 0);
     formData.append('ativo', novoAtivo ? 1 : 0);
@@ -174,7 +199,7 @@ const ProdutosPage = () => {
       await fetchProductsAndCategories();
       setNovoIdCategoria(''); setNovoNome(''); setNovaDescricao(''); setNovoPreco('');
       setNovoPromocao(''); setNovoPromoAtiva(false); setNovoAtivo(true); setNovaFoto(null);
-      setNcm(''); setPerfilTributarioId('');
+      setNovoCusto(''); setNovoEstoque(''); setNovoMargem('');
       
       // Limpar o input de foto de forma segura
       const novaFotoInput = document.getElementById('novaFotoInput');
@@ -200,6 +225,9 @@ const ProdutosPage = () => {
     setEditDescricao(produto.descricao || '');
     setEditPreco(parseFloat(produto.preco).toFixed(2));
     setEditPromocao(produto.promocao ? parseFloat(produto.promocao).toFixed(2) : '');
+    setEditCusto(produto.custo ? parseFloat(produto.custo).toFixed(2) : '');
+    setEditEstoque(produto.estoque !== undefined ? String(produto.estoque) : '');
+    setEditMargem(produto.custo && produto.preco ? calculateMargemFromPreco(produto.custo, produto.preco) : '');
     setEditPromoAtiva(!!produto.promo_ativa);
     setEditAtivo(!!produto.ativo);
     setEditFoto(null);
@@ -233,6 +261,7 @@ const ProdutosPage = () => {
     setEditIdCategoria(''); setEditNome(''); setEditDescricao(''); setEditPreco('');
     setEditPromocao(''); setEditPromoAtiva(false); setEditAtivo(true); setEditFoto(null);
     setRemoverFotoExistente(false);
+    setEditCusto(''); setEditEstoque(''); setEditMargem('');
     setEditProdutoAdicionais([]);
     const editFotoInput = document.getElementById('editFotoInput');
     if (editFotoInput) editFotoInput.value = '';
@@ -254,6 +283,8 @@ const ProdutosPage = () => {
     formData.append('nome', editNome);
     formData.append('descricao', editDescricao);
     formData.append('preco', parseFloat(editPreco));
+    formData.append('custo', parseFloat(editCusto) || 0);
+    formData.append('estoque', parseInt(editEstoque) || 0);
     formData.append('promocao', parseFloat(editPromocao) || 0);
     formData.append('promo_ativa', editPromoAtiva ? 1 : 0);
     formData.append('ativo', editAtivo ? 1 : 0);
@@ -418,6 +449,56 @@ const ProdutosPage = () => {
                 className="text-sm"
               />
             </div>
+            {/* Campo Custo */}
+            <div>
+              <Label htmlFor="custo" className="text-sm">Custo</Label>
+              <Input
+                id="custo"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={editandoProduto ? editCusto : novoCusto}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (editandoProduto) {
+                    setEditCusto(val);
+                    if (editMargem) setEditPreco(calculatePrecoFromMargem(val, editMargem));
+                    else if (editPreco) setEditMargem(calculateMargemFromPreco(val, editPreco));
+                  } else {
+                    setNovoCusto(val);
+                    if (novoMargem) setNovoPreco(calculatePrecoFromMargem(val, novoMargem));
+                    else if (novoPreco) setNovoMargem(calculateMargemFromPreco(val, novoPreco));
+                  }
+                }}
+                className="h-9 sm:h-10 text-sm"
+              />
+            </div>
+            {/* Campo Margem (apenas visual) */}
+            <div>
+              <Label htmlFor="margem" className="text-sm">Margem (%)</Label>
+              <Input
+                id="margem"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={editandoProduto ? editMargem : novoMargem}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (editandoProduto) {
+                    setEditMargem(val);
+                    if (editCusto) setEditPreco(calculatePrecoFromMargem(editCusto, val));
+                  } else {
+                    setNovoMargem(val);
+                    if (novoCusto) setNovoPreco(calculatePrecoFromMargem(novoCusto, val));
+                  }
+                }}
+                className="h-9 sm:h-10 text-sm"
+              />
+            </div>
+
+            {/* Campo Preço */}
             <div>
               <Label htmlFor="preco" className="text-sm">Preço</Label>
               <Input
@@ -427,8 +508,32 @@ const ProdutosPage = () => {
                 min="0"
                 placeholder="0.00"
                 value={editandoProduto ? editPreco : novoPreco}
-                onChange={(e) => editandoProduto ? setEditPreco(e.target.value) : setNovoPreco(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (editandoProduto) {
+                    setEditPreco(val);
+                    if (editCusto) setEditMargem(calculateMargemFromPreco(editCusto, val));
+                  } else {
+                    setNovoPreco(val);
+                    if (novoCusto) setNovoMargem(calculateMargemFromPreco(novoCusto, val));
+                  }
+                }}
                 required
+                className="h-9 sm:h-10 text-sm"
+              />
+            </div>
+
+            {/* Campo Estoque */}
+            <div>
+              <Label htmlFor="estoque" className="text-sm">Estoque</Label>
+              <Input
+                id="estoque"
+                type="number"
+                step="1"
+                min="0"
+                placeholder="0"
+                value={editandoProduto ? editEstoque : novoEstoque}
+                onChange={(e) => editandoProduto ? setEditEstoque(e.target.value) : setNovoEstoque(e.target.value)}
                 className="h-9 sm:h-10 text-sm"
               />
             </div>
@@ -632,8 +737,10 @@ const ProdutosPage = () => {
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium text-gray-800 truncate">{prod.nome}</h4>
                     <p className="text-xs text-gray-500">{prod.categoria_nome}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-semibold">R$ {parseFloat(prod.preco).toFixed(2)}</span>
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      <span className="text-xs text-gray-600">Custo: {prod.custo ? `R$ ${parseFloat(prod.custo).toFixed(2)}` : '-'}</span>
+                      <span className="text-xs text-gray-600">Margem: {prod.custo && prod.preco ? `${calculateMargemFromPreco(prod.custo, prod.preco)}%` : '-'}</span>
+                      <span className="text-sm font-semibold">Preço: R$ {parseFloat(prod.preco).toFixed(2)}</span>
                       {prod.promo_ativa && (
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Promoção</span>
                       )}
@@ -687,7 +794,10 @@ const ProdutosPage = () => {
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Foto</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Nome</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Categoria</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Custo</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Margem</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Preço</TableHead>
+                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Estoque</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Promoção</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Tributação</TableHead>
                   <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
@@ -711,7 +821,12 @@ const ProdutosPage = () => {
                     </TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.nome}</TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.categoria_nome}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.custo !== undefined ? `R$ ${parseFloat(prod.custo).toFixed(2)}` : '-'}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
+                      {prod.custo && prod.preco ? `${calculateMargemFromPreco(prod.custo, prod.preco)}%` : '-'}
+                    </TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">R$ {parseFloat(prod.preco).toFixed(2)}</TableCell>
+                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{prod.estoque !== undefined ? prod.estoque : '-'}</TableCell>
                     <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
                       {prod.promo_ativa ? (
                         <p className="text-green-600 font-semibold">R$ {parseFloat(prod.promocao).toFixed(2)}</p>
