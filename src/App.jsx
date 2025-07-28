@@ -14,7 +14,6 @@ import LoginGerencial from './components/gerencial/LoginGerencial';
 import Dashboard from './components/gerencial/Dashboard';
 import PedidosPage from './components/gerencial/PedidosPage';
 import CaixaPage from './components/gerencial/CaixaPage';
-import RelatoriosPage from './components/gerencial/RelatoriosPage';
 import OrderStatusPage from './components/cardapio/OrderStatusPage';
 import OrderStatusPagePublic from './components/cardapio/OrderStatusPagePublic';
 
@@ -30,6 +29,8 @@ import VitrineEmpresas from './components/Comercial/VitrineEmpresas';
 //Relatorios
 import RelCaixa from './components/relatorios/RelCaixa';
 import RelPedidos from './components/relatorios/RelPedidos';
+import RelEstoque from './components/relatorios/RelEstoque';
+import RelatoriosPage from './components/relatorios/RelatoriosPage';
 
 import './App.css';
 
@@ -103,6 +104,16 @@ function App() {
                   <RelPedidos/>
                 </LayoutGerencial>
               } />
+              <Route path="/gerencial/:slug/relatorios/estoque" element={
+                <LayoutGerencial>
+                  <RelEstoque/>
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/relatorios" element={
+                <LayoutGerencial>
+                  <RelatoriosPage/>
+                </LayoutGerencial>
+              } />
               
               {/* Pedidos */}
               <Route path="/gerencial/:slug/pedidos" element={
@@ -124,13 +135,6 @@ function App() {
                 </LayoutGerencial>
               } />
               
-              {/* Relatórios */}
-              <Route path="/gerencial/:slug/relatorios" element={
-                <LayoutGerencial>
-                  <RelatoriosPage />
-                </LayoutGerencial>
-              } />
-
               {/* ROTAS PARA OS SUB-MENUS DE CADASTROS */}
               <Route path="/gerencial/:slug/cadastros/categorias" element={
                 <LayoutGerencial>

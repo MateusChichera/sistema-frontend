@@ -24,7 +24,8 @@ import {
   NotebookPen,
   Bike,
   DollarSign,
-  QrCode
+  QrCode,
+  Box
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import api from '../../services/api';
@@ -110,13 +111,8 @@ const LayoutGerencial = ({ children }) => {
         { name: 'Mesas', icon: Table, path: `/gerencial/${currentSlug}/cadastros/mesas`, roles: ['Proprietario', 'Gerente'] },
       ]
     },
-    
-    { name: 'Relatórios', icon: BarChart3, isParent: true, path: `/gerencial/${currentSlug}/relatorios`, roles: ['Proprietario', 'Gerente'],
-      subMenu: [
-        { name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
-        { name: 'Caixa', icon: CreditCard, path: `/gerencial/${currentSlug}/relatorios/caixa`, roles: ['Proprietario', 'Gerente'] },
-        { name: 'Pedidos', icon: Package, path: `/gerencial/${currentSlug}/relatorios/pedidos`, roles: ['Proprietario', 'Gerente'] }
-      ],},
+    { name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+    { name: 'Relatórios', icon: BarChart3, path: `/gerencial/${currentSlug}/relatorios`, roles: ['Proprietario', 'Gerente'] },
     { name: 'Configurações', icon: Settings, path: `/gerencial/${currentSlug}/configuracoes`, roles: ['Proprietario', 'Gerente'] },
   ];
 
