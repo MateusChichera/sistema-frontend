@@ -32,6 +32,8 @@ import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import QRCodeGerador from '../gerencial/QRCodeGerador';
 
+
+
 const LayoutGerencial = ({ children }) => {
   const { user, logout } = useAuth();
   const { empresa, loading: empresaLoading, isReady, loadEmpresa } = useEmpresa();
@@ -44,6 +46,8 @@ const LayoutGerencial = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentResolvedSlug, setCurrentResolvedSlug] = useState(null);
   const [showQrModal, setShowQrModal] = useState(false);
+
+
 
   // Estado local para switches
   const [deliveryAtivo, setDeliveryAtivo] = useState(!empresa?.desativar_entrega);
@@ -108,7 +112,11 @@ const LayoutGerencial = ({ children }) => {
     },
     
     { name: 'Relatórios', icon: BarChart3, isParent: true, path: `/gerencial/${currentSlug}/relatorios`, roles: ['Proprietario', 'Gerente'],
-      subMenu: [{ name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] }],},
+      subMenu: [
+        { name: 'Dashboard', icon: LayoutDashboard, path: `/gerencial/${currentSlug}/dashboard`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+        { name: 'Caixa', icon: CreditCard, path: `/gerencial/${currentSlug}/relatorios/caixa`, roles: ['Proprietario', 'Gerente'] },
+        { name: 'Pedidos', icon: Package, path: `/gerencial/${currentSlug}/relatorios/pedidos`, roles: ['Proprietario', 'Gerente'] }
+      ],},
     { name: 'Configurações', icon: Settings, path: `/gerencial/${currentSlug}/configuracoes`, roles: ['Proprietario', 'Gerente'] },
   ];
 
@@ -369,6 +377,9 @@ const LayoutGerencial = ({ children }) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Relatórios */}
+
       </main>
     </div>
   );

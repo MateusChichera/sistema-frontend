@@ -27,6 +27,10 @@ import LayoutAdmin from './components/layout/LayoutAdmin';
 import LandingPage from './components/Comercial/LandingPage';
 import VitrineEmpresas from './components/Comercial/VitrineEmpresas';
 
+//Relatorios
+import RelCaixa from './components/relatorios/RelCaixa';
+import RelPedidos from './components/relatorios/RelPedidos';
+
 import './App.css';
 
 // IMPORTAR AS PÁGINAS DE CADASTRO
@@ -87,6 +91,16 @@ function App() {
                <Route path="/gerencial/:slug/mesas" element={
                 <LayoutGerencial>
                   <CardapioPage/>
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/relatorios/caixa" element={
+                <LayoutGerencial>
+                  <RelCaixa/>
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/relatorios/pedidos" element={
+                <LayoutGerencial>
+                  <RelPedidos/>
                 </LayoutGerencial>
               } />
               
