@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react'; // Importe useEffect
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Building, LogOut, UserPlus, Menu } from 'lucide-react';
+import { LayoutDashboard, Building, LogOut, UserPlus, Menu, MessageSquare } from 'lucide-react';
 import { Button } from '../ui/button';
 
 const LayoutAdmin = ({ children }) => {
@@ -36,6 +36,7 @@ const LayoutAdmin = ({ children }) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
     { name: 'Empresas', icon: Building, path: '/admin/empresas' },
+    { name: 'Avisos', icon: MessageSquare, path: '/admin/avisos' },
   ];
 
   const handleLogout = () => {

@@ -32,7 +32,8 @@ import api from '../../services/api';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import QRCodeGerador from '../gerencial/QRCodeGerador';
-
+import AvisosModal from '../gerencial/AvisosModal';
+import AvisosToast from '../gerencial/AvisosToast';
 
 
 const LayoutGerencial = ({ children }) => {
@@ -287,20 +288,25 @@ const LayoutGerencial = ({ children }) => {
           </div>
 
           <div className="flex-shrink-0 p-4 border-t">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-primary-foreground">
-                  {user?.nome ? user.nome.charAt(0) : 'U'}
-                </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary-foreground">
+                    {user?.nome ? user.nome.charAt(0) : 'U'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{user?.nome || 'Usuário'}</p>
+                  <p className="text-xs text-gray-600">{user?.role || 'Visitante'}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{user?.nome || 'Usuário'}</p>
-                <p className="text-xs text-gray-600">{user?.role || 'Visitante'}</p>
+              <div className="flex items-center gap-2">
+                <AvisosModal />
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>
@@ -353,9 +359,12 @@ const LayoutGerencial = ({ children }) => {
                 <p className="text-sm font-medium text-gray-900">{user?.nome || 'Usuário'}</p>
                 <p className="text-xs text-gray-600">{user?.role || 'Visitante'}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
-                <LogOut className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <AvisosModal />
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </>
         )}
@@ -377,6 +386,9 @@ const LayoutGerencial = ({ children }) => {
         {/* Modal de Relatórios */}
 
       </main>
+      
+      {/* Toast de Avisos */}
+      <AvisosToast />
     </div>
   );
 };

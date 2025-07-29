@@ -45,6 +45,7 @@ import ConfiguracoesPage from './components/gerencial/ConfiguracoesPage';
 
 // IMPORTAR A PÁGINA DO ADMIN MASTER
 import AdminDashboardPage from './components/admin/AdminDashboardPage';
+import AvisosPage from './components/admin/AvisosPage';
 import SessionExpiredHandler from './components/SessionExpiredHandler';
 
 
@@ -193,6 +194,12 @@ function App() {
               <Route path="/admin/empresas" element={
                 <LayoutAdmin>
                   <AdminDashboardPage />
+                </LayoutAdmin>
+              } />
+              {/* Rota para gerenciar avisos */}
+              <Route path="/admin/avisos" element={
+                <LayoutAdmin>
+                  <AvisosPage />
                 </LayoutAdmin>
               } />
 
