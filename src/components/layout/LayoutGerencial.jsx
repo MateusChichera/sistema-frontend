@@ -166,8 +166,8 @@ const LayoutGerencial = ({ children }) => {
     }
   };
 
-  const renderMenuItems = () =>
-    menuItems.map((item) => {
+  const renderMenuItems = () => {
+    const menuElements = menuItems.map((item) => {
       if (!item.roles.includes(user?.role)) return null;
       const Icon = item.icon;
       const isActive = location.pathname.startsWith(item.path);
@@ -244,6 +244,62 @@ const LayoutGerencial = ({ children }) => {
       }
     });
 
+    // Adiciona os switches e informações do usuário após o menu "Configurações"
+    const configIndex = menuItems.findIndex(item => item.name === 'Configurações');
+    if (configIndex !== -1) {
+      const configElement = menuElements[configIndex];
+      if (configElement) {
+        // Insere os switches e informações do usuário após o item "Configurações"
+        menuElements.splice(configIndex + 1, 0, (
+          <div key="switches-and-user" className="px-2 py-2">
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="switch-delivery"
+                  checked={deliveryAtivo}
+                  onCheckedChange={checked => handleToggleConfig('desativar_entrega', !checked)}
+                />
+                <span className={`text-sm font-semibold ${deliveryAtivo ? 'text-green-700' : 'text-red-600'}`}>{deliveryAtivo ? 'Delivery aberto' : 'Delivery fechado'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="switch-retirada"
+                  checked={retiradaAtiva}
+                  onCheckedChange={checked => handleToggleConfig('desativar_retirada', !checked)}
+                />
+                <span className={`text-sm font-semibold ${retiradaAtiva ? 'text-green-700' : 'text-red-600'}`}>{retiradaAtiva ? 'Retirada aberta' : 'Retirada fechada'}</span>
+              </div>
+            </div>
+            
+            <div className="flex-shrink-0 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary-foreground">
+                      {user?.nome ? user.nome.charAt(0) : 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{user?.nome || 'Usuário'}</p>
+                    <p className="text-xs text-gray-600">{user?.role || 'Visitante'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AvisosModal />
+                  <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ));
+      }
+    }
+
+    return menuElements;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       {/* Sidebar Desktop */}
@@ -264,50 +320,6 @@ const LayoutGerencial = ({ children }) => {
           <div className="mt-8 flex-grow flex flex-col">
             <nav className="flex-1 px-2 space-y-1">{renderMenuItems()}</nav>
           </div>
-
-          {/* Switches acima do usuário/logout */}
-          <div className="px-4 pb-2">
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="switch-delivery"
-                  checked={deliveryAtivo}
-                  onCheckedChange={checked => handleToggleConfig('desativar_entrega', !checked)}
-                />
-                <span className={`text-sm font-semibold ${deliveryAtivo ? 'text-green-700' : 'text-red-600'}`}>{deliveryAtivo ? 'Delivery aberto' : 'Delivery fechado'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="switch-retirada"
-                  checked={retiradaAtiva}
-                  onCheckedChange={checked => handleToggleConfig('desativar_retirada', !checked)}
-                />
-                <span className={`text-sm font-semibold ${retiradaAtiva ? 'text-green-700' : 'text-red-600'}`}>{retiradaAtiva ? 'Retirada aberta' : 'Retirada fechada'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-shrink-0 p-4 border-t">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary-foreground">
-                    {user?.nome ? user.nome.charAt(0) : 'U'}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{user?.nome || 'Usuário'}</p>
-                  <p className="text-xs text-gray-600">{user?.role || 'Visitante'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <AvisosModal />
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -326,47 +338,9 @@ const LayoutGerencial = ({ children }) => {
             <Menu className="h-5 w-5" />
           </Button>
         </div>
-        {/* Switches no mobile só aparecem quando o menu está aberto */}
+        {/* Menu mobile */}
         {isMobileMenuOpen && (
-          <>
-            <div className="mt-2">{renderMenuItems()}</div>
-            {/* Switches acima do usuário/logout no mobile */}
-            <div className="flex flex-col gap-2 mt-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="switch-delivery-mobile"
-                  checked={deliveryAtivo}
-                  onCheckedChange={checked => handleToggleConfig('desativar_entrega', !checked)}
-                />
-                <span className={`text-sm font-semibold ${deliveryAtivo ? 'text-green-700' : 'text-red-600'}`}>{deliveryAtivo ? 'Delivery aberto' : 'Delivery fechado'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="switch-retirada-mobile"
-                  checked={retiradaAtiva}
-                  onCheckedChange={checked => handleToggleConfig('desativar_retirada', !checked)}
-                />
-                <span className={`text-sm font-semibold ${retiradaAtiva ? 'text-green-700' : 'text-red-600'}`}>{retiradaAtiva ? 'Retirada aberta' : 'Retirada fechada'}</span>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-2 border-t pt-4">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-primary-foreground">
-                  {user?.nome ? user.nome.charAt(0) : 'U'}
-                </span>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{user?.nome || 'Usuário'}</p>
-                <p className="text-xs text-gray-600">{user?.role || 'Visitante'}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <AvisosModal />
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </>
+          <div className="mt-2">{renderMenuItems()}</div>
         )}
       </div>
 
