@@ -35,7 +35,7 @@ const LoginGerencial = ({ admin = false }) => {
       if (admin) {
         navigate('/admin/dashboard');
       } else {
-        navigate(`/gerencial/${targetSlug}/dashboard`);
+        navigate(`/gerencial/${targetSlug}/inicio`);
       }
     } else {
       setError(result.error);
@@ -125,7 +125,7 @@ const LoginGerencial = ({ admin = false }) => {
           {/* Informações da empresa no rodapé */}
           <div className="text-center text-sm text-gray-500 mt-4">
             <p>
-              <strong style={{ color: '#000000' }}>Athos Software</strong> | CNPJ: 12.345.678/0001-90<br />
+              <strong style={{ color: '#000000' }}>Athos Software</strong><br />
               Presidente Prudente, SP
             </p>
             <p className="mt-1" style={{ color: '#1F539C' }}>

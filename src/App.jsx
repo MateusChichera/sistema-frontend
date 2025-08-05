@@ -11,6 +11,7 @@ import FinalizarPedido from './components/cardapio/FinalizarPedido';
 
 // Páginas Gerenciais
 import LoginGerencial from './components/gerencial/LoginGerencial';
+import WelcomePage from './components/gerencial/WelcomePage';
 import Dashboard from './components/gerencial/Dashboard';
 import PedidosPage from './components/gerencial/PedidosPage';
 import CaixaPage from './components/gerencial/CaixaPage';
@@ -84,6 +85,12 @@ function App() {
               <Route path="/gerencial/:slug" element={<LoginGerencial />} />
               
               {/* ROTAS GERENCIAIS - Cada rota define seu layout e página */}
+              {/* Página Inicial */}
+              <Route path="/gerencial/:slug/inicio" element={
+                <LayoutGerencial>
+                  <WelcomePage />
+                </LayoutGerencial>
+              } />
               {/* Dashboard */}
               <Route path="/gerencial/:slug/dashboard" element={
                 <LayoutGerencial>

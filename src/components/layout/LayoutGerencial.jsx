@@ -25,7 +25,8 @@ import {
   Bike,
   DollarSign,
   QrCode,
-  Box
+  Box,
+  Home
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import api from '../../services/api';
@@ -84,6 +85,7 @@ const LayoutGerencial = ({ children }) => {
   const currentSlug = currentResolvedSlug;
 
   const menuItems = [
+    { name: 'Início', icon: Home, path: `/gerencial/${currentSlug}/inicio`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Caixa', icon: DollarSign, path: `/gerencial/${currentSlug}/caixa`, roles: ['Proprietario', 'Gerente', 'Caixa'] },
     { name: 'Mesas', icon: NotebookPen, path: `/gerencial/${currentSlug}/mesas`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Delivery', icon: Bike, path: `/gerencial/${currentSlug}/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },

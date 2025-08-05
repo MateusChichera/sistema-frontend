@@ -18,7 +18,7 @@ const SessionExpiredHandler = () => {
         if (empresa && empresa.slug) {
           navigate(`/gerencial/${empresa.slug}`);
         } else {
-          navigate('/gerencial');
+          navigate('/');
         }
       };
       // Retorna função de cleanup para garantir que não fica preso
@@ -40,11 +40,11 @@ const SessionExpiredHandler = () => {
         <DialogFooter>
           <Button onClick={() => {
             handleSessionExpiredClose();
-            if (empresa && empresa.slug) {
-              navigate(`/gerencial/${empresa.slug}`);
-            } else {
-              navigate('/gerencial');
-            }
+                      if (empresa && empresa.slug) {
+            navigate(`/gerencial/${empresa.slug}`);
+          } else {
+            navigate('/');
+          }
           }}>OK</Button>
         </DialogFooter>
       </DialogContent>
