@@ -117,11 +117,11 @@ const PedidosPage = () => {
 
     // Função para gerar o conteúdo do cupom para impressão
     const generatePrintContent = useCallback((pedido) => {
-        const headerStyle = `font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 14px; font-weight: bold; line-height: 1.2; width: 76mm; margin: 0 auto; padding: 0 2mm;`;
-        const itemStyle = `font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 14px; font-weight: bold; line-height: 1.2;`;
-        const totalStyle = `font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; font-weight: bold; line-height: 1.2;`;
+        const headerStyle = `font-family: Arial, sans-serif; font-size: 18px; font-weight: normal; line-height: 1.2; width: 76mm; margin: 0 auto; padding: 0 2mm;`;
+        const itemStyle = `font-family: Arial, sans-serif; font-size: 20px; font-weight: normal; line-height: 1.2;`;
+        const totalStyle = `font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; line-height: 1.2;`;
         const hrStyle = `border-top: 1px dashed black; margin: 5px 0;`;
-        const pStyle = `margin: 0; padding: 2px 0; font-weight: bold; font-size: 14px;`;
+        const pStyle = `margin: 0; padding: 2px 0; font-weight: normal; font-size: 18px;`;
 
         let content = `
             <html>
@@ -139,7 +139,7 @@ const PedidosPage = () => {
             </head>
             <body>
                 <div style="width: 100%;">
-                    <h3 style="text-align: center; margin-bottom: 5px;">${empresa.nome_fantasia || 'Nome da Empresa'}</h3>
+                    <h3 style="text-align: center; margin-bottom: 5px; font-size: 18px; font-weight: bold;">${empresa.nome_fantasia || 'Nome da Empresa'}</h3>
                     <p style="text-align: center; ${pStyle}">${empresa.endereco || ''}, ${empresa.cidade || ''}</p>
                     <p style="text-align: center; ${pStyle}">Tel: ${empresa.telefone_contato || ''}</p>
                     <hr>
@@ -184,7 +184,7 @@ const PedidosPage = () => {
                     <tr>
                         <th style="text-align: left; ${itemStyle}">Qtd</th>
                         <th style="text-align: left; ${itemStyle}">Item</th>
-                        <th style="text-align: right; ${itemStyle}">Vl Unit</th>
+                        <th style="text-align: left; ${itemStyle}">Vl Unit</th>
                         <th style="text-align: right; ${itemStyle}">Vl Total</th>
                     </tr>
                 </thead>
@@ -194,9 +194,9 @@ const PedidosPage = () => {
         (pedido.itens || []).forEach(item => {
             content += `
                     <tr class="item-row">
-                        <td>${item.quantidade}x</td>
+                        <td style="text-align: left;">${item.quantidade}x</td>
                         <td>${item.nome_produto}</td>
-                        <td style="text-align: right;">${parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</td>
+                        <td style="text-align: left;">${parseFloat(item.preco_unitario || 0).toFixed(2).replace('.', ',')}</td>
                         <td style="text-align: right;">R$ ${(parseFloat(item.quantidade || 0) * parseFloat(item.preco_unitario || 0)).toFixed(2).replace('.', ',')}</td>
                     </tr>
             `;
@@ -227,8 +227,8 @@ const PedidosPage = () => {
             </table>
             <hr>
             <p ${pStyle}"><strong>DETALHES DO PAGAMENTO:</strong></p>
-            <p class="total">TAXA DE ENTREGA: R$ ${parseFloat(pedido.taxa_entrega || 0).toFixed(2).replace('.', ',')}</p>
-            <p class="total">VALOR TOTAL: R$ ${parseFloat(pedido.valor_total || 0).toFixed(2).replace('.', ',')}</p>
+            <p class="total" style="font-size: 16px; font-weight: bold;">TAXA DE ENTREGA: R$ ${parseFloat(pedido.taxa_entrega || 0).toFixed(2).replace('.', ',')}</p>
+            <p class="total" style="font-size: 16px; font-weight: bold;">VALOR TOTAL: R$ ${parseFloat(pedido.valor_total || 0).toFixed(2).replace('.', ',')}</p>
             <p class="total">TROCO: R$ ${parseFloat(pedido.troco || 0).toFixed(2).replace('.', ',')}</p>
             <p class="total">FORMA DE PAGAMENTO: ${pedido.formapagamento || 'N/A'}</p>
             <hr>

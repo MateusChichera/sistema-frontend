@@ -10,7 +10,7 @@ import { useEmpresa } from '../../contexts/EmpresaContext';
 const statusSteps = [
   { key: 'Recebido', label: 'Recebido', icon: <Clock className="h-5 w-5" /> },
   { key: 'Preparando', label: 'Preparando', icon: <Utensils className="h-5 w-5" /> },
-  { key: 'Pronto', label: 'Pronto', icon: <CheckCircle className="h-5 w-5" /> },
+  { key: 'Pronto', label: 'Saiu para entrega', icon: <CheckCircle className="h-5 w-5" /> },
   { key: 'Entregue', label: 'Entregue', icon: <Truck className="h-5 w-5" /> },
   { key: 'Cancelado', label: 'Cancelado', icon: <XCircle className="h-5 w-5" /> },
 ];

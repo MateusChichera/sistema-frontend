@@ -844,30 +844,30 @@ const CaixaPage = () => {
             <head>
                 <title>Cupom Pedido #${pedidoToPrint.numero_pedido}</title>
                 <style>
-                    /* Fonte Arial para melhor legibilidade em impressoras térmicas, tamanhos aumentados */
-                    body { font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 2mm 12px 2mm; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    /* Fonte Arial para melhor legibilidade em impressoras térmicas */
+                    body { font-family: Arial, sans-serif; font-size: 18px; font-weight: normal; margin: 0; padding: 12px 2mm 12px 2mm; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     .container { width: 76mm; max-width: 76mm; margin: 0 auto; padding: 0; }
                     .header, .footer { text-align: center; margin-bottom: 10px; }
-                    .header h2 { margin: 0; font-size: 16px; font-weight: bold; color: #000; } /* Aumentado h2 */
-                    .header p { margin: 1px 0; font-size: 12px; font-weight: bold; color: #000; } /* Aumentado p do header */
-                    .section-title { font-weight: bold; margin-top: 10px; margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 3px; color: #000; font-size: 14px; }
-                    .item { display: flex; justify-content: space-between; margin-bottom: 2px; font-weight: bold; font-size: 14px; }
-                    .item-name { flex-grow: 1; text-align: left; font-weight: bold; font-size: 14px; }
-                    .item-qty { width: 25px; text-align: center; font-weight: bold; font-size: 14px; }
-                    .item-price { display: inline-block; width: 45px; text-align: right; white-space: nowrap; padding-left: 2px; font-weight: bold; font-size: 14px; }
-                    .item-total { display: inline-block; width: 50px; text-align: right; white-space: nowrap; font-weight: bold; font-size: 14px; }
-                    .total-row { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 4px; border-top: 1px dashed #000; font-size: 15px; font-weight: bold; color: #000; } /* Aumentado font-size */
-                    .footer-message { font-size: 12px; margin-top: 10px; color: #000; font-weight: bold; } /* Aumentado font-size */
+                    .header h2 { margin: 0; font-size: 18px; font-weight: bold; color: #000; } /* Título mantido */
+                    .header p { margin: 1px 0; font-size: 16px; font-weight: normal; color: #000; } /* Informações do header aumentadas */
+                    .section-title { font-weight: bold; margin-top: 10px; margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 3px; color: #000; font-size: 16px; } /* Seções mantidas */
+                    .item { display: flex; justify-content: space-between; margin-bottom: 2px; font-weight: normal; font-size: 20px; }
+                    .item-name { flex-grow: 1; text-align: left; font-weight: normal; font-size: 20px; }
+                    .item-qty { width: 25px; text-align: left; font-weight: normal; font-size: 20px; }
+                    .item-price { display: inline-block; width: 45px; text-align: left; white-space: nowrap; padding-left: 2px; font-weight: normal; font-size: 20px; }
+                    .item-total { display: inline-block; width: 50px; text-align: right; white-space: nowrap; font-weight: normal; font-size: 20px; }
+                    .total-row { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 4px; border-top: 1px dashed #000; font-size: 16px; font-weight: bold; color: #000; } /* Totais mantidos */
+                    .footer-message { font-size: 16px; margin-top: 10px; color: #000; font-weight: normal; } /* Footer aumentado */
                     
                     /* Forçar preto e branco */
-                    * { color: #000 !important; background-color: #FFF !important; font-weight: bold !important; }
+                    * { color: #000 !important; background-color: #FFF !important; }
                     hr { border-color: #000 !important; }
                     .total-row { border-color: #000 !important; }
                     .section-title { border-color: #000 !important; }
                     img { filter: grayscale(100%) brightness(0%); } /* Tenta deixar logo preto e branco */
 
                     @media print {
-                        body { print-color-adjust: exact; -webkit-print-adjust: exact; font-weight: bold; }
+                        body { print-color-adjust: exact; -webkit-print-adjust: exact; font-weight: normal; }
                         .container { width: 76mm; margin: 0; padding: 0; }
                         button { display: none; }
                         /* Sugestão para impressora térmica: */
@@ -885,7 +885,7 @@ const CaixaPage = () => {
                         <h2>${empresa.nome_fantasia || 'Seu Restaurante'}</h2>
                         <p>${empresa.razao_social || ''}</p>
                         <p>CNPJ: ${empresa.cnpj || 'Não informado'}</p>
-                        <p>${pedidoToPrint.tipo_entrega === 'Delivery' && pedidoToPrint.endereco_entrega ? `Endereço: ${pedidoToPrint.endereco_entrega}, ${pedidoToPrint.numero_entrega || ''} - ${pedidoToPrint.bairro_entrega || ''}, ${pedidoToPrint.cidade_entrega || ''} - ${pedidoToPrint.estado_entrega || ''} ${pedidoToPrint.cep_entrega || ''}` : empresa.endereco || ''}</p>
+                        <p>${empresa.endereco || ''}</p>
                         <p>Tel: ${empresa.telefone_contato || ''}</p>
                         <p>Email: ${empresa.email_contato || ''}</p>
                         <hr style="border: none; border-top: 1px dashed #000; margin: 10px 0;">
@@ -905,10 +905,10 @@ const CaixaPage = () => {
                     ${pedidoToPrint.nome_funcionario ? `<p><strong>Atendente:</strong> ${pedidoToPrint.nome_funcionario}</p>` : ''}
 
                     <div class="section-title">ITENS DO PEDIDO</div>
-                    <div style="font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <div style="font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 20px;">
                         <span class="item-name">Desc.</span>
-                        <span class="item-qty">Qtd</span>
-                        <span class="item-price">Unit.</span>
+                        <span class="item-qty" style="text-align: left;">Qtd</span>
+                        <span class="item-price" style="text-align: left;">Unit.</span>
                         <span class="item-total">Total</span>
                     </div>
                     ${(pedidoToPrint.itens && pedidoToPrint.itens.length > 0) ? pedidoToPrint.itens.map(item => `
@@ -933,7 +933,7 @@ const CaixaPage = () => {
                         <span>R$ ${parseFloat(pedidoToPrint.valor_total || 0).toFixed(2).replace('.', ',')}</span>
                     </div>
                     ${pedidoToPrint.tipo_entrega === 'Delivery' && parseFloat(empresa?.taxa_entrega || 0) > 0 ? `
-                    <div class="total-row" style="font-size: 11px; font-weight: normal;">
+                    <div class="total-row" style="font-size: 16px; font-weight: bold;">
                         <span>TAXA DE ENTREGA:</span>
                         <span>R$ ${parseFloat(empresa.taxa_entrega).toFixed(2).replace('.', ',')}</span>
                     </div>` : ''}
@@ -1147,14 +1147,14 @@ const CaixaPage = () => {
         const win = window.open('', '_blank', 'width=300,height=500');
         if (!win) return;
         const content = `<html><head><title>Fechamento de Caixa</title><style>
-            body{font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-weight:bold;font-size:14px;margin:0;padding:0 2mm;}
+            body{font-family:Arial,sans-serif;font-weight:normal;font-size:18px;margin:0;padding:0 2mm;}
             .container{width:76mm;margin:0 auto;padding:0 2mm;}
-            h3{text-align:center;margin:4px 0;font-weight:bold;font-size:16px;}
-            p{margin:2px 0;font-weight:bold;font-size:14px;}
-            table{width:100%;font-size:14px;font-weight:bold;border-collapse:collapse;margin-top:4px;}
-            th,td{text-align:left;padding:2px;font-weight:bold;font-size:14px;}
-            th{border-bottom:1px solid #000;}
-            @media print{@page{size:80mm auto;margin:0;} body{font-weight:bold;font-size:14px;}}
+            h3{text-align:center;margin:4px 0;font-weight:bold;font-size:18px;}
+            p{margin:2px 0;font-weight:normal;font-size:18px;}
+            table{width:100%;font-size:18px;font-weight:normal;border-collapse:collapse;margin-top:4px;}
+            th,td{text-align:left;padding:2px;font-weight:normal;font-size:18px;}
+            th{border-bottom:1px solid #000;font-weight:bold;font-size:16px;}
+            @media print{@page{size:80mm auto;margin:0;} body{font-weight:normal;font-size:18px;}}
         </style></head><body><div class="container">
              <h3>FECHAMENTO DE CAIXA</h3>
              <p>Data/Hora: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
@@ -1181,11 +1181,11 @@ const CaixaPage = () => {
         const win = window.open('', '_blank', 'width=300,height=400');
         if (!win) return;
         const content = `<html><head><title>${tipo}</title><style>
-            body{font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-weight:bold;font-size:14px;margin:0;padding:0 2mm;}
+            body{font-family:Arial,sans-serif;font-weight:normal;font-size:18px;margin:0;padding:0 2mm;}
             .container{width:76mm;margin:0 auto;padding:0 2mm;}
-            h3{text-align:center;margin:4px 0;font-weight:bold;font-size:16px;}
-            p{margin:2px 0;font-weight:bold;font-size:14px;}
-            @media print{@page{size:80mm auto;margin:0;} body{font-weight:bold;font-size:14px;}}
+            h3{text-align:center;margin:4px 0;font-weight:bold;font-size:18px;}
+            p{margin:2px 0;font-weight:normal;font-size:18px;}
+            @media print{@page{size:80mm auto;margin:0;} body{font-weight:normal;font-size:18px;}}
         </style></head><body><div class="container">
             <h3>${tipo.toUpperCase()}</h3>
             <p>Data/Hora: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>

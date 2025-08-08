@@ -11,7 +11,7 @@ const QRCodeGerador = ({ slug }) => {
     const printContents = printRef.current.innerHTML;
     const win = window.open('', '', 'height=700,width=900');
     win.document.write('<html><head><title>Imprimir QRCode</title>');
-    win.document.write('<style>body{margin:0;padding:0 2mm;font-weight:bold;font-size:14px;font-family:Arial,Helvetica,sans-serif;} .qrcode-print-a4{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;} .qrcode-item{display:flex;flex-direction:column;align-items:center;margin:16px;} .qrcode-link{font-size:14px;font-weight:bold;word-break:break-all;text-align:center;margin-top:8px;font-family:Arial,Helvetica,sans-serif;} .qrcode-print-80mm{display:flex;flex-direction:column;align-items:center;width:76mm;margin:0 auto;} @media print{@page{size:80mm auto;margin:0;} body{font-weight:bold;font-size:14px;font-family:Arial,Helvetica,sans-serif;}}</style>');
+    win.document.write('<style>body{margin:0;padding:0 2mm;font-weight:normal;font-size:18px;font-family:Arial,sans-serif;} .qrcode-print-a4{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;} .qrcode-item{display:flex;flex-direction:column;align-items:center;margin:16px;} .qrcode-link{font-size:18px;font-weight:normal;word-break:break-all;text-align:center;margin-top:8px;font-family:Arial,sans-serif;} .qrcode-print-80mm{display:flex;flex-direction:column;align-items:center;width:76mm;margin:0 auto;} @media print{@page{size:80mm auto;margin:0;} body{font-weight:normal;font-size:18px;font-family:Arial,sans-serif;}}</style>');
     win.document.write('</head><body>');
     win.document.write(printContents);
     win.document.write('</body></html>');
