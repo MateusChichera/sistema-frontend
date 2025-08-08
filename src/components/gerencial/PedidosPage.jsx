@@ -117,11 +117,11 @@ const PedidosPage = () => {
 
     // Função para gerar o conteúdo do cupom para impressão
     const generatePrintContent = useCallback((pedido) => {
-        const headerStyle = `font-family: 'monospace', 'Courier New', monospace; font-size: 10px; line-height: 1.2; width: 80mm; margin: 0 auto;`;
-        const itemStyle = `font-family: 'monospace', 'Courier New', monospace; font-size: 10px; line-height: 1.2;`;
-        const totalStyle = `font-family: 'monospace', 'Courier New', monospace; font-size: 12px; line-height: 1.2; font-weight: bold;`;
+        const headerStyle = `font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 14px; font-weight: bold; line-height: 1.2; width: 76mm; margin: 0 auto; padding: 0 2mm;`;
+        const itemStyle = `font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 14px; font-weight: bold; line-height: 1.2;`;
+        const totalStyle = `font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; font-weight: bold; line-height: 1.2;`;
         const hrStyle = `border-top: 1px dashed black; margin: 5px 0;`;
-        const pStyle = `margin: 0; padding: 2px 0;`;
+        const pStyle = `margin: 0; padding: 2px 0; font-weight: bold; font-size: 14px;`;
 
         let content = `
             <html>
