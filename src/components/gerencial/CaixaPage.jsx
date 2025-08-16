@@ -1969,7 +1969,7 @@ const CaixaPage = () => {
                                         <p>Valor Abertura: <strong>R$ {parseFloat(resumoCaixa.valor_abertura||0).toFixed(2).replace('.', ',')}</strong></p>
                                         <p>Total Pagamentos: <strong>R$ {parseFloat(resumoCaixa.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</strong></p>
                                         <p>Total Suprimentos: <strong>R$ {parseFloat(resumoCaixa.total_suprimentos||0).toFixed(2).replace('.', ',')}</strong></p>
-                                        <p>Total Sangrias: <strong>R$ {parseFloat(resumoCaixa.total_sangrias||0).toFixed(2).replace('.', ',')}</strong></p>
+                                        <p><strong className="text-red-600">Total Sangrias:</strong> <strong className="text-red-600">R$ {parseFloat(resumoCaixa.total_sangrias||0).toFixed(2).replace('.', ',')}</strong></p>
                                         <p className="font-bold text-base">Valor (Sistema): R$ {parseFloat(resumoCaixa.valor_fechamento_sistema_calculado||0).toFixed(2).replace('.', ',')}</p>
                                     </CardContent>
                                 </Card>
