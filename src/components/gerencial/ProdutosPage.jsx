@@ -613,19 +613,21 @@ const ProdutosPage = () => {
               />
             </div>
             <div>
-              <Label htmlFor="perfilTributario" className="text-sm">Perfil Tributário</Label>
-               <button
-                 type="button"
-                 ref={ajudaRef}
-                 onMouseEnter={() => setShowAjudaPerfil(true)}
-                 onMouseLeave={() => setShowAjudaPerfil(false)}
-                 className="ml-2 text-gray-500 bg-gray-200 rounded-full w-6 h-6 flex items-center justify-center text-base font-bold align-middle border border-gray-300 hover:bg-gray-300"
-                 style={{ cursor: 'pointer' }}
-                 tabIndex={-1}
-                 aria-label="Ajuda sobre perfis tributários"
-               >
-                 ?
-               </button>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="perfilTributario" className="text-sm">Perfil Tributário</Label>
+                <button
+                  type="button"
+                  ref={ajudaRef}
+                  onMouseEnter={() => setShowAjudaPerfil(true)}
+                  onMouseLeave={() => setShowAjudaPerfil(false)}
+                  className="text-gray-500 bg-gray-200 rounded-full w-4 h-4 flex items-center justify-center text-base font-bold align-middle border border-gray-300 hover:bg-gray-300"
+                  style={{ cursor: 'pointer' }}
+                  tabIndex={-1}
+                  aria-label="Ajuda sobre perfis tributários"
+                >
+                  ?
+                </button>
+              </div>
               <Select
                 value={editandoProduto ? editPerfilTributarioId : perfilTributarioId}
                 onValueChange={value => editandoProduto ? setEditPerfilTributarioId(value) : setPerfilTributarioId(value)}
@@ -639,24 +641,24 @@ const ProdutosPage = () => {
                   ))}
                 </SelectContent>
               </Select>
-               {showAjudaPerfil && (
-                 <div
-                   className="absolute z-50 mt-2 p-3 bg-blue-50 border border-blue-200 rounded text-xs text-gray-800 shadow max-w-md"
-                   style={{ left: '50%', transform: 'translateX(-50%)', minWidth: 260 }}
-                   onMouseEnter={() => setShowAjudaPerfil(true)}
-                   onMouseLeave={() => setShowAjudaPerfil(false)}
-                 >
-                   <strong>Explicação dos Perfis Tributários:</strong>
-                   <ul className="list-disc ml-4 mt-1 space-y-1">
-                     <li><b>ICMS 18%</b> - Venda padrão com ICMS cheio (CFOP 5102, CSOSN 102)</li>
-                     <li><b>ICMS 7%</b> - Venda com redução de ICMS (CFOP 5102, CSOSN 102)</li>
-                     <li><b>Isento</b> - Produto isento de impostos (CFOP 5102, CSOSN 400)</li>
-                     <li><b>Substituição Tributária</b> - ICMS recolhido na fonte (CFOP 5405, CSOSN 500)</li>
-                     <li><b>ICMS Fixo 12%</b> - Perfil personalizado com alíquota específica (CSOSN 900)</li>
-                     <li><b>Não Tributado</b> - Produto sem incidência de impostos (CFOP 5102, CSOSN 400)</li>
-                   </ul>
-                 </div>
-               )}
+              {showAjudaPerfil && (
+                <div
+                  className="absolute z-500 p-3 bg-blue-50 border border-blue-200 rounded text-xs text-gray-800 shadow max-w-md"
+                  style={{ minWidth: 260 }}
+                  onMouseEnter={() => setShowAjudaPerfil(true)}
+                  onMouseLeave={() => setShowAjudaPerfil(false)}
+                >
+                  <strong>Explicação dos Perfis Tributários:</strong>
+                  <ul className="list-disc ml-4 mt-1 space-y-1">
+                    <li><b>ICMS 18%</b> - Venda padrão com ICMS cheio (CFOP 5102, CSOSN 102)</li>
+                    <li><b>ICMS 7%</b> - Venda com redução de ICMS (CFOP 5102, CSOSN 102)</li>
+                    <li><b>Isento</b> - Produto isento de impostos (CFOP 5102, CSOSN 400)</li>
+                    <li><b>Substituição Tributária</b> - ICMS recolhido na fonte (CFOP 5405, CSOSN 500)</li>
+                    <li><b>ICMS Fixo 12%</b> - Perfil personalizado com alíquota específica (CSOSN 900)</li>
+                    <li><b>Não Tributado</b> - Produto sem incidência de impostos (CFOP 5102, CSOSN 400)</li>
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Seção de Adicionais - Apenas na edição */}
