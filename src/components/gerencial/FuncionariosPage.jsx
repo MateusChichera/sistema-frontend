@@ -18,6 +18,7 @@ const FuncionariosPage = () => {
   const [funcionarios, setFuncionarios] = useState([]);
   const [loadingFuncionarios, setLoadingFuncionarios] = useState(true);
   const [error, setError] = useState(null);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const { showError, ErrorDialogElement } = useErrorDialog();
 
   const [novoNome, setNovoNome] = useState('');
@@ -176,6 +177,13 @@ const FuncionariosPage = () => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
+  };
+
+  const handleKeyUp = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
+  };
 
   if (empresaLoading) {
     return <div className="p-4 text-center text-gray-600">Carregando dados da empresa...</div>;
@@ -240,9 +248,17 @@ const FuncionariosPage = () => {
               placeholder={editandoFuncionario ? 'Deixe em branco para manter a atual' : 'Defina uma senha'}
               value={editandoFuncionario ? editSenha : novaSenha}
               onChange={(e) => editandoFuncionario ? setEditSenha(e.target.value) : setNovaSenha(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
               required={!editandoFuncionario}
               className="h-9 sm:h-10 text-sm"
             />
+            {capsLockOn && (
+              <p className="text-amber-600 text-xs mt-1 flex items-center gap-1">
+                <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                Caps Lock está ativado
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="role" className="text-sm">Cargo (Role)</Label>

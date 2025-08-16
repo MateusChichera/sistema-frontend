@@ -34,6 +34,7 @@ const LoginRegisterModal = ({ onClose }) => {
   const [cepRegister, setCepRegister] = useState('');
   const [cidadeRegister, setCidadeRegister] = useState('');
   const [estadoRegister, setEstadoRegister] = useState('');
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -81,6 +82,14 @@ const LoginRegisterModal = ({ onClose }) => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
+  };
+
+  const handleKeyUp = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
+  };
+
   return (
     <div className="p-4">
       <DialogHeader>
@@ -115,8 +124,16 @@ const LoginRegisterModal = ({ onClose }) => {
                 placeholder="********"
                 value={passwordLogin}
                 onChange={(e) => setPasswordLogin(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onKeyUp={handleKeyUp}
                 required
               />
+              {capsLockOn && (
+                <p className="text-amber-600 text-xs mt-1 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                  Caps Lock está ativado
+                </p>
+              )}
             </div>
             {errorLogin && <p className="text-red-500 text-sm">{errorLogin}</p>}
             <DialogFooter>
@@ -174,7 +191,21 @@ const LoginRegisterModal = ({ onClose }) => {
             </div>
             <div>
               <Label htmlFor="passwordRegister">Senha</Label>
-              <Input id="passwordRegister" type="password" value={passwordRegister} onChange={(e) => setPasswordRegister(e.target.value)} required />
+              <Input 
+                id="passwordRegister" 
+                type="password" 
+                value={passwordRegister} 
+                onChange={(e) => setPasswordRegister(e.target.value)} 
+                onKeyDown={handleKeyDown}
+                onKeyUp={handleKeyUp}
+                required 
+              />
+              {capsLockOn && (
+                <p className="text-amber-600 text-xs mt-1 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                  Caps Lock está ativado
+                </p>
+              )}
             </div>
             {errorRegister && <p className="text-red-500 text-sm">{errorRegister}</p>}
             <DialogFooter>

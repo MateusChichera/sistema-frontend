@@ -42,6 +42,7 @@ const AdminDashboardPage = () => {
   const [isPessoaFisica, setIsPessoaFisica] = useState(false);
   const [isFetchingDoc, setIsFetchingDoc] = useState(false);
   const [docError, setDocError] = useState('');
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   // Estado para o campo de busca
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,6 +107,14 @@ const AdminDashboardPage = () => {
   const handleFormChange = (e) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleKeyDown = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
+  };
+
+  const handleKeyUp = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
   };
 
   const handleSelectChange = (id, value) => {
@@ -505,7 +514,21 @@ const AdminDashboardPage = () => {
                 </div>
                 <div>
                   <Label htmlFor="proprietario_senha">Senha do Proprietário</Label>
-                  <Input id="proprietario_senha" type="password" value={formData.proprietario_senha} onChange={handleFormChange} required />
+                  <Input 
+                    id="proprietario_senha" 
+                    type="password" 
+                    value={formData.proprietario_senha} 
+                    onChange={handleFormChange} 
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleKeyUp}
+                    required 
+                  />
+                  {capsLockOn && (
+                    <p className="text-amber-600 text-xs mt-1 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                      Caps Lock está ativado
+                    </p>
+                  )}
                 </div>
               </>
             )}

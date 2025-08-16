@@ -11,6 +11,7 @@ const LoginGerencial = ({ admin = false }) => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -40,6 +41,14 @@ const LoginGerencial = ({ admin = false }) => {
     } else {
       setError(result.error);
     }
+  };
+
+  const handleKeyDown = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
+  };
+
+  const handleKeyUp = (e) => {
+    setCapsLockOn(e.getModifierState('CapsLock'));
   };
 
   // Estilo customizado para o botão e input para usar a paleta de cores
@@ -100,11 +109,19 @@ const LoginGerencial = ({ admin = false }) => {
                   placeholder="********"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onKeyUp={handleKeyUp}
                   style={{ borderColor: '#e2e8f0' }} // Cor da borda padrão
                   onFocus={(e) => { e.target.style.borderColor = inputFocusStyle.borderColor; e.target.style.boxShadow = inputFocusStyle.boxShadow; }}
                   onBlur={(e) => { e.target.style.borderColor = ''; e.target.style.boxShadow = ''; }}
                   required
                 />
+                {capsLockOn && (
+                  <p className="text-amber-600 text-xs mt-1 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                    Caps Lock está ativado
+                  </p>
+                )}
               </div>
             </div>
             {error && <p className="text-red-500 text-sm mt-3 text-center">{error}</p>}
