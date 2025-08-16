@@ -10,10 +10,9 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Loader2, Calendar as CalendarIcon, Search as SearchIcon, Printer as PrinterIcon } from 'lucide-react';
+import { Loader2, Search as SearchIcon, Printer as PrinterIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { Calendar } from '../ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Switch } from '../ui/switch';
 import socket from '../../services/socket.js';
@@ -60,7 +59,7 @@ const PedidosPage = () => {
     const [updatingStatusPedidoId, setUpdatingStatusPedidoId] = useState(null);
 
     const [filterTipoEntrega, setFilterTipoEntrega] = useState('Delivery'); // Padrão: Delivery
-    const [filterDateRange, setFilterDateRange] = useState({ from: undefined, to: undefined });
+    const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [searchTerm, setSearchTerm] = useState('');
 
     const [selectedPedido, setSelectedPedido] = useState(null); // Estado para o modal de detalhes
@@ -275,11 +274,9 @@ const PedidosPage = () => {
             if (filterTipoEntrega !== 'all') {
                 queryParams.append('tipo_entrega', filterTipoEntrega);
             }
-            if (filterDateRange.from) {
-                queryParams.append('data_inicio', format(filterDateRange.from, 'yyyy-MM-dd'));
-            }
-            if (filterDateRange.to) {
-                queryParams.append('data_fim', format(filterDateRange.to, 'yyyy-MM-dd'));
+            if (filterDate) {
+                queryParams.append('data_inicio', filterDate);
+                queryParams.append('data_fim', filterDate);
             }
             if (searchQuery) {
                 queryParams.append('search', searchQuery);
@@ -321,7 +318,7 @@ const PedidosPage = () => {
         } finally {
             setLoadingPedidos(false);
         }
-    }, [empresa, empresaLoading, isReady, user, token, allowedRoles, filterTipoEntrega, filterDateRange]);
+    }, [empresa, empresaLoading, isReady, user, token, allowedRoles, filterTipoEntrega, filterDate]);
 
     // Função para buscar com o termo de pesquisa atual
     const handleSearch = useCallback(() => {
@@ -442,7 +439,7 @@ const PedidosPage = () => {
             socket.off('orderDeleted');
             console.log('Socket.IO: Componente PedidosPage desmontado, listeners removidos.');
         };
-    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega, playDeliverySound, token]);
+    }, [fetchPedidosData, empresa, selectedPedido, filterTipoEntrega, filterDate, playDeliverySound, token]);
 
     // Lógica para mudar o status do pedido via API (PUT)
     const handleChangeStatus = async (pedidoId, newStatus) => {
@@ -531,41 +528,14 @@ const PedidosPage = () => {
                     </Select>
                 </div>
                 <div>
-                    <Label htmlFor="filterDateRange" className="text-sm">Período</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                id="filterDateRange"
-                                variant={"outline"}
-                                className={"w-full h-9 sm:h-10 justify-start text-left font-normal text-sm"}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {filterDateRange.from ? (
-                                    filterDateRange.to ? (
-                                        <>
-                                            {format(filterDateRange.from, "dd/MM/yyyy")} -{" "}
-                                            {format(filterDateRange.to, "dd/MM/yyyy")}
-                                        </>
-                                    ) : (
-                                        format(filterDateRange.from, "dd/MM/yyyy")
-                                    )
-                                ) : (
-                                    <span>Selecione uma data</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="range"
-                                selected={filterDateRange}
-                                onSelect={setFilterDateRange}
-                                initialFocus
-                            />
-                            <div className="flex justify-end p-2 border-t">
-                                <Button onClick={() => setFilterDateRange({ from: undefined, to: undefined })} variant="ghost" size="sm">Limpar</Button>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="filterDate" className="text-sm">Filtrar por Data</Label>
+                    <Input
+                        id="filterDate"
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="w-full h-9 sm:h-10 text-sm"
+                    />
                 </div>
                 <div className="sm:col-span-2 lg:col-span-1">
                     <Label htmlFor="searchTerm" className="text-sm">Buscar por Pedido/Cliente</Label>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from 'sonner';
-import { Loader2, ArrowRight, ChevronDown, Search as SearchIcon, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, ArrowRight, ChevronDown, Search as SearchIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -15,8 +15,7 @@ import { Label } from '../ui/label';
 import socket from '../../services/socket.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Input } from '../ui/input';
-import { Calendar } from '../ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+
 
 
 // --- Funções Auxiliares (mantidas globais pois não dependem do estado do componente) ---
@@ -74,7 +73,7 @@ const OrderStatusPage = () => {
 
     // Estados para os filtros
     const [filterTipoEntrega, setFilterTipoEntrega] = useState('all');
-    const [filterDateRange, setFilterDateRange] = useState({ from: undefined, to: undefined });
+    const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [searchTerm, setSearchTerm] = useState('');
 
     // Estado para os filtros de status visíveis (por padrão, tudo menos 'Entregue' e 'Cancelado' estão ativos)
@@ -130,11 +129,9 @@ const OrderStatusPage = () => {
                 if (filterTipoEntrega !== 'all') {
                     queryParams.append('tipo_entrega', filterTipoEntrega);
                 }
-                if (filterDateRange.from) {
-                    queryParams.append('data_inicio', format(filterDateRange.from, 'yyyy-MM-dd'));
-                }
-                if (filterDateRange.to) {
-                    queryParams.append('data_fim', format(filterDateRange.to, 'yyyy-MM-dd'));
+                if (filterDate) {
+                    queryParams.append('data_inicio', filterDate);
+                    queryParams.append('data_fim', filterDate);
                 }
                 if (searchTerm) {
                     queryParams.append('search', searchTerm);
@@ -267,7 +264,7 @@ const OrderStatusPage = () => {
 
         fetchAndSetupSocket();
 
-    }, [empresa?.id, empresa?.slug, isReady, user, token, allowedRoles, empresaLoading, playKitchenSound, filterTipoEntrega, filterDateRange]);
+    }, [empresa?.id, empresa?.slug, isReady, user, token, allowedRoles, empresaLoading, playKitchenSound, filterTipoEntrega, filterDate]);
 
 
     // Função para mudar o status do pedido (avançar ou voltar)
@@ -333,11 +330,9 @@ const OrderStatusPage = () => {
             if (filterTipoEntrega !== 'all') {
                 queryParams.append('tipo_entrega', filterTipoEntrega);
             }
-            if (filterDateRange.from) {
-                queryParams.append('data_inicio', format(filterDateRange.from, 'yyyy-MM-dd'));
-            }
-            if (filterDateRange.to) {
-                queryParams.append('data_fim', format(filterDateRange.to, 'yyyy-MM-dd'));
+            if (filterDate) {
+                queryParams.append('data_inicio', filterDate);
+                queryParams.append('data_fim', filterDate);
             }
             if (searchTerm) {
                 queryParams.append('search', searchTerm);
@@ -369,7 +364,7 @@ const OrderStatusPage = () => {
         } finally {
             setLoadingPedidos(false);
         }
-    }, [empresa, empresaLoading, isReady, user, token, allowedRoles, filterTipoEntrega, filterDateRange, searchTerm]);
+    }, [empresa, empresaLoading, isReady, user, token, allowedRoles, filterTipoEntrega, filterDate, searchTerm]);
 
     // Função para lidar com a tecla Enter no campo de busca
     const handleSearchKeyPress = useCallback((e) => {
@@ -439,41 +434,14 @@ const OrderStatusPage = () => {
                     </Select>
                 </div>
                 <div>
-                    <Label htmlFor="filterDateRange" className="text-sm">Período</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                id="filterDateRange"
-                                variant={"outline"}
-                                className={"w-full h-9 sm:h-10 justify-start text-left font-normal text-sm"}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {filterDateRange.from ? (
-                                    filterDateRange.to ? (
-                                        <>
-                                            {format(filterDateRange.from, "dd/MM/yyyy")} -{" "}
-                                            {format(filterDateRange.to, "dd/MM/yyyy")}
-                                        </>
-                                    ) : (
-                                        format(filterDateRange.from, "dd/MM/yyyy")
-                                    )
-                                ) : (
-                                    <span>Selecione uma data</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="range"
-                                selected={filterDateRange}
-                                onSelect={setFilterDateRange}
-                                initialFocus
-                            />
-                            <div className="flex justify-end p-2 border-t">
-                                <Button onClick={() => setFilterDateRange({ from: undefined, to: undefined })} variant="ghost" size="sm">Limpar</Button>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="filterDate" className="text-sm">Filtrar por Data</Label>
+                    <Input
+                        id="filterDate"
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="w-full h-9 sm:h-10 text-sm"
+                    />
                 </div>
                 <div className="sm:col-span-2 lg:col-span-1">
                     <Label htmlFor="searchTerm" className="text-sm">Buscar por Pedido/Cliente</Label>
