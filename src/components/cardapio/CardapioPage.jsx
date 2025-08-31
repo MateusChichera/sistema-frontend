@@ -729,7 +729,7 @@ const CardapioPage = () => {
 
       {/* Modal de Detalhes do Produto / Adicionar ao Carrinho (para observações) */}
       <Dialog open={!!selectedProduct} onOpenChange={closeProductObservationModal}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>{selectedProduct?.nome}</DialogTitle>
             <DialogDescription>
@@ -860,7 +860,7 @@ const CardapioPage = () => {
 
       {/* Modal de Pedido de Mesa (para Garçom) - FINALIZAR PEDIDO DE MESA / DETALHES DO CARRINHO */}
       <Dialog open={isMesaOrderModalOpen} onOpenChange={setIsMesaOrderModalOpen}>
-        <DialogContent className="max-w-xl md:max-w-2xl lg:max-w-3xl overflow-y-auto max-h-[90vh]">
+        <DialogContent className="max-w-xl md:max-w-2xl lg:max-w-3xl overflow-y-auto max-h-[90vh] bg-white">
           <DialogHeader>
             <DialogTitle>Finalizar Pedido de Mesa</DialogTitle>
             <DialogDescription>
@@ -998,7 +998,7 @@ const CardapioPage = () => {
 
       {/* Modal para Editar Observação do Item no Carrinho */}
       <Dialog open={isEditingObservation} onOpenChange={setIsEditingObservation}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>Editar Observação para: {itemToEditObservation?.nome}</DialogTitle>
             <DialogDescription>Adicione ou altere a observação deste item.</DialogDescription>

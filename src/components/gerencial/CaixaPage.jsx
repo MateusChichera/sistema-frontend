@@ -1160,10 +1160,10 @@ const CaixaPage = () => {
              <p>Data/Hora: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
              <p>Funcionário: ${user.nome}</p>
              ${resumo ? `<p>Valor Abertura: R$ ${parseFloat(resumo.valor_abertura||0).toFixed(2).replace('.', ',')}</p>
-             <p>Total Pagamentos: R$ ${parseFloat(resumo.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</p>
+             <p>Valor Vendido (Dinheiro): R$ ${parseFloat(resumo.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</p>
              <p>Total Suprimentos: R$ ${parseFloat(resumo.total_suprimentos||0).toFixed(2).replace('.', ',')}</p>
              <p>Total Sangrias: R$ ${parseFloat(resumo.total_sangrias||0).toFixed(2).replace('.', ',')}</p>`:''}
-             <p>Valor no Sistema: R$ ${parseFloat(fechamentoResp.valor_sistema || 0).toFixed(2).replace('.', ',')}</p>
+             <p>VALOR TOTAL: R$ ${parseFloat(fechamentoResp.valor_sistema || 0).toFixed(2).replace('.', ',')}</p>
              <p>Valor Informado: R$ ${parseFloat(fechamentoResp.valor_informado || 0).toFixed(2).replace('.', ',')}</p>
              <p>Diferença: R$ ${parseFloat(fechamentoResp.diferenca || 0).toFixed(2).replace('.', ',')}</p>
              ${totFP && totFP.length>0 ? `<table><thead><tr><th>Forma</th><th align="right">Valor</th></tr></thead><tbody>${totFP.map(fp=>`<tr><td>${fp.forma_pagamento_descricao}</td><td align="right">R$ ${parseFloat(fp.valor_sistema_calculado_por_forma||0).toFixed(2).replace('.', ',')}</td></tr>`).join('')}</tbody></table>`:''}
@@ -1586,7 +1586,7 @@ const CaixaPage = () => {
 
             {/* Modal de Detalhes dos Itens */}
             <Dialog open={isItemDetailModalOpen} onOpenChange={closeItemDetailModal}>
-                <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh] w-[95vw] sm:w-auto">
+                <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh] w-[95vw] sm:w-auto bg-white">
                     {selectedPedido ? (
                         <>
                             <DialogHeader>
@@ -1665,7 +1665,7 @@ const CaixaPage = () => {
 
             {/* Modal de Finalização de Pagamento (Principal) */}
             <Dialog open={isPedidoDetailModalOpen} onOpenChange={closePedidoDetailModal}>
-                <DialogContent className="max-w-4xl w-[95vw] sm:w-full overflow-visible max-h-[90vh] overflow-y-auto" style={{ maxWidth: '1000px' }}>
+                <DialogContent className="max-w-4xl w-[95vw] sm:w-full overflow-visible max-h-[90vh] overflow-y-auto bg-white" style={{ maxWidth: '1000px' }}>
                     {selectedPedido ? (
                         <div className="flex flex-col h-full">
                             <DialogHeader>
@@ -1910,7 +1910,7 @@ const CaixaPage = () => {
 
             {/* Modal de ABERTURA DE CAIXA */}
             <Dialog open={isAberturaModalOpen} onOpenChange={setIsAberturaModalOpen}>
-                <DialogContent style={{ width: '90vw', maxWidth: '1280px' }}>
+                <DialogContent style={{ width: '90vw', maxWidth: '1280px' }} className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Abertura de Caixa</DialogTitle>
                         <DialogDescription>Informe o valor inicial do caixa.</DialogDescription>
@@ -1930,7 +1930,7 @@ const CaixaPage = () => {
 
             {/* Modal de FECHAMENTO DE CAIXA */}
             <Dialog open={isFechamentoModalOpen} onOpenChange={setIsFechamentoModalOpen}>
-                <DialogContent style={{ width: '90vw', maxWidth: '1280px' }}>
+                <DialogContent style={{ width: '90vw', maxWidth: '1280px' }} className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Fechamento de Caixa</DialogTitle>
                         <DialogDescription>Informe o valor contado para fechar o caixa.</DialogDescription>
@@ -1951,26 +1951,26 @@ const CaixaPage = () => {
                                 {/* Card Resumo Caixa */}
                                 <Card>
                                     <CardHeader className="flex items-center justify-between">
-                                        <CardTitle>Valores do Caixa</CardTitle>
+                                        <CardTitle>Valores do Caixa (Troco em Dinheiro)</CardTitle>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <HelpCircle className="w-4 h-4 text-gray-500 cursor-pointer" />
                                             </PopoverTrigger>
                                             <PopoverContent className="w-72 text-xs">
                                                 <p><strong>Valor Inicial:</strong> Valor informado na abertura do caixa (troco).</p>
-                                                <p className="mt-1"><strong>Total Pagamentos:</strong> Valores recebidos em dinheiro neste caixa.</p>
+                                                <p className="mt-1"><strong>Valor Vendido (Dinheiro):</strong> Valores recebidos em dinheiro neste caixa.</p>
                                                 <p className="mt-1"><strong>Suprimento:</strong> Quantias de dinheiro adicionadas após abertura.</p>
                                                 <p className="mt-1"><strong>Sangria:</strong> Quantias retiradas do caixa.</p>
-                                                <p className="mt-1"><strong>Valor (Sistema):</strong> Calculado: inicial + pagamentos + suprimento - sangria.</p>
+                                                <p className="mt-1"><strong>Valor Total:</strong> Calculado: inicial + pagamentos + suprimento - sangria.</p>
                                             </PopoverContent>
                                         </Popover>
                                      </CardHeader>
                                      <CardContent className="text-sm space-y-1">
                                         <p>Valor Abertura: <strong>R$ {parseFloat(resumoCaixa.valor_abertura||0).toFixed(2).replace('.', ',')}</strong></p>
-                                        <p>Total Pagamentos: <strong>R$ {parseFloat(resumoCaixa.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</strong></p>
+                                        <p>Valor Vendido (Dinheiro): <strong>R$ {parseFloat(resumoCaixa.total_pagamentos_sistema||0).toFixed(2).replace('.', ',')}</strong></p>
                                         <p>Total Suprimentos: <strong>R$ {parseFloat(resumoCaixa.total_suprimentos||0).toFixed(2).replace('.', ',')}</strong></p>
                                         <p><strong className="text-red-600">Total Sangrias:</strong> <strong className="text-red-600">R$ {parseFloat(resumoCaixa.total_sangrias||0).toFixed(2).replace('.', ',')}</strong></p>
-                                        <p className="font-bold text-base">Valor (Sistema): R$ {parseFloat(resumoCaixa.valor_fechamento_sistema_calculado||0).toFixed(2).replace('.', ',')}</p>
+                                        <p className="font-bold text-base">Valor Total: R$ {parseFloat(resumoCaixa.valor_fechamento_sistema_calculado||0).toFixed(2).replace('.', ',')}</p>
                                     </CardContent>
                                 </Card>
 
@@ -2034,7 +2034,7 @@ const CaixaPage = () => {
 
             {/* Modal de SUPRIMENTO / SANGRIA */}
             <Dialog open={isSuprimentoModalOpen} onOpenChange={setIsSuprimentoModalOpen}>
-                <DialogContent>
+                <DialogContent className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Suprimento / Sangria</DialogTitle>
                         <DialogDescription>Registre uma movimentação de caixa.</DialogDescription>
@@ -2080,7 +2080,7 @@ const CaixaPage = () => {
 
             {/* Modal Confirmação Impressão Abertura */}
             <Dialog open={isPrintAberturaModalOpen} onOpenChange={setIsPrintAberturaModalOpen}>
-                <DialogContent>
+                <DialogContent className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Imprimir Comprovante?</DialogTitle>
                         <DialogDescription>Deseja imprimir o comprovante de abertura do caixa?</DialogDescription>
@@ -2094,7 +2094,7 @@ const CaixaPage = () => {
 
             {/* Modal Confirmação Impressão Fechamento */}
             <Dialog open={isPrintFechamentoModalOpen} onOpenChange={setIsPrintFechamentoModalOpen}>
-                <DialogContent>
+                <DialogContent className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Imprimir Comprovante?</DialogTitle>
                         <DialogDescription>Deseja imprimir o comprovante de fechamento do caixa?</DialogDescription>
@@ -2108,7 +2108,7 @@ const CaixaPage = () => {
 
             {/* Modal Confirmação Impressão Movimentação */}
             <Dialog open={isPrintMovModalOpen} onOpenChange={setIsPrintMovModalOpen}>
-                <DialogContent>
+                <DialogContent className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Imprimir Comprovante?</DialogTitle>
                         <DialogDescription>Deseja imprimir o comprovante da movimentação de caixa?</DialogDescription>
@@ -2122,7 +2122,7 @@ const CaixaPage = () => {
 
             {/* Modal de Confirmação de Troco */}
             <Dialog open={isTrocoModalOpen} onOpenChange={setIsTrocoModalOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md bg-white">
                     <DialogHeader>
                         <DialogTitle className="text-center text-xl font-bold text-green-600">
                             💰 Confirmação de Troco
@@ -2191,7 +2191,7 @@ const CaixaPage = () => {
 
             {/* Modal de Confirmação de Impressão de Cupom */}
             <Dialog open={isPrintCupomModalOpen} onOpenChange={setIsPrintCupomModalOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md bg-white">
                     <DialogHeader>
                         <DialogTitle className="text-center text-xl font-bold text-blue-600">
                             🖨️ Imprimir Cupom?
