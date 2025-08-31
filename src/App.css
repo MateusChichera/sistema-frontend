@@ -53,34 +53,34 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0); /* Fundo branco */
-  --foreground: oklch(0 0 0); /* Texto geral preto */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0 0 0);
+  --background: oklch(0.95 0.02 240); /* Fundo azul bebê */
+  --foreground: oklch(0.1 0 0); /* Texto geral preto escuro para melhor contraste */
+  --card: oklch(0.98 0.01 240); /* Card com azul bebê mais claro */
+  --card-foreground: oklch(0.1 0 0);
+  --popover: oklch(0.98 0.01 240); /* Popover com azul bebê mais claro */
+  --popover-foreground: oklch(0.1 0 0);
 
   /* CORES DA PALETA ATHOS */
   --primary: oklch(34.22% 0.147 259.05); /* AZUL ESCURO (#1F539C) */
   --primary-foreground: oklch(0.985 0 0); /* Branco para o texto */
   --secondary: oklch(66.52% 0.158 245.96); /* AZUL CLARO (#32A3D4) */
   --secondary-foreground: oklch(0.145 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted: oklch(0.93 0.015 240); /* Muted com tom azul bebê */
+  --muted-foreground: oklch(0.4 0 0); /* Texto muted mais escuro para contraste */
   --accent: oklch(72.76% 0.141 81.33); /* AMARELO ESCURO (#E4AF24) */
   --accent-foreground: oklch(0.145 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.88 0.02 240); /* Border com tom azul bebê */
+  --input: oklch(0.98 0.01 240); /* Input com azul bebê mais claro */
   --ring: oklch(0.708 0 0);
   /* ... mantenha as cores de chart se precisar ... */
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: oklch(0.92 0.025 240); /* Sidebar com azul bebê mais escuro */
+  --sidebar-foreground: oklch(0.1 0 0);
   --sidebar-primary: oklch(34.22% 0.147 259.05); /* AZUL ESCURO (#1F539C) para o fundo da sidebar */
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-accent: oklch(0.95 0.02 240); /* Sidebar accent com azul bebê */
+  --sidebar-accent-foreground: oklch(0.1 0 0);
+  --sidebar-border: oklch(0.85 0.025 240); /* Sidebar border com azul bebê mais escuro */
   --sidebar-ring: oklch(0.708 0 0);
 }
 
@@ -92,7 +92,20 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
+  html {
+    background-color: oklch(0.95 0.02 240); /* Fundo azul bebê para todo o HTML */
+  }
+  
   body {
     @apply bg-background text-foreground;
+    background-color: oklch(0.95 0.02 240); /* Fundo azul bebê para o body */
+    min-height: 100vh; /* Garante que o fundo cubra toda a altura da tela */
+  }
+  
+  /* Garante que todos os elementos principais tenham o fundo azul bebê */
+  #root {
+    background-color: oklch(0.95 0.02 240);
+    min-height: 100vh;
   }
 }

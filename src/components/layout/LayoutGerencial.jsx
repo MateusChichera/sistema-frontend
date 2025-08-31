@@ -300,7 +300,7 @@ const LayoutGerencial = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-blue-50 flex flex-col md:flex-row">
       {/* Sidebar Desktop */}
       <div className="hidden md:flex md:w-64 md:flex-col">
         <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r">

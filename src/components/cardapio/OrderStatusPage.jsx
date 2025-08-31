@@ -399,12 +399,12 @@ const OrderStatusPage = () => {
 
 
     return (
-        <div className="container mx-auto p-2 sm:p-4">
+        <div className="container mx-auto p-2 sm:p-4 bg-blue-50 rounded-lg shadow-md">
             <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 text-center">Painel da Cozinha</h1>
             <p className="text-center text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">Gerencie o status dos pedidos e avance-os na produção.</p>
 
             {/* Filtros de Status (Switches) */}
-            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50 flex flex-wrap gap-3 sm:gap-4 justify-center">
+            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-blue-100 flex flex-wrap gap-3 sm:gap-4 justify-center">
                 {allKitchenStatuses.map(status => (
                     <div key={status} className="flex items-center space-x-2">
                         <Switch
@@ -418,7 +418,7 @@ const OrderStatusPage = () => {
             </div>
 
             {/* Filtros Adicionais */}
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-blue-100 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                     <Label htmlFor="filterTipoEntrega" className="text-sm">Tipo de Entrega</Label>
                     <Select value={filterTipoEntrega} onValueChange={setFilterTipoEntrega}>
@@ -477,7 +477,7 @@ const OrderStatusPage = () => {
                         return (
                             <div 
                                 key={status} 
-                                className="bg-gray-100 rounded-lg shadow-inner p-3 sm:p-4 flex flex-col min-h-[60vh] sm:min-h-[70vh]" 
+                                className="bg-blue-50 rounded-lg shadow-inner p-3 sm:p-4 flex flex-col min-h-[60vh] sm:min-h-[70vh]" 
                             >
                                 <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2 text-center">
                                     {status} ({pedidosInColumn.length})

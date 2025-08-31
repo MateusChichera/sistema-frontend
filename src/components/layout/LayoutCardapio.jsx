@@ -110,7 +110,7 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
     const primaryColorCss = getCssColor(empresa.cor_primaria_cardapio);
 
     return (
-        <div className="flex flex-col min-h-screen bg-white">
+        <div className="flex flex-col min-h-screen bg-blue-50">
             <header className="relative w-full px-4 py-3 bg-white/80 backdrop-blur-md shadow-lg rounded-b-2xl border-b border-gray-200 mb-4 animate-fade-in-down">
                 {/* Ações do usuário no topo direito, sem fundo extra */}
                 <div className="absolute top-2 right-2 z-20 flex items-center gap-2">

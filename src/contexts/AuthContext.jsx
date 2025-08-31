@@ -46,7 +46,19 @@ export const AuthProvider = ({ children }) => {
       response => response,
       error => {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-          setSessionExpired(true);
+          // Não ativa sessionExpired se estiver na tela de login
+          const currentPath = window.location.pathname;
+          
+          if (isLoginPage(currentPath)) {
+            // Se estiver na tela de login, apenas limpa o token inválido
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+          } else if (!sessionExpired) {
+            // Se não estiver na tela de login, ativa o diálogo de sessão expirada
+            setSessionExpired(true);
+          }
         }
         return Promise.reject(error);
       }
@@ -54,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       api.interceptors.response.eject(interceptor);
     };
-  }, []);
+  }, [sessionExpired]);
 
   const login = async (credentials, loginType, slug = null) => {
     try {
@@ -94,6 +106,13 @@ export const AuthProvider = ({ children }) => {
   const handleSessionExpiredClose = () => {
     setSessionExpired(false);
     logout();
+  };
+
+  // Função utilitária para verificar se está na página de login
+  const isLoginPage = (pathname) => {
+    return pathname.includes('/login') || 
+           (pathname.includes('/gerencial/') && !pathname.includes('/inicio') && !pathname.includes('/dashboard') && !pathname.includes('/pedidos') && !pathname.includes('/caixa') && !pathname.includes('/cadastros') && !pathname.includes('/configuracoes') && !pathname.includes('/cozinha') && !pathname.includes('/relatorios')) ||
+           pathname === '/';
   };
 
   const value = {
