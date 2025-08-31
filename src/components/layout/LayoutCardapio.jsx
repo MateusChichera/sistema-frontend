@@ -111,7 +111,7 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
 
     return (
         <div className="flex flex-col min-h-screen bg-blue-50">
-            <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 py-3 bg-white/95 backdrop-blur-md shadow-lg rounded-b-2xl border-b border-gray-200 animate-fade-in-down">
+            <header className="relative w-full px-4 py-3 bg-white/95 backdrop-blur-md shadow-lg rounded-b-2xl border-b border-gray-200 mb-4 animate-fade-in-down">
                 {/* Ações do usuário no topo direito, sem fundo extra */}
                 <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
                     {userActions}
@@ -156,8 +156,6 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
                     </div>
                 </div>
             </header>
-            {/* Espaçador para compensar o header fixo */}
-            <div className="h-48 sm:h-52"></div>
             <main className="flex-grow container mx-auto p-4">
                 {children}
             </main>
