@@ -404,7 +404,7 @@ const OrderStatusPage = () => {
             <p className="text-center text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">Gerencie o status dos pedidos e avance-os na produção.</p>
 
             {/* Filtros de Status (Switches) */}
-            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-blue-100 flex flex-wrap gap-3 sm:gap-4 justify-center">
+            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-white flex flex-wrap gap-3 sm:gap-4 justify-center">
                 {allKitchenStatuses.map(status => (
                     <div key={status} className="flex items-center space-x-2">
                         <Switch
@@ -417,8 +417,8 @@ const OrderStatusPage = () => {
                 ))}
             </div>
 
-            {/* Filtros Adicionais */}
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-blue-100 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {/* Filtros */}
+            <div className="mb-6 p-4 border rounded-lg bg-white grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
                     <Label htmlFor="filterTipoEntrega" className="text-sm">Tipo de Entrega</Label>
                     <Select value={filterTipoEntrega} onValueChange={setFilterTipoEntrega}>

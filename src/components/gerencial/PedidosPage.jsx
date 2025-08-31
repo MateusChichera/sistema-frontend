@@ -498,7 +498,7 @@ const PedidosPage = () => {
             <p className="text-center text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">Gerencie e acompanhe todos os pedidos da empresa.</p>
 
             {/* Filtros de Status (Switches) */}
-            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-blue-100 flex flex-wrap gap-3 sm:gap-4 justify-center">
+            <div className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-white flex flex-wrap gap-3 sm:gap-4 justify-center">
                 {statusOptions.map(status => (
                     <div key={status} className="flex items-center space-x-2">
                         <Switch
@@ -512,7 +512,7 @@ const PedidosPage = () => {
             </div>
 
             {/* Filtros Adicionais */}
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-blue-100 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 border rounded-lg bg-white space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                     <Label htmlFor="filterTipoEntrega" className="text-sm">Tipo de Entrega</Label>
                     <Select value={filterTipoEntrega} onValueChange={setFilterTipoEntrega}>
@@ -721,7 +721,7 @@ const PedidosPage = () => {
                             <p><strong>Criado em:</strong> {formatDateTime(selectedPedido.data_pedido)}</p>
 
                             {selectedPedido.tipo_entrega === 'Delivery' && (
-                                <div className="mt-4 p-3 bg-blue-100 border rounded-md">
+                                <div className="mt-4 p-3 bg-white border rounded-md">
                                     <h4 className="font-semibold mb-2 text-sm sm:text-base">Endereço de Entrega:</h4>
                                     <div className="space-y-1 text-xs sm:text-sm">
                                         <p>{selectedPedido.endereco_entrega}</p>
@@ -736,7 +736,7 @@ const PedidosPage = () => {
                             )}
 
                             {selectedPedido.observacoes && selectedPedido.observacoes.trim() !== '' && (
-                                <div className="mt-4 p-3 bg-blue-100 border rounded-md">
+                                <div className="mt-4 p-3 bg-white border rounded-md">
                                     <h4 className="font-semibold mb-2 text-sm sm:text-base">Observações do Pedido:</h4>
                                     <p className="text-xs sm:text-sm">{selectedPedido.observacoes}</p>
                                 </div>
