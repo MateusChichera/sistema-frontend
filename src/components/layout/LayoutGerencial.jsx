@@ -301,17 +301,28 @@ const LayoutGerencial = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-blue-50 flex flex-col md:flex-row">
-      {/* Sidebar Desktop */}
-      <div className="hidden md:flex md:w-64 md:flex-col">
-        <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r">
+      {/* Sidebar Desktop - Fixa */}
+      <div className="hidden md:flex md:w-64 md:flex-col fixed left-0 top-0 h-full z-40">
+        <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r w-64 shadow-lg sidebar-scroll">
           <div className="flex items-center flex-shrink-0 px-4">
-            <div className="flex items-center space-x-3">
-              {empresa.logo_full_url && (
-                <img src={empresa.logo_full_url} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
-              )}
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{empresa.nome_fantasia}</h2>
-                <p className="text-sm text-gray-600">Gerencial</p>
+            <div className="flex flex-col items-center space-y-2 w-full">
+              {/* Logo da ATHOS */}
+              <div className="mb-2">
+                <img 
+                  src="/ATHOS.png" 
+                  alt="ATHOS Software" 
+                  className="h-10 w-auto object-contain"
+                />
+              </div>
+              {/* Logo e nome da empresa */}
+              <div className="flex items-center space-x-3">
+                {empresa.logo_full_url && (
+                  <img src={empresa.logo_full_url} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+                )}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{empresa.nome_fantasia}</h2>
+                  <p className="text-sm text-gray-600">Gerencial</p>
+                </div>
               </div>
             </div>
           </div>
@@ -325,14 +336,24 @@ const LayoutGerencial = ({ children }) => {
       {/* Mobile Header */}
       <div className="md:hidden sticky top-0 z-30 bg-white border-b px-4 py-3 shadow">
         <div className="flex items-center justify-between">
-          <button
-            className="text-lg font-semibold text-gray-900 focus:outline-none focus:underline"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            title="Ir para o topo"
-          >
-            {empresa.nome_fantasia}
-          </button>
+          <div className="flex flex-col items-start">
+            {/* Logo da ATHOS no mobile */}
+            <div className="mb-1">
+              <img 
+                src="/ATHOS.png" 
+                alt="ATHOS Software" 
+                className="h-8 w-auto object-contain"
+              />
+            </div>
+            <button
+              className="text-lg font-semibold text-gray-900 focus:outline-none focus:underline"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              title="Ir para o topo"
+            >
+              {empresa.nome_fantasia}
+            </button>
+          </div>
           <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <Menu className="h-5 w-5" />
           </Button>
@@ -343,8 +364,8 @@ const LayoutGerencial = ({ children }) => {
         )}
       </div>
 
-      {/* Main */}
-      <main className="flex-1 p-6">
+      {/* Main - Com margem para compensar a sidebar fixa */}
+      <main className="flex-1 p-6 md:ml-64">
         {children}
         {showQrModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" tabIndex={-1} onClick={e => { if (e.target === e.currentTarget) setShowQrModal(false); }} onKeyDown={e => { if (e.key === 'Escape') setShowQrModal(false); }}>

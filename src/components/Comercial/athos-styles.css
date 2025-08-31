@@ -162,6 +162,35 @@
   animation: fadeInUp 0.6s ease-out;
 }
 
+/* Animações para os componentes de layout */
+@keyframes fade-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
 /* Responsividade aprimorada */
 @media (max-width: 768px) {
   .hero-title {

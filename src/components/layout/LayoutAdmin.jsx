@@ -46,12 +46,22 @@ const LayoutAdmin = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-blue-50 flex">
-      {/* Sidebar */}
-      <div className="hidden md:flex md:w-64 md:flex-col">
-        <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r">
+      {/* Sidebar - Fixa */}
+      <div className="hidden md:flex md:w-64 md:flex-col fixed left-0 top-0 h-full z-40">
+        <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r w-64 shadow-lg sidebar-scroll">
           <div className="flex items-center flex-shrink-0 px-4">
-            <div className="flex items-center space-x-3">
-              <span className="text-xl font-bold text-gray-900">Admin Master</span>
+            <div className="flex flex-col items-center space-y-2 w-full">
+              {/* Logo da ATHOS */}
+              <div className="mb-2">
+                <img 
+                  src="/ATHOS.png" 
+                  alt="ATHOS Software" 
+                  className="h-10 w-auto object-contain"
+                />
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className="text-xl font-bold text-gray-900">Admin Master</span>
+              </div>
             </div>
           </div>
           
@@ -107,10 +117,20 @@ const LayoutAdmin = ({ children }) => {
         </div>
       </div>
 
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 md:ml-64">
         <div className="md:hidden bg-white border-b px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-gray-900">Admin Master</h1>
+            <div className="flex flex-col items-start">
+              {/* Logo da ATHOS no mobile */}
+              <div className="mb-1">
+                <img 
+                  src="/ATHOS.png" 
+                  alt="ATHOS Software" 
+                  className="h-8 w-auto object-contain"
+                />
+              </div>
+              <h1 className="text-lg font-semibold text-gray-900">Admin Master</h1>
+            </div>
             <Button variant="ghost" size="sm">
               <Menu className="h-5 w-5" />
             </Button>
