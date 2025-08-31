@@ -149,7 +149,7 @@ const Dashboard = () => {
 
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Dashboard - {empresa.nome_fantasia}</h2>
+                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-title">Dashboard - {empresa.nome_fantasia}</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
         <Card className="bg-blue-50">

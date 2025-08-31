@@ -265,7 +265,7 @@ const ConfiguracoesPage = () => {
   
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Configurações da Empresa - {empresa.nome_fantasia}</h2>
+                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-title">Configurações da Empresa - {empresa.nome_fantasia}</h2>
 
       {/* Adicionado o componente Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

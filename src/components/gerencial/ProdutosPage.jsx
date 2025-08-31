@@ -397,7 +397,7 @@ const ProdutosPage = () => {
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
       {/* Dialogo de Erro */}
       {ErrorDialogElement}
-      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Produtos - {empresa.nome_fantasia}</h2>
+                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-title">Gerenciar Produtos - {empresa.nome_fantasia}</h2>
 
       {/* Campo de Busca */}
       <div className="mb-4 sm:mb-6">

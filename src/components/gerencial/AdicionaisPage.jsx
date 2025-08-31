@@ -198,7 +198,7 @@ const AdicionaisPage = () => {
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
       {ErrorDialogElement}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Gerenciar Adicionais - {empresa.nome_fantasia}</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-title">Gerenciar Adicionais - {empresa.nome_fantasia}</h2>
         <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
           <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Novo Adicional

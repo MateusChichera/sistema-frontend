@@ -301,7 +301,7 @@ const AdminDashboardPage = () => {
   
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Empresas - Admin Master</h2>
+                      <h2 className="text-2xl font-bold mb-6 text-title">Gerenciar Empresas - Admin Master</h2>
 
       <Button onClick={() => handleOpenForm()} className="mb-6 bg-green-600 hover:bg-green-700">
         Criar Nova Empresa

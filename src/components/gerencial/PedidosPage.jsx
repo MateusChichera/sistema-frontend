@@ -494,7 +494,7 @@ const PedidosPage = () => {
 
     return (
         <div className="p-2 sm:p-4 md:p-6 bg-blue-50 rounded-lg shadow-md">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 text-center">Pedidos - {empresa.nome_fantasia}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-title text-center">Pedidos - {empresa.nome_fantasia}</h1>
             <p className="text-center text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">Gerencie e acompanhe todos os pedidos da empresa.</p>
 
             {/* Filtros de Status (Switches) */}
@@ -573,7 +573,7 @@ const PedidosPage = () => {
                                 key={status} 
                                 className="bg-blue-50 rounded-lg shadow-inner p-3 sm:p-4 flex flex-col min-h-[60vh] sm:min-h-[70vh]" 
                             >
-                                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 border-b pb-2 text-center">
+                                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-title border-b pb-2 text-center">
                                     {status} ({pedidosInColumn.length})
                                 </h2>
                                 <div className="space-y-3 sm:space-y-4 flex-grow overflow-y-auto pr-1 sm:pr-2">

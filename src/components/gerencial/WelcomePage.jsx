@@ -151,7 +151,7 @@ const WelcomePage = () => {
         {/* Mensagem de boas-vindas */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            <h2 className="text-3xl font-bold text-title mb-2">
               Bem-vindo, {user.nome}! 👋
             </h2>
             <p className="text-lg text-gray-600 mb-4">

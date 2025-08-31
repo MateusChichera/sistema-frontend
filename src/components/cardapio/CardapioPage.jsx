@@ -536,7 +536,7 @@ const CardapioPage = () => {
         // --- TELA DE SELEÇÃO DE MESAS ---
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-gray-700">Selecione uma Mesa</h2> {/* Título da seção */}
+            <h2 className="text-2xl font-semibold text-title">Selecione uma Mesa</h2> {/* Título da seção */}
             <Button 
                 variant="outline" 
                 size="sm" 

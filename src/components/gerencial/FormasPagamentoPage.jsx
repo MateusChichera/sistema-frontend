@@ -201,7 +201,7 @@ const FormasPagamentoPage = () => {
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
       {ErrorDialogElement}
-      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Formas de Pagamento - {empresa.nome_fantasia}</h2>
+                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-title">Gerenciar Formas de Pagamento - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Forma de Pagamento - Visível apenas para quem pode gerenciar */}
       {canManage && (

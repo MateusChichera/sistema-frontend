@@ -100,7 +100,7 @@ const OrderStatusPagePublic = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] p-2 sm:p-6 bg-gray-50">
       <div className="w-full max-w-lg bg-white rounded-xl shadow-lg p-4 sm:p-8 flex flex-col items-center">
-        <h2 className="text-2xl font-bold mb-2 text-primary">Acompanhe seu Pedido</h2>
+                        <h2 className="text-2xl font-bold mb-2 text-title">Acompanhe seu Pedido</h2>
         <p className="text-gray-600 mb-4">Pedido #{numeroPedido}</p>
         {/* Previsão de entrega/preparo */}
         {tempoPreparo && (

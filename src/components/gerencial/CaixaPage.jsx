@@ -1383,7 +1383,7 @@ const CaixaPage = () => {
     return (
         <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Caixa - {empresa.nome_fantasia}</h2>
+                              <h2 className="text-xl sm:text-2xl font-bold text-title">Caixa - {empresa.nome_fantasia}</h2>
               {empresa.usa_controle_caixa && caixaInfo && (
                  <div className="flex flex-col sm:flex-row gap-2">
                      <Button variant="outline" onClick={() => setIsSuprimentoModalOpen(true)} className="flex items-center text-xs sm:text-sm h-8 sm:h-9">

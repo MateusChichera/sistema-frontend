@@ -207,7 +207,7 @@ const FuncionariosPage = () => {
   
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Gerenciar Funcionários - {empresa.nome_fantasia}</h2>
+                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-title">Gerenciar Funcionários - {empresa.nome_fantasia}</h2>
 
       {/* Formulário para Adicionar/Editar Funcionário */}
       <form onSubmit={editandoFuncionario ? handleSaveEdit : handleAddFuncionario} className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50">
