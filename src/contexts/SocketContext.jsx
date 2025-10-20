@@ -25,7 +25,19 @@ export const SocketProvider = ({ children }) => {
         if (!socket.current) {
             console.log('SocketContext: Inicializando nova conexão de socket.');
             // Garante que a URL seja derivada corretamente da sua variável de ambiente
-            const backendUrl = import.meta.env.VITE_BACKEND_API_URL.replace('/api/v1', '');
+            const getSocketURL = () => {
+                if (import.meta.env.VITE_BACKEND_API_URL) {
+                    return import.meta.env.VITE_BACKEND_API_URL.replace('/api/v1', '');
+                }
+                
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '212.85.23.251') {
+                    return 'http://localhost:3001';
+                }
+                
+                return ''; // Em produção, usa o mesmo domínio
+            };
+            
+            const backendUrl = getSocketURL();
             socket.current = io(backendUrl, {
                 // Você pode precisar passar o token de autenticação aqui se o seu servidor socket o exigir para a conexão inicial
                 // extraHeaders: {

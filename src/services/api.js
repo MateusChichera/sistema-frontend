@@ -5,7 +5,10 @@ import { notifyGlobalError } from '../lib/errorHandler';
 // A URL do seu backend.
 // Em desenvolvimento, é localhost:PORTA_DO_BACKEND
 // Em produção, será o domínio do seu backend.
-const API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001/api/v1';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '212.85.23.251'
+    ? 'http://localhost:3001/api/v1' 
+    : '/api/v1');
 
 const api = axios.create({
   baseURL: API_BASE_URL,

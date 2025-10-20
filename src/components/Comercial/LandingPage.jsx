@@ -36,7 +36,7 @@ const LandingPage = () => {
     e.preventDefault();
     if (formData.nome && formData.email && formData.telefone) {
       const message = `Olá! Gostaria de fazer um orçamento do sistema Athos.%0A%0ANome: ${formData.nome}%0AEmail: ${formData.email}%0ATelefone: ${formData.telefone}`;
-      window.open(`https://wa.me/5511999999999?text=${message}`, '_blank');
+      window.open(`https://wa.me/5518991506079?text=${message}`, '_blank');
     } else {
       alert('Por favor, preencha todos os campos.');
     }
@@ -365,7 +365,7 @@ const LandingPage = () => {
                   </div>
                   <div>
                     <h3 className="font-bold">Telefone</h3>
-                    <p className="text-muted-foreground">(11) 99999-9999</p>
+                    <p className="text-muted-foreground">(18) 99150-6079</p>
                   </div>
                 </div>
 

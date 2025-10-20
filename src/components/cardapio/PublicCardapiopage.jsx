@@ -28,8 +28,16 @@ const isRestaurantOpen = (horarioFuncionamento) => {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
-  const [dayPartsStr, timePartsStr] = horarioFuncionamento.split(':', 2).map(s => s.trim());
-  const [openTimeStr, closeTimeStr] = timePartsStr.split('-', 2).map(s => s.trim());
+  const parts = horarioFuncionamento.split(':', 2).map(s => s.trim());
+  if (parts.length < 2) {
+    return { open: false, message: 'Horário de funcionamento inválido.' };
+  }
+  const [dayPartsStr, timePartsStr] = parts;
+  const timeParts = timePartsStr.split('-', 2).map(s => s.trim());
+  if (timeParts.length < 2) {
+    return { open: false, message: 'Horário de funcionamento inválido.' };
+  }
+  const [openTimeStr, closeTimeStr] = timeParts;
 
   const parseTime = (timeStr) => {
     const [h, m] = timeStr.replace('h', ':').split(':').map(Number);
@@ -139,8 +147,16 @@ const PublicCardapioPage = ({ user: userProp }) => {
     const now = new Date();
     const dayOfWeek = now.getDay();
     const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
-    const [dayPartsStr, timePartsStr] = empresa.horario_funcionamento.split(':', 2).map(s => s.trim());
-    const [openTimeStr, closeTimeStr] = timePartsStr.split('-', 2).map(s => s.trim());
+    const parts = empresa.horario_funcionamento.split(':', 2).map(s => s.trim());
+    if (parts.length < 2) {
+      return { open: false, message: 'Horário não configurado' };
+    }
+    const [dayPartsStr, timePartsStr] = parts;
+    const timeParts = timePartsStr.split('-', 2).map(s => s.trim());
+    if (timeParts.length < 2) {
+      return { open: false, message: 'Horário não configurado' };
+    }
+    const [openTimeStr, closeTimeStr] = timeParts;
     const parseTime = (timeStr) => {
       const [h, m] = timeStr.replace('h', ':').split(':').map(Number);
       return h * 60 + (m || 0);
