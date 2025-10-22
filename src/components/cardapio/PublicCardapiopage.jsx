@@ -601,8 +601,21 @@ const PublicCardapioPage = ({ user: userProp }) => {
     );
   }
 
-  // Layout do cardápio
-  const isGrid = empresa?.layout_cardapio === 'grid';
+  // Layout do cardápio - força lista no mobile
+  const [isMobile, setIsMobile] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640); // sm breakpoint do Tailwind
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  const isGrid = !isMobile && empresa?.layout_cardapio === 'grid';
 
   if (empresaLoading || loadingContent || !isReady) {
     return (
@@ -638,16 +651,16 @@ const PublicCardapioPage = ({ user: userProp }) => {
   return (
     <LayoutCardapio userActions={userActions}>
       {/* Avisos e status */}
-      <div className="max-w-4xl mx-auto px-2 animate-fade-in-up">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 animate-fade-in-up">
         {avisoTopo}
       </div>
       {/* Filtros Modernos */}
-      <section className="max-w-4xl mx-auto px-2 mb-8 animate-fade-in-up">
+      <section className="max-w-4xl mx-auto px-3 sm:px-4 mb-8 animate-fade-in-up">
         <div className="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between bg-white/80 rounded-2xl shadow p-4 border border-gray-100">
-          <div className="flex-1">
+          <div className="flex-1 w-full">
             <Label htmlFor="categoryFilter" className="text-sm font-semibold">Categoria</Label>
             <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-              <SelectTrigger id="categoryFilter" className="h-10 rounded-lg border-gray-300">
+              <SelectTrigger id="categoryFilter" className="h-10 rounded-lg border-gray-300 w-full">
                 <SelectValue placeholder="Todas as Categorias" />
               </SelectTrigger>
               <SelectContent>
@@ -661,7 +674,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 w-full">
             <Label htmlFor="productSearch" className="text-sm font-semibold">Buscar Produto</Label>
             <Input
               id="productSearch"
@@ -674,7 +687,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
         </div>
       </section>
       {/* Produtos agrupados por categoria */}
-      <div className="space-y-8">
+      <div className="space-y-8 max-w-4xl mx-auto px-3 sm:px-4">
         {categoriasFiltradas.map(categoria => {
           const produtosParaExibir = produtosPorCategoria[categoria.id] || [];
           if (!produtosParaExibir.length) return null;
@@ -684,7 +697,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
                 {categoria.id === 'promo' && <span>🔥</span>}
                 {categoria.descricao}
               </h2>
-              <div className={isGrid ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-4'}>
+              <div className={isGrid ? 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4' : 'flex flex-col gap-4'}>
                 {produtosParaExibir
                   .filter(prod => {
                     if (searchTerm) {
@@ -701,7 +714,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
                       key={prod.id}
                       className={
                         isGrid
-                          ? 'bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center cursor-pointer'
+                          ? 'bg-white p-2 sm:p-4 rounded-xl sm:rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center cursor-pointer w-full'
                           : 'bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-row items-center gap-4 cursor-pointer'
                       }
                       onClick={() => {
@@ -713,19 +726,19 @@ const PublicCardapioPage = ({ user: userProp }) => {
                         <img
                           src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`}
                           alt={prod.nome}
-                          className={isGrid ? 'w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-xl mb-3' : 'w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl flex-shrink-0'}
+                          className={isGrid ? 'w-20 h-20 sm:w-32 sm:h-32 lg:w-40 lg:h-40 object-cover rounded-lg sm:rounded-xl mb-2 sm:mb-3' : 'w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl flex-shrink-0'}
                         />
                       )}
-                      <div className={isGrid ? '' : 'flex-1 min-w-0'}>
-                        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 truncate">{prod.nome}</h3>
-                        <p className="text-gray-600 text-sm sm:text-base line-clamp-2">{prod.descricao}</p>
+                      <div className={isGrid ? 'w-full' : 'flex-1 min-w-0'}>
+                        <h3 className={isGrid ? 'text-xs sm:text-lg lg:text-xl font-bold text-gray-800 mb-0.5 sm:mb-1 line-clamp-2 px-1' : 'text-lg sm:text-xl font-bold text-gray-800 mb-1'}>{prod.nome}</h3>
+                        <p className={isGrid ? 'text-gray-600 text-[10px] sm:text-sm line-clamp-2 px-1 mb-1' : 'text-gray-600 text-sm sm:text-base line-clamp-3 mb-1'}>{prod.descricao}</p>
                         {prod.promo_ativa && prod.promocao ? (
-                          <p className="font-bold text-lg sm:text-xl mt-2 text-green-600">
-                            <span className="line-through text-gray-500 mr-2">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</span>
-                            <span>R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
+                          <p className={isGrid ? 'font-bold text-xs sm:text-lg lg:text-xl mt-1 sm:mt-2 text-green-600 px-1' : 'font-bold text-lg sm:text-xl mt-2 text-green-600'}>
+                            <span className="line-through text-gray-500 mr-1 text-[10px] sm:text-base block sm:inline">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</span>
+                            <span className="block sm:inline">R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
                           </p>
                         ) : (
-                          <p className="text-gray-800 font-bold text-lg sm:text-xl mt-2">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
+                          <p className={isGrid ? 'text-gray-800 font-bold text-xs sm:text-lg lg:text-xl mt-1 sm:mt-2 px-1' : 'text-gray-800 font-bold text-lg sm:text-xl mt-2'}>R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
                         )}
                       </div>
                     </div>
@@ -737,7 +750,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
       </div>
       {hasItemsInCart && isCurrentlyOpenForOrders && (
   <div
-    className="fixed bottom-4 right-4 md:right-8 lg:right-12 xl:right-16 w-auto p-3 sm:p-4 rounded-full shadow-lg flex items-center space-x-2 sm:space-x-3 z-50 transition-all duration-300 ease-in-out bg-primary"
+    className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-4 md:right-8 lg:right-12 xl:right-16 sm:w-auto max-w-full p-3 sm:p-4 rounded-full shadow-lg flex items-center space-x-2 sm:space-x-3 z-50 transition-all duration-300 ease-in-out bg-primary"
     style={{ color: '#fff', opacity: 1 }}
   >
     <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 text-white" />
@@ -746,44 +759,50 @@ const PublicCardapioPage = ({ user: userProp }) => {
     <Button
       onClick={handleOpenFinalizarPedidoModal}
       disabled={!deliveryDisponivel && !retiradaDisponivel}
-      className="ml-auto bg-white text-primary border border-white font-semibold rounded-full px-3 sm:px-5 py-1 sm:py-2 text-xs sm:text-sm transition-colors duration-200 hover:bg-gray-100 h-8 sm:h-9"
+      className="ml-auto bg-white text-primary border border-white font-semibold rounded-full px-3 sm:px-5 py-1 sm:py-2 text-xs sm:text-sm transition-colors duration-200 hover:bg-gray-100 h-8 sm:h-9 flex-shrink-0"
     >
-      <CheckCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Finalizar Pedido
+      <CheckCircle className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Finalizar</span><span className="inline xs:hidden">Finalizar</span> Pedido
     </Button>
   </div>
 )}
         <Dialog open={!!selectedProduct} onOpenChange={closeProductModal}>
-          <DialogContent className="w-full max-w-lg rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
-            <div className="p-6 sm:p-8">
+          <DialogContent className="w-full max-w-lg rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up max-h-[95vh] flex flex-col overflow-hidden">
+            {/* Header fixo */}
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-extrabold text-gray-800 mb-1 text-center">{selectedProduct?.nome}</DialogTitle>
-                <DialogDescription className="text-base text-gray-600 text-center mb-2">
+                <DialogTitle className="text-xl sm:text-2xl font-extrabold text-gray-800 mb-1 text-center">{selectedProduct?.nome}</DialogTitle>
+                <DialogDescription className="text-sm sm:text-base text-gray-600 text-center mb-2">
                   {selectedProduct?.descricao}
                 </DialogDescription>
                 {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
-                  <div className="flex justify-center items-center gap-2 mb-4">
-                    <span className="line-through text-gray-400 text-lg">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
-                    <span className="font-bold text-2xl text-green-600">R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
+                  <div className="flex justify-center items-center gap-2 mb-2">
+                    <span className="line-through text-gray-400 text-base sm:text-lg">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
+                    <span className="font-bold text-xl sm:text-2xl text-green-600">R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
                   </div>
                 ) : (
-                  <div className="flex justify-center items-center mb-4">
-                    <span className="text-gray-800 font-bold text-2xl">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
+                  <div className="flex justify-center items-center mb-2">
+                    <span className="text-gray-800 font-bold text-xl sm:text-2xl">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
                   </div>
                 )}
               </DialogHeader>
-              <div className="flex flex-col gap-6">
+            </div>
+            
+            {/* Área scrollável */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 <div className="flex items-center justify-center gap-4">
                   <Button onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} disabled={!isCurrentlyOpenForOrders} className="rounded-full h-10 w-10 text-xl bg-gray-200 border border-gray-300 text-gray-700 hover:bg-gray-300">-</Button>
                   <Input type="number" value={productQuantity} onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)} className="w-16 text-center rounded-lg border-gray-300" min={1} disabled={!isCurrentlyOpenForOrders} />
                   <Button onClick={() => setProductQuantity(prev => prev + 1)} disabled={!isCurrentlyOpenForOrders} className="rounded-full h-10 w-10 text-xl bg-gray-200 border border-gray-300 text-gray-700 hover:bg-gray-300">+</Button>
                 </div>
+                
                 {productAdicionais.length > 0 && (
                   <div>
                     <Label className="text-base font-semibold mb-2 block">Adicionais Disponíveis</Label>
-                    <div className="space-y-3 mt-2">
+                    <div className="space-y-2 sm:space-y-3 mt-2 max-h-[40vh] overflow-y-auto">
                       {productAdicionais.map((adicional) => (
-                        <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-xl bg-gray-50">
-                          <div className="flex items-center gap-3">
+                        <div key={adicional.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 border rounded-xl bg-gray-50 gap-2">
+                          <div className="flex items-start sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
                             <input
                               type="checkbox"
                               id={`adicional-${adicional.id}`}
@@ -796,19 +815,19 @@ const PublicCardapioPage = ({ user: userProp }) => {
                                 }
                               }}
                               disabled={!isCurrentlyOpenForOrders}
-                              className="h-5 w-5 accent-blue-600 rounded-lg border-gray-300"
+                              className="h-5 w-5 accent-blue-600 rounded-lg border-gray-300 flex-shrink-0 mt-0.5"
                             />
-                            <div>
-                              <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                            <div className="flex-1 min-w-0">
+                              <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer text-sm sm:text-base break-words">
                                 {adicional.nome}
                               </Label>
                               {adicional.descricao && (
-                                <p className="text-xs text-gray-500">{adicional.descricao}</p>
+                                <p className="text-xs text-gray-500 break-words">{adicional.descricao}</p>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-green-600">
+                          <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 ml-7 sm:ml-0">
+                            <span className="font-semibold text-green-600 text-sm sm:text-base whitespace-nowrap">
                               R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
                             </span>
                             {selectedAdicionais.some(sel => sel.id === adicional.id) && (
@@ -825,11 +844,11 @@ const PublicCardapioPage = ({ user: userProp }) => {
                                     ));
                                   }}
                                   disabled={!isCurrentlyOpenForOrders}
-                                  className="h-7 w-7 p-0 rounded-full"
+                                  className="h-7 w-7 p-0 rounded-full text-base"
                                 >
                                   -
                                 </Button>
-                                <span className="text-base font-medium w-6 text-center">
+                                <span className="text-sm sm:text-base font-medium w-6 text-center">
                                   {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
                                 </span>
                                 <Button
@@ -844,7 +863,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
                                     ));
                                   }}
                                   disabled={!isCurrentlyOpenForOrders}
-                                  className="h-7 w-7 p-0 rounded-full"
+                                  className="h-7 w-7 p-0 rounded-full text-base"
                                 >
                                   +
                                 </Button>
@@ -856,27 +875,34 @@ const PublicCardapioPage = ({ user: userProp }) => {
                     </div>
                   </div>
                 )}
+                
                 <div>
-                  <Label htmlFor="observacao" className="font-semibold">Observações (opcional)</Label>
-                  <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} className="rounded-xl border-gray-300 mt-1" />
-                </div>
-                <div className="text-center p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl mt-2">
-                  <p className="text-sm text-gray-600">Valor total:</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    R$ {(() => {
-                      const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
-                        ? parseFloat(selectedProduct.promocao) 
-                        : parseFloat(selectedProduct?.preco || 0);
-                      const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
-                        return total + (parseFloat(adicional.preco) * adicional.quantidade);
-                      }, 0);
-                      return ((precoBase + precoAdicionais) * productQuantity).toFixed(2).replace('.', ',');
-                    })()}
-                  </p>
+                  <Label htmlFor="observacao" className="font-semibold text-sm sm:text-base">Observações (opcional)</Label>
+                  <Textarea id="observacao" value={productObservation} onChange={(e) => setProductObservation(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." disabled={!isCurrentlyOpenForOrders} className="rounded-xl border-gray-300 mt-1 min-h-[80px]" />
                 </div>
               </div>
-              <DialogFooter className="mt-6 flex justify-center">
-                <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders} className="rounded-full px-8 py-3 text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all">Adicionar ao Carrinho</Button>
+            </div>
+            
+            {/* Footer fixo */}
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex-shrink-0 bg-white/95">
+              <div className="text-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl mb-4">
+                <p className="text-xs sm:text-sm text-gray-600">Valor total:</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">
+                  R$ {(() => {
+                    const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
+                      ? parseFloat(selectedProduct.promocao) 
+                      : parseFloat(selectedProduct?.preco || 0);
+                    const precoAdicionais = selectedAdicionais.reduce((total, adicional) => {
+                      return total + (parseFloat(adicional.preco) * adicional.quantidade);
+                    }, 0);
+                    return ((precoBase + precoAdicionais) * productQuantity).toFixed(2).replace('.', ',');
+                  })()}
+                </p>
+              </div>
+              <DialogFooter className="flex justify-center">
+                <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders} className="rounded-full px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all w-full sm:w-auto">
+                  Adicionar ao Carrinho
+                </Button>
               </DialogFooter>
             </div>
           </DialogContent>

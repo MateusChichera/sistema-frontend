@@ -156,7 +156,7 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
                     </div>
                 </div>
             </header>
-            <main className="flex-grow container mx-auto p-4">
+            <main className="flex-grow w-full px-0 sm:px-4">
                 {children}
             </main>
             <footer className="text-white p-4 text-center" style={{ background: 'linear-gradient(90deg,' + primaryColorCss + ',#222 90%)' }}>

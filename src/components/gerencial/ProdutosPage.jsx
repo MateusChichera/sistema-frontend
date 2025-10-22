@@ -249,6 +249,9 @@ const ProdutosPage = () => {
     
     const editFotoInput = document.getElementById('editFotoInput');
     if (editFotoInput) editFotoInput.value = '';
+    
+    // Rola suavemente para o topo da página
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const fetchProdutoAdicionais = async (produtoId) => {
@@ -666,7 +669,37 @@ const ProdutosPage = () => {
               <div className="col-span-full">
                 <Card>
                   <CardHeader className="px-3 sm:px-4 py-3">
-                    <CardTitle className="text-base sm:text-lg">Adicionais Disponíveis</CardTitle>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <CardTitle className="text-base sm:text-lg">Adicionais Disponíveis</CardTitle>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const adicionaisAtivos = adicionais.filter(adicional => adicional.ativo);
+                            const todosIds = adicionaisAtivos.map(adicional => adicional.id);
+                            setEditProdutoAdicionais(todosIds);
+                            toast.success(`${todosIds.length} adicionais selecionados!`);
+                          }}
+                          className="text-xs sm:text-sm h-8 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                        >
+                          ✓ Selecionar Todos
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditProdutoAdicionais([]);
+                            toast.info('Seleção de adicionais limpa!');
+                          }}
+                          className="text-xs sm:text-sm h-8 bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+                        >
+                          ✗ Limpar Seleção
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="px-3 sm:px-4 pb-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

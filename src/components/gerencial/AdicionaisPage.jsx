@@ -85,6 +85,8 @@ const AdicionaisPage = () => {
         preco: adicional.preco || '',
         ativo: !!adicional.ativo
       });
+      // Rola suavemente para o topo da página ao editar
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       setEditingAdicional(null);
       setFormData({
@@ -178,6 +180,54 @@ const AdicionaisPage = () => {
     }
   };
 
+  const handleAtivarTodos = async () => {
+    if (!confirm('Deseja ativar todos os adicionais?')) return;
+    
+    setLoading(true);
+    try {
+      const promises = adicionais.map(adicional => 
+        api.put(`/gerencial/${empresa.slug}/adicionais/${adicional.id}`, 
+          { ...adicional, ativo: 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+      await Promise.all(promises);
+      toast.success('Todos os adicionais foram ativados!');
+      fetchAdicionais();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao ativar adicionais.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao ativar todos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDesativarTodos = async () => {
+    if (!confirm('Deseja desativar todos os adicionais?')) return;
+    
+    setLoading(true);
+    try {
+      const promises = adicionais.map(adicional => 
+        api.put(`/gerencial/${empresa.slug}/adicionais/${adicional.id}`, 
+          { ...adicional, ativo: 0 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+      await Promise.all(promises);
+      toast.success('Todos os adicionais foram desativados!');
+      fetchAdicionais();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao desativar adicionais.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao desativar todos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (empresaLoading || !empresa) {
     return <div className="p-4 text-center text-gray-600">Carregando dados da empresa...</div>;
   }
@@ -216,7 +266,29 @@ const AdicionaisPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+        <div className="space-y-3 sm:space-y-4">
+          {/* Botões de Ação em Massa */}
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button
+              onClick={handleAtivarTodos}
+              variant="outline"
+              size="sm"
+              disabled={loading || adicionais.length === 0}
+              className="text-xs sm:text-sm h-8 sm:h-9 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+            >
+              ✓ Ativar Todos
+            </Button>
+            <Button
+              onClick={handleDesativarTodos}
+              variant="outline"
+              size="sm"
+              disabled={loading || adicionais.length === 0}
+              className="text-xs sm:text-sm h-8 sm:h-9 bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+            >
+              ✗ Desativar Todos
+            </Button>
+          </div>
+
           {/* Versão mobile/tablet - Cards */}
           <div className="sm:hidden space-y-2">
             {adicionais.map((adicional) => (

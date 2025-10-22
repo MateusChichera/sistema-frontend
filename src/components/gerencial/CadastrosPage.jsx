@@ -85,7 +85,13 @@ const CadastrosPage = () => {
     } finally { setLoadingCategorias(false); }
   };
 
-  const handleEditClick = (categoria) => { setEditandoCategoria(categoria); setEditDescricao(categoria.descricao); setEditAtivo(categoria.ativo); };
+  const handleEditClick = (categoria) => { 
+    setEditandoCategoria(categoria); 
+    setEditDescricao(categoria.descricao); 
+    setEditAtivo(categoria.ativo); 
+    // Rola suavemente para o topo da página
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const handleCancelEdit = () => { setEditandoCategoria(null); setEditDescricao(''); setEditAtivo(true); };
 
   const handleSaveEdit = async (e) => {
