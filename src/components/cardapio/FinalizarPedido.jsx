@@ -51,7 +51,7 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
     };
 
     // Responsividade: classes utilitárias
-    const containerClass = "p-2 sm:p-4 overflow-y-auto max-h-[90vh] w-full overflow-x-hidden";
+    const containerClass = "p-2 sm:p-4 overflow-y-auto max-h-[85vh] w-full overflow-x-hidden";
     const tableClass = "min-w-full text-xs sm:text-sm";
     const buttonClass = "h-9 sm:h-10 text-xs sm:text-sm";
 
@@ -83,8 +83,6 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
 
     const [obsPedido, setObsPedido] = useState(savedData?.obsPedido || '');
     const [selectedFormaPagamento, setSelectedFormaPagamento] = useState(savedData?.selectedFormaPagamento || undefined); 
-    const [wantsToRegister, setWantsToRegister] = useState(savedData?.wantsToRegister || false);
-    const [passwordRegister, setPasswordRegister] = useState(savedData?.passwordRegister || '');
 
     // Salva dados no localStorage sempre que houver mudanças
     useEffect(() => {
@@ -101,15 +99,13 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
             precisaTroco,
             valorPagoCliente,
             obsPedido,
-            selectedFormaPagamento,
-            wantsToRegister,
-            passwordRegister
+            selectedFormaPagamento
         };
         localStorage.setItem('finalizarPedidoFormData', JSON.stringify(formData));
     }, [
         nomeCliente, emailCliente, telefoneCliente,
         ruaCliente, numeroCliente, bairroCliente, cepCliente, cidadeCliente, estadoCliente,
-        precisaTroco, valorPagoCliente, obsPedido, selectedFormaPagamento, wantsToRegister, passwordRegister
+        precisaTroco, valorPagoCliente, obsPedido, selectedFormaPagamento
     ]);
 
     // Preencher automaticamente se usuário logado for cliente
@@ -207,11 +203,6 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
             return;
         }
 
-        if (wantsToRegister && !passwordRegister.trim()) {
-            toast.error('Defina uma senha para o seu cadastro.');
-            setLoading(false);
-            return;
-        }
 
         const pedidoMinimoDelivery = parseFloat(empresa?.pedido_minimo_delivery || 0);
         if (pedidoType === 'Delivery' && total < pedidoMinimoDelivery) {
@@ -266,21 +257,6 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 pedidoData.id_cliente = user.id;
             }
 
-            if (wantsToRegister && !user?.id) {
-                try {
-                    await api.post(`/${empresa.slug}/cliente/register`, {
-                        nome: nomeCliente,
-                        email: emailCliente,
-                        telefone: telefoneCliente.replace(/\D/g, ''),
-                        senha: passwordRegister,
-                        endereco: pedidoData.endereco_entrega
-                    });
-                    toast.success('Seu cadastro foi criado com sucesso!');
-                } catch (regErr) {
-                    toast.error('Erro ao finalizar cadastro: ' + (regErr.response?.data?.message || 'Verifique os dados de cadastro.'));
-                    console.error('Erro no cadastro opcional:', regErr);
-                }
-            }
 
             const headers = {};
             if (token) {
@@ -321,16 +297,6 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                     <Label htmlFor="emailCliente">Email (opcional)</Label>
                     <Input id="emailCliente" type="email" value={emailCliente} onChange={(e) => setEmailCliente(e.target.value)} />
                 </div>
-                <div className="flex items-center space-x-2 mt-2">
-                    <Switch id="wantsToRegister" checked={wantsToRegister} onCheckedChange={setWantsToRegister} />
-                    <Label htmlFor="wantsToRegister">Deseja se cadastrar?</Label>
-                </div>
-                {wantsToRegister && (
-                    <div>
-                        <Label htmlFor="passwordRegister">Defina uma Senha</Label>
-                        <Input id="passwordRegister" type="password" value={passwordRegister} onChange={(e) => setPasswordRegister(e.target.value)} required />
-                    </div>
-                )}
             </div>
         );
     };
@@ -384,7 +350,7 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                     <DialogDescription>Confira, edite ou exclua itens do seu carrinho antes de continuar.</DialogDescription>
                 </DialogHeader>
                 {/* Layout responsivo: cards no mobile, tabela no desktop */}
-                <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+                <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto max-h-48 sm:max-h-60 overflow-y-auto">
                   {/* Mobile: Cards */}
                   <div className="sm:hidden space-y-2">
                     {itens.map((item, idx) => (
@@ -549,7 +515,7 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 </Select>
                 <h3 className="text-xl font-semibold mb-3 mt-6 border-b pb-2">Seu Pedido</h3>
                 {/* Mobile: Cards */}
-                <div className="sm:hidden space-y-2 mb-4">
+                <div className="sm:hidden space-y-2 mb-4 max-h-48 overflow-y-auto">
                   {itens.map((item, idx) => (
                     <div key={idx} className="bg-white border border-gray-200 rounded-lg p-3 flex flex-col gap-2">
                       <div className="flex justify-between items-start">

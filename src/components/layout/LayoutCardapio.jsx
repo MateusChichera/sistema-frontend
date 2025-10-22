@@ -130,7 +130,7 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
                         <img 
                             src={empresa.logo_full_url} 
                             alt={empresa.nome_fantasia || 'Logo da Empresa'} 
-                            className="h-14 w-14 rounded-xl object-cover mb-2 shadow-md border-2 border-white animate-fade-in"
+                            className="h-20 w-20 rounded-xl object-cover mb-2 shadow-md border-2 border-white animate-fade-in"
                         />
                     ) : (
                         <h1 className="text-2xl font-extrabold mb-1 text-gray-800 animate-fade-in">{empresa.nome_fantasia || 'Cardápio Digital'}</h1>
@@ -152,7 +152,6 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
                         {empresa.endereco && <p>{empresa.endereco}</p>}
                         {empresa.telefone_contato && <p>Tel: {empresa.telefone_contato}</p>}
                         {empresa.horario_funcionamento && <p>Horário: {empresa.horario_funcionamento}</p>}
-                        {empresa.email_contato && <p>Email: {empresa.email_contato}</p>}
                     </div>
                 </div>
             </header>

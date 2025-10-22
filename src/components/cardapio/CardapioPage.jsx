@@ -100,6 +100,7 @@ const CardapioPage = () => {
         const categoriasResponse = await api.get(`/gerencial/${empresa.slug}/categorias`, {
             headers: { Authorization: `Bearer ${token}` }
         });
+        // As categorias já vêm ordenadas do backend por ordem ASC, descricao ASC
         const fetchedCategorias = categoriasResponse.data;
 
         const produtosResponse = await api.get(`/gerencial/${empresa.slug}/produtos`, {
@@ -137,7 +138,8 @@ const CardapioPage = () => {
 
         const promoProducts = finalProdutos.filter(p => p.promo_ativa && p.ativo);
         if (promoProducts.length > 0) {
-            const promoCategory = { id: 'promo', descricao: '🔥 Promoções', ativo: true };
+            const promoCategory = { id: 'promo', descricao: '🔥 Promoções', ativo: true, ordem: 0 };
+            // Inserir promoções no início, mas respeitando a ordem das outras categorias
             finalCategorias = [promoCategory, ...fetchedCategorias];
         }
         setCategorias(finalCategorias);
@@ -625,7 +627,7 @@ const CardapioPage = () => {
               return (
                 <div key={categoria.id} className="bg-white p-4 rounded-lg shadow-md">
                   <h2 className="text-2xl font-semibold mb-4 text-gray-700 border-b pb-2">{categoria.descricao}</h2>
-                  <div className={`grid gap-4 ${empresa?.layout_cardapio === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                  <div className={`grid gap-4 ${empresa?.layout_cardapio === 'grid' ? 'sm:grid-cols-2 lg:grid-cols-3' : ''}`}>
                     {produtosParaExibir.map(prod => {
                         // Buscamos o item no carrinho para aquele ID de produto, com qualquer observação
                         // O totalQuantityInCart será a soma das quantidades de todas as observações do mesmo produto
@@ -638,7 +640,11 @@ const CardapioPage = () => {
                         return (
                             <Card 
                                 key={prod.id} 
-                                className="flex flex-col md:flex-row items-center p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                                className={`p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer w-full ${
+                                    empresa?.layout_cardapio === 'grid' 
+                                        ? 'flex flex-col items-center text-center sm:flex-col' 
+                                        : 'flex flex-row items-center'
+                                }`}
                                 // AÇÃO DO CLIQUE NO CARD: Abre o modal de observação
                                 onClick={() => openProductObservationModal(prod)} 
                             >
@@ -646,58 +652,84 @@ const CardapioPage = () => {
                                     <img
                                         src={`${api.defaults.baseURL.replace('/api/v1', '')}${prod.foto_url}`}
                                         alt={prod.nome}
-                                        className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-md flex-shrink-0 mr-4 mb-2 md:mb-0" 
+                                        className={`object-cover rounded-xl flex-shrink-0 ${
+                                            empresa?.layout_cardapio === 'grid' 
+                                                ? 'w-20 h-20 sm:w-32 sm:h-32 lg:w-40 lg:h-40 mb-2 sm:mb-3' 
+                                                : 'w-20 h-20 sm:w-24 sm:h-24 mr-4'
+                                        }`}
                                     />
                                 )}
-                                <div className="flex-1 flex flex-col justify-between w-full md:w-auto">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-800">{prod.nome}</h3>
-                                        <p className="text-gray-600 text-sm">{prod.descricao}</p>
-                                        {prod.promo_ativa && prod.promocao ? (
-                                            <p className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
-                                                <span className="line-through text-gray-500 mr-2">R$ {parseFloat(prod.preco || 0).toFixed(2).replace('.', ',')}</span>
-                                                <span style={{ color: '#22C55E' }}>R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
-                                            </p>
-                                        ) : (
-                                            <p className="text-gray-800 font-bold text-lg mt-1">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
-                                        )}
-
-
-                                    </div>
-                                    {/* Botões de quantidade * /}
-                                    <div className="flex items-center space-x-2 mt-2 self-end md:self-auto">
+                                <div className={empresa?.layout_cardapio === 'grid' ? 'w-full' : 'flex-1 min-w-0'}>
+                                    <h3 className={`font-bold text-gray-800 mb-1 ${
+                                        empresa?.layout_cardapio === 'grid' 
+                                            ? 'text-lg sm:text-xl lg:text-xl line-clamp-2 px-1' 
+                                            : 'text-lg sm:text-xl truncate'
+                                    }`}>{prod.nome}</h3>
+                                    <p className={`text-gray-600 mb-1 ${
+                                        empresa?.layout_cardapio === 'grid' 
+                                            ? 'text-sm line-clamp-2 px-1' 
+                                            : 'text-sm sm:text-base line-clamp-3 break-words'
+                                    }`}>{prod.descricao}</p>
+                                    {prod.promo_ativa && prod.promocao ? (
+                                        <p className={`font-bold mt-1 sm:mt-2 text-green-600 ${
+                                            empresa?.layout_cardapio === 'grid' 
+                                                ? 'text-lg sm:text-xl lg:text-xl px-1' 
+                                                : 'text-lg sm:text-xl mt-2'
+                                        }`}>
+                                            <span className="line-through text-gray-500 mr-1 text-base block sm:inline">R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</span>
+                                            <span className="block sm:inline">R$ {parseFloat(prod.promocao).toFixed(2).replace('.', ',')}</span>
+                                        </p>
+                                    ) : (
+                                        <p className={`text-gray-800 font-bold mt-1 sm:mt-2 ${
+                                            empresa?.layout_cardapio === 'grid' 
+                                                ? 'text-lg sm:text-xl lg:text-xl px-1' 
+                                                : 'text-lg sm:text-xl mt-2'
+                                        }`}>R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
+                                    )}
+                                </div>
+                                <div className={`gap-2 ${
+                                    empresa?.layout_cardapio === 'grid' 
+                                        ? 'flex flex-col items-center mt-2' 
+                                        : 'flex flex-col items-end ml-4 flex-shrink-0'
+                                }`}>
+                                    <div className="flex items-center space-x-2">
                                         <Button 
                                             type="button" 
                                             variant="outline" 
                                             size="sm" 
-                                            onClick={(e) => { e.stopPropagation(); handleDecrementOnCard(prod); }} // impede clique no card
+                                            onClick={(e) => { e.stopPropagation(); handleDecrementOnCard(prod); }}
+                                            className="h-8 w-8 p-0"
                                         >
                                             <Minus className="h-4 w-4" />
                                         </Button>
                                         <Input 
                                             type="number" 
-                                            value={totalQuantityInCart} // Exibe a quantidade total desse produto no carrinho
+                                            value={totalQuantityInCart}
                                             onChange={(e) => { e.stopPropagation(); handleQuantityChangeOnCard(prod, parseInt(e.target.value) || 0); }} 
-                                            className="w-16 text-center" 
+                                            className="w-16 text-center h-8" 
                                             min="0" 
-                                            onClick={(e) => e.stopPropagation()} // impede clique no card
+                                            onClick={(e) => e.stopPropagation()}
                                         />
                                         <Button 
                                             type="button" 
                                             variant="outline" 
                                             size="sm" 
-                                            onClick={(e) => { e.stopPropagation(); handleIncrementOnCard(prod); }} // impede clique no card
+                                            onClick={(e) => { e.stopPropagation(); handleIncrementOnCard(prod); }}
+                                            className="h-8 w-8 p-0"
                                         >
                                             <Plus className="h-4 w-4" />
                                         </Button>
-                                        { Botão para editar observação do item no carrinho */}
-                                        {totalQuantityInCart > 0 && (
-                                            <span className="text-sm font-semibold whitespace-nowrap">
-                                                Subtotal: R$ {(totalQuantityInCart * finalPrice).toFixed(2).replace('.', ',')}
-                                            </span>
-                                        )}
                                     </div>
-                                
+                                    {totalQuantityInCart > 0 && (
+                                        <span className={`font-semibold ${
+                                            empresa?.layout_cardapio === 'grid' 
+                                                ? 'text-center' 
+                                                : 'text-right'
+                                        }`}>
+                                            Subtotal: R$ {(totalQuantityInCart * finalPrice).toFixed(2).replace('.', ',')}
+                                        </span>
+                                    )}
+                                </div>
                             </Card>
                         );
                     })}
@@ -729,36 +761,44 @@ const CardapioPage = () => {
 
       {/* Modal de Detalhes do Produto / Adicionar ao Carrinho (para observações) */}
       <Dialog open={!!selectedProduct} onOpenChange={closeProductObservationModal}>
-        <DialogContent className="bg-white">
-          <DialogHeader>
-            <DialogTitle>{selectedProduct?.nome}</DialogTitle>
-            <DialogDescription>
-              {selectedProduct?.descricao} <br />
+        <DialogContent className="w-full max-w-lg rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up max-h-[95vh] flex flex-col overflow-hidden">
+          {/* Header fixo */}
+          <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+            <DialogHeader>
+              <DialogTitle className="text-xl sm:text-2xl font-extrabold text-gray-800 mb-1 text-center">{selectedProduct?.nome}</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base text-gray-600 text-center mb-2">
+                {selectedProduct?.descricao}
+              </DialogDescription>
               {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
-                <span className="font-bold text-lg mt-1" style={{ color: primaryColor }}>
-                  <span className="line-through text-gray-500 mr-2">R$ {parseFloat(selectedProduct.preco || 0).toFixed(2).replace('.', ',')}</span>
-                  <span style={{ color: '#22C55E' }}>R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
-                </span>
+                <div className="flex justify-center items-center gap-2 mb-2">
+                  <span className="line-through text-gray-400 text-base sm:text-lg">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
+                  <span className="font-bold text-xl sm:text-2xl text-green-600">R$ {parseFloat(selectedProduct.promocao).toFixed(2).replace('.', ',')}</span>
+                </div>
               ) : (
-                <span className="text-gray-800 font-bold text-lg mt-1">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
+                <div className="flex justify-center items-center mb-2">
+                  <span className="text-gray-800 font-bold text-xl sm:text-2xl">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
+                </div>
               )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center space-x-2">
-              <Button onClick={() => setProductQuantityInModal(prev => Math.max(1, prev - 1))}>-</Button>
-              <Input type="number" value={productQuantityInModal} onChange={(e) => setProductQuantityInModal(parseInt(e.target.value) || 1)} className="w-16 text-center" />
-              <Button onClick={() => setProductQuantityInModal(prev => prev + 1)}>+</Button>
-            </div>
+            </DialogHeader>
+          </div>
+          
+          {/* Área scrollável */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="flex items-center justify-center gap-4">
+                <Button onClick={() => setProductQuantityInModal(prev => Math.max(1, prev - 1))} className="rounded-full h-10 w-10 text-xl bg-gray-200 border border-gray-300 text-gray-700 hover:bg-gray-300">-</Button>
+                <Input type="number" value={productQuantityInModal} onChange={(e) => setProductQuantityInModal(parseInt(e.target.value) || 1)} className="w-16 text-center rounded-lg border-gray-300" min={1} />
+                <Button onClick={() => setProductQuantityInModal(prev => prev + 1)} className="rounded-full h-10 w-10 text-xl bg-gray-200 border border-gray-300 text-gray-700 hover:bg-gray-300">+</Button>
+              </div>
             
             {/* Seção de Adicionais */}
             {productAdicionais.length > 0 && (
               <div>
                 <Label className="text-base font-medium">Adicionais Disponíveis</Label>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-2 sm:space-y-3 mt-2 max-h-[40vh] overflow-y-auto">
                   {productAdicionais.map((adicional) => (
-                    <div key={adicional.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
+                    <div key={adicional.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 border rounded-xl bg-gray-50 gap-2">
+                      <div className="flex items-start sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <input
                           type="checkbox"
                           id={`adicional-${adicional.id}`}
@@ -770,23 +810,23 @@ const CardapioPage = () => {
                               setSelectedAdicionais(prev => prev.filter(sel => sel.id !== adicional.id));
                             }
                           }}
-                          className="h-4 w-4 text-blue-600"
+                          className="h-5 w-5 accent-blue-600 rounded-lg border-gray-300 flex-shrink-0 mt-0.5"
                         />
-                        <div>
-                          <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer">
+                        <div className="flex-1 min-w-0">
+                          <Label htmlFor={`adicional-${adicional.id}`} className="font-medium cursor-pointer text-sm sm:text-base break-words">
                             {adicional.nome}
                           </Label>
                           {adicional.descricao && (
-                            <p className="text-sm text-gray-600">{adicional.descricao}</p>
+                            <p className="text-xs text-gray-500 break-words">{adicional.descricao}</p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-green-600">
+                      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 ml-7 sm:ml-0">
+                        <span className="font-semibold text-green-600 text-sm sm:text-base whitespace-nowrap">
                           R$ {parseFloat(adicional.preco).toFixed(2).replace('.', ',')}
                         </span>
                         {selectedAdicionais.some(sel => sel.id === adicional.id) && (
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center gap-1">
                             <Button
                               type="button"
                               size="sm"
@@ -798,11 +838,11 @@ const CardapioPage = () => {
                                     : sel
                                 ));
                               }}
-                              className="h-6 w-6 p-0"
+                              className="h-7 w-7 p-0 rounded-full text-base"
                             >
                               -
                             </Button>
-                            <span className="text-sm font-medium w-4 text-center">
+                            <span className="text-sm sm:text-base font-medium w-6 text-center">
                               {selectedAdicionais.find(sel => sel.id === adicional.id)?.quantidade || 1}
                             </span>
                             <Button
@@ -816,7 +856,7 @@ const CardapioPage = () => {
                                     : sel
                                 ));
                               }}
-                              className="h-6 w-6 p-0"
+                              className="h-7 w-7 p-0 rounded-full text-base"
                             >
                               +
                             </Button>
@@ -829,15 +869,18 @@ const CardapioPage = () => {
               </div>
             )}
             
-            <div>
-              <Label htmlFor="observacao">Observações (opcional)</Label>
-              <Textarea id="observacao" value={productObservationInModal} onChange={(e) => setProductObservationInModal(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." />
+              <div>
+                <Label htmlFor="observacao" className="font-semibold text-sm sm:text-base">Observações (opcional)</Label>
+                <Textarea id="observacao" value={productObservationInModal} onChange={(e) => setProductObservationInModal(e.target.value)} placeholder="Ex: Sem cebola, bem passado..." className="rounded-xl border-gray-300 mt-1 min-h-[80px]" />
+              </div>
             </div>
-            
-            {/* Mostrar valor total atualizado */}
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">Valor total:</p>
-              <p className="text-lg font-bold text-green-600">
+          </div>
+          
+          {/* Footer fixo */}
+          <div className="p-4 sm:p-6 border-t border-gray-200 flex-shrink-0 bg-white/95">
+            <div className="text-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl mb-4">
+              <p className="text-xs sm:text-sm text-gray-600">Valor total:</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">
                 R$ {(() => {
                   const precoBase = selectedProduct?.promo_ativa && selectedProduct?.promocao 
                     ? parseFloat(selectedProduct.promocao) 
@@ -849,11 +892,12 @@ const CardapioPage = () => {
                 })()}
               </p>
             </div>
-            
+            <DialogFooter className="flex justify-center">
+              <Button onClick={handleAddProductToCartFromModal} className="rounded-full px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all w-full sm:w-auto">
+                Adicionar ao Carrinho
+              </Button>
+            </DialogFooter>
           </div>
-          <DialogFooter>
-            <Button onClick={handleAddProductToCartFromModal}>Adicionar ao Carrinho</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -13,14 +13,30 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ShoppingCart, Home, Bike, CheckCircle, Utensils, Plus, Minus } from 'lucide-react';
 import FinalizarPedido from './FinalizarPedido';
-import LoginRegisterModal from './LoginRegisterModal';
 import PedidoTypeSelectionModal from './PedidoTypeSelectionModal';
 import { useAuth } from '../../contexts/AuthContext';
 import LayoutCardapio from '../layout/LayoutCardapio';
 //corrigido merge
 
 const removeAccents = (str) => {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (!str || typeof str !== 'string') return '';
+  
+  // Função mais robusta que não usa normalize para evitar problemas com hífens e caracteres especiais
+  return str
+    .replace(/[àáâãäå]/g, 'a')
+    .replace(/[èéêë]/g, 'e')
+    .replace(/[ìíîï]/g, 'i')
+    .replace(/[òóôõö]/g, 'o')
+    .replace(/[ùúûü]/g, 'u')
+    .replace(/[ç]/g, 'c')
+    .replace(/[ñ]/g, 'n')
+    .replace(/[ÀÁÂÃÄÅ]/g, 'A')
+    .replace(/[ÈÉÊË]/g, 'E')
+    .replace(/[ÌÍÎÏ]/g, 'I')
+    .replace(/[ÒÓÔÕÖ]/g, 'O')
+    .replace(/[ÙÚÛÜ]/g, 'U')
+    .replace(/[Ç]/g, 'C')
+    .replace(/[Ñ]/g, 'N');
 };
 
 const isRestaurantOpen = (horarioFuncionamento) => {
@@ -128,12 +144,13 @@ const PublicCardapioPage = ({ user: userProp }) => {
 
   const [selectedCategoryId, setSelectedCategoryId] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const [selectedPedidoType, setSelectedPedidoType] = useState(null);
   const [isFinalizarPedidoModalOpen, setIsFinalizarPedidoModalOpen] = useState(false);
   const [isPedidoTypeSelectionModalOpen, setIsPedidoTypeSelectionModalOpen] = useState(false);
 
-  const [isLoginRegisterModalOpen, setIsLoginRegisterModalOpen] = useState(false);
 
   const [isMinimoDeliveryModalOpen, setIsMinimoDeliveryModalOpen] = useState(false);
   const [valorFaltanteDelivery, setValorFaltanteDelivery] = useState(0);
@@ -291,6 +308,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
       setLoadingContent(true);
       try {
         const categoriasResponse = await api.get(`/${empresa.slug}/cardapio/categorias`);
+        // As categorias já vêm ordenadas do backend por ordem ASC, descricao ASC
         const fetchedCategorias = categoriasResponse.data;
         const produtosResponse = await api.get(`/${empresa.slug}/cardapio/produtos`);
         
@@ -318,9 +336,10 @@ const PublicCardapioPage = ({ user: userProp }) => {
         let finalProdutos = [...produtosComAdicionais];
         
         const promoProducts = finalProdutos.filter(p => p.promo_ativa); 
-        // Corrigido: não filtrar produtos, só adicionar categoria promoções no topo
+        // Adicionar categoria promoções respeitando a ordenação
         if (promoProducts.length > 0 && empresa.mostrar_promocoes_na_home) {
-          const promoCategory = { id: 'promo', descricao: 'Promoções', ativo: true };
+          const promoCategory = { id: 'promo', descricao: 'Promoções', ativo: true, ordem: 0 };
+          // Inserir promoções no início, mas respeitando a ordem das outras categorias
           finalCategorias = [promoCategory, ...fetchedCategorias];
         }
 
@@ -408,22 +427,40 @@ const PublicCardapioPage = ({ user: userProp }) => {
     registrarAcesso();
   }, [isReady, empresa]);
 
+  // Debounce para pesquisa - evita atualizações desnecessárias
   useEffect(() => {
-    let currentFiltered = produtos.filter(prod => prod.ativo); 
-    if (selectedCategoryId === 'promo') {
-      currentFiltered = currentFiltered.filter(prod => prod.promo_ativa);
-    } else if (selectedCategoryId !== 'all') {
-      currentFiltered = currentFiltered.filter(prod => prod.id_categoria.toString() === selectedCategoryId);
+    if (searchTerm !== debouncedSearchTerm) {
+      setIsSearching(true);
     }
-    if (searchTerm) {
-      const cleanedSearchTerm = removeAccents(searchTerm).toLowerCase();
+    
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setIsSearching(false);
+    }, 500); // 500ms de delay para ser mais contido
+
+    return () => {
+      clearTimeout(timer);
+      setIsSearching(false);
+    };
+  }, [searchTerm, debouncedSearchTerm]);
+
+  useEffect(() => {
+    let currentFiltered = produtos.filter(prod => prod && prod.ativo); 
+    if (selectedCategoryId === 'promo') {
+      currentFiltered = currentFiltered.filter(prod => prod && prod.promo_ativa);
+    } else if (selectedCategoryId !== 'all') {
+      currentFiltered = currentFiltered.filter(prod => prod && prod.id_categoria && prod.id_categoria.toString() === selectedCategoryId);
+    }
+    if (debouncedSearchTerm) {
+      const cleanedSearchTerm = removeAccents(debouncedSearchTerm).toLowerCase();
       currentFiltered = currentFiltered.filter(prod =>
-        removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
-        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm)
+        prod && prod.nome && prod.descricao &&
+        (removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
+        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm))
       );
     }
     setFilteredProdutos(currentFiltered);
-  }, [produtos, selectedCategoryId, searchTerm]);
+  }, [produtos, selectedCategoryId, debouncedSearchTerm]);
 
   const openProductModal = async (product) => {
     setSelectedProduct(product);
@@ -457,6 +494,12 @@ const PublicCardapioPage = ({ user: userProp }) => {
       return;
     }
     if (selectedProduct) {
+      // Verificar estoque se a configuração não permitir pedidos com estoque zerado
+      if (empresa?.permitir_pedidos_estoque_zerado !== 1 && selectedProduct.estoque !== undefined && selectedProduct.estoque <= 0) {
+        toast.error(`${selectedProduct.nome} está fora de estoque.`);
+        return;
+      }
+      
       const existingItemIndex = itens.findIndex(item => {
           const mesmaObservacao = item.id_produto === selectedProduct.id && item.observacoes === (productObservation || '');
           const mesmosAdicionais = JSON.stringify(item.adicionais || []) === JSON.stringify(selectedAdicionais);
@@ -490,9 +533,16 @@ const PublicCardapioPage = ({ user: userProp }) => {
       toast.info("A empresa não está aceitando pedidos online no momento.");
       return;
     }
+    
+    // Verificar estoque se a configuração não permitir pedidos com estoque zerado
+    if (empresa?.permitir_pedidos_estoque_zerado !== 1 && product.estoque !== undefined && product.estoque <= 0) {
+      toast.error(`${product.nome} está fora de estoque.`);
+      return;
+    }
+    
     adicionarItem({ ...product, observacoes: '' }, 1);
     toast.success(`1x ${product.nome} adicionado ao carrinho!`);
-  }, [adicionarItem, isCurrentlyOpenForOrders]);
+  }, [adicionarItem, isCurrentlyOpenForOrders, empresa]);
 
   const handleQuickRemoveFromCart = useCallback((e, product) => {
     e.stopPropagation(); 
@@ -562,9 +612,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
           <Button variant="outline" onClick={() => toast.info('Em breve!')} className="text-xs sm:text-sm h-8 sm:h-9">Meus pedidos</Button>
           <Button variant="ghost" onClick={logout} className="text-xs sm:text-sm h-8 sm:h-9">Sair</Button>
         </>
-      ) : (
-        <Button variant="outline" onClick={() => setIsLoginRegisterModalOpen(true)} className="text-xs sm:text-sm h-8 sm:h-9">Entrar ou Cadastrar</Button>
-      )}
+      ) : null}
     </>
   );
 
@@ -589,14 +637,15 @@ const PublicCardapioPage = ({ user: userProp }) => {
   // Filtro de busca e categoria
   let categoriasFiltradas = categoriasParaExibir;
   if (selectedCategoryId !== 'all') {
-    categoriasFiltradas = categoriasParaExibir.filter(c => c.id.toString() === selectedCategoryId);
+    categoriasFiltradas = categoriasParaExibir.filter(c => c && c.id && c.id.toString() === selectedCategoryId);
   }
-  if (searchTerm) {
-    const cleanedSearchTerm = removeAccents(searchTerm).toLowerCase();
+  if (debouncedSearchTerm) {
+    const cleanedSearchTerm = removeAccents(debouncedSearchTerm).toLowerCase();
     categoriasFiltradas = categoriasFiltradas.filter(cat =>
-      produtosPorCategoria[cat.id]?.some(prod =>
-        removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
-        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm)
+      cat && produtosPorCategoria[cat.id]?.some(prod =>
+        prod && prod.nome && prod.descricao &&
+        (removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
+        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm))
       )
     );
   }
@@ -700,11 +749,13 @@ const PublicCardapioPage = ({ user: userProp }) => {
               <div className={isGrid ? 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4' : 'flex flex-col gap-4'}>
                 {produtosParaExibir
                   .filter(prod => {
-                    if (searchTerm) {
-                      const cleanedSearchTerm = removeAccents(searchTerm).toLowerCase();
+                    if (!prod) return false;
+                    if (debouncedSearchTerm) {
+                      const cleanedSearchTerm = removeAccents(debouncedSearchTerm).toLowerCase();
                       return (
-                        removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
-                        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm)
+                        prod.nome && prod.descricao &&
+                        (removeAccents(prod.nome).toLowerCase().includes(cleanedSearchTerm) ||
+                        removeAccents(prod.descricao).toLowerCase().includes(cleanedSearchTerm))
                       );
                     }
                     return true;
@@ -720,7 +771,13 @@ const PublicCardapioPage = ({ user: userProp }) => {
                       onClick={() => {
                         if (!lojaFechadaParaPedidosOnline && (deliveryDisponivel || retiradaDisponivel)) openProductModal(prod);
                       }}
-                      style={(!deliveryDisponivel && !retiradaDisponivel) || lojaFechadaParaPedidosOnline ? { cursor: 'default', opacity: 0.7 } : {}}
+                      style={
+                        (!deliveryDisponivel && !retiradaDisponivel) || lojaFechadaParaPedidosOnline 
+                          ? { cursor: 'default', opacity: 0.7 } 
+                          : (empresa?.permitir_pedidos_estoque_zerado !== 1 && prod.estoque !== undefined && prod.estoque <= 0)
+                            ? { cursor: 'default', opacity: 0.6 }
+                            : {}
+                      }
                     >
                       {prod.foto_url && (
                         <img
@@ -739,6 +796,14 @@ const PublicCardapioPage = ({ user: userProp }) => {
                           </p>
                         ) : (
                           <p className={isGrid ? 'text-gray-800 font-bold text-xs sm:text-lg lg:text-xl mt-1 sm:mt-2 px-1' : 'text-gray-800 font-bold text-lg sm:text-xl mt-2'}>R$ {parseFloat(prod.preco).toFixed(2).replace('.', ',')}</p>
+                        )}
+                        {/* Indicador de estoque zerado */}
+                        {empresa?.permitir_pedidos_estoque_zerado !== 1 && prod.estoque !== undefined && prod.estoque <= 0 && (
+                          <div className={isGrid ? 'mt-1 px-1' : 'mt-1'}>
+                            <span className="inline-block bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded-full">
+                              Fora de Estoque
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -900,15 +965,25 @@ const PublicCardapioPage = ({ user: userProp }) => {
                 </p>
               </div>
               <DialogFooter className="flex justify-center">
-                <Button onClick={handleAddToCart} disabled={!isCurrentlyOpenForOrders} className="rounded-full px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all w-full sm:w-auto">
-                  Adicionar ao Carrinho
+                <Button 
+                  onClick={handleAddToCart} 
+                  disabled={
+                    !isCurrentlyOpenForOrders || 
+                    (empresa?.permitir_pedidos_estoque_zerado !== 1 && selectedProduct?.estoque !== undefined && selectedProduct?.estoque <= 0)
+                  } 
+                  className="rounded-full px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all w-full sm:w-auto"
+                >
+                  {empresa?.permitir_pedidos_estoque_zerado !== 1 && selectedProduct?.estoque !== undefined && selectedProduct?.estoque <= 0
+                    ? 'Fora de Estoque'
+                    : 'Adicionar ao Carrinho'
+                  }
                 </Button>
               </DialogFooter>
             </div>
           </DialogContent>
         </Dialog>
         <Dialog open={isFinalizarPedidoModalOpen} onOpenChange={setIsFinalizarPedidoModalOpen}>
-          <DialogContent className="w-full max-w-xl rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
+          <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[95vh] rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up overflow-hidden">
             <FinalizarPedido
               pedidoType={selectedPedidoType}
               onClose={handleCloseFinalizarPedidoModal}
@@ -920,11 +995,6 @@ const PublicCardapioPage = ({ user: userProp }) => {
               setIsMinimoDeliveryModalOpen={setIsMinimoDeliveryModalOpen}
               setValorFaltanteDelivery={setValorFaltanteDelivery}
             />
-          </DialogContent>
-        </Dialog>
-        <Dialog open={isLoginRegisterModalOpen} onOpenChange={setIsLoginRegisterModalOpen}>
-          <DialogContent className="w-full max-w-md rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
-            <LoginRegisterModal onClose={() => setIsLoginRegisterModalOpen(false)} />
           </DialogContent>
         </Dialog>
         <Dialog open={isPedidoTypeSelectionModalOpen} onOpenChange={setIsPedidoTypeSelectionModalOpen}>

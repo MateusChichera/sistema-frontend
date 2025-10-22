@@ -9,6 +9,7 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import { useErrorDialog } from '../../hooks/use-error-dialog';
+import { ChevronUp, ChevronDown, Save } from 'lucide-react';
 
 const CadastrosPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa(); // Remove isReady aqui, pois o LayoutGerencial já a trata
@@ -23,6 +24,7 @@ const CadastrosPage = () => {
   const [editandoCategoria, setEditandoCategoria] = useState(null);
   const [editDescricao, setEditDescricao] = useState('');
   const [editAtivo, setEditAtivo] = useState(true);
+  const [isReordering, setIsReordering] = useState(false);
 
   useEffect(() => {
     const fetchCategorias = async () => {
@@ -128,6 +130,42 @@ const CadastrosPage = () => {
     } finally { setLoadingCategorias(false); }
   };
 
+  const handleUpdateOrdem = async () => {
+    setIsReordering(true);
+    try {
+      const categoriasParaEnviar = categorias.map((categoria, index) => ({
+        id: categoria.id,
+        ordem: index + 1
+      }));
+
+      await api.put(`/gerencial/${empresa.slug}/categorias/ordem`, {
+        categorias: categoriasParaEnviar
+      });
+
+      toast.success('Ordem das categorias atualizada com sucesso!');
+      // Recarregar categorias para garantir sincronização
+      const response = await api.get(`/gerencial/${empresa.slug}/categorias`);
+      setCategorias(response.data);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao atualizar ordem das categorias.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao atualizar ordem:", err);
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const moveCategoria = (index, direction) => {
+    const newCategorias = [...categorias];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (newIndex >= 0 && newIndex < newCategorias.length) {
+      [newCategorias[index], newCategorias[newIndex]] = [newCategorias[newIndex], newCategorias[index]];
+      setCategorias(newCategorias);
+    }
+  };
+
   // Renderização condicional para CadastrosPage
   if (loadingCategorias) {
     return <div className="p-4 text-center text-gray-600">Carregando categorias...</div>;
@@ -142,6 +180,21 @@ const CadastrosPage = () => {
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
       {ErrorDialogElement}
                       <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-title">Gerenciar Categorias - {empresa.nome_fantasia}</h2>
+
+      {/* Botão para salvar ordem das categorias */}
+      {categorias.length > 1 && (
+        <div className="mb-4 flex justify-end">
+          <Button
+            type="button"
+            onClick={handleUpdateOrdem}
+            disabled={isReordering}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {isReordering ? 'Salvando...' : 'Salvar Ordem das Categorias'}
+          </Button>
+        </div>
+      )}
 
       {/* Formulário para Adicionar/Editar Categoria */}
       <form onSubmit={editandoCategoria ? handleSaveEdit : handleAddCategoria} className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50">
@@ -192,11 +245,16 @@ const CadastrosPage = () => {
         <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
           {/* Versão mobile/tablet - Cards */}
           <div className="sm:hidden space-y-2">
-            {categorias.map((categoria) => (
+            {categorias.map((categoria, index) => (
               <div key={categoria.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">{categoria.descricao}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        #{index + 1}
+                      </span>
+                      <p className="text-sm font-medium text-gray-800">{categoria.descricao}</p>
+                    </div>
                     <p className="text-xs text-gray-500">ID: {categoria.id}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -205,6 +263,33 @@ const CadastrosPage = () => {
                     {categoria.ativo ? 'Ativa' : 'Inativa'}
                   </span>
                 </div>
+                
+                {/* Botões de ordenação para mobile */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveCategoria(index, 'up')}
+                    disabled={index === 0}
+                    className="flex-1 text-xs h-8"
+                  >
+                    <ChevronUp className="w-3 h-3 mr-1" />
+                    Subir
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveCategoria(index, 'down')}
+                    disabled={index === categorias.length - 1}
+                    className="flex-1 text-xs h-8"
+                  >
+                    <ChevronDown className="w-3 h-3 mr-1" />
+                    Descer
+                  </Button>
+                </div>
+                
                 <div className="flex gap-2">
                   <Button 
                     onClick={() => handleEditClick(categoria)} 
@@ -232,6 +317,7 @@ const CadastrosPage = () => {
             <table className="min-w-full bg-white border border-gray-200 rounded-lg">
               <thead className="bg-gray-100">
                 <tr>
+                  <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ordem</th>
                   <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">ID</th>
                   <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Descrição</th>
                   <th className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</th>
@@ -239,8 +325,35 @@ const CadastrosPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {categorias.map((categoria) => (
+                {categorias.map((categoria, index) => (
                   <tr key={categoria.id} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b text-sm text-gray-800">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-semibold">#{index + 1}</span>
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveCategoria(index, 'up')}
+                            disabled={index === 0}
+                            className="h-6 w-6 p-0"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveCategoria(index, 'down')}
+                            disabled={index === categorias.length - 1}
+                            className="h-6 w-6 p-0"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </td>
                     <td className="py-2 px-4 border-b text-sm text-gray-800">{categoria.id}</td>
                     <td className="py-2 px-4 border-b text-sm text-gray-800">{categoria.descricao}</td>
                     <td className="py-2 px-4 border-b text-sm text-gray-800">
