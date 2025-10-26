@@ -72,6 +72,7 @@ const ConfiguracoesPage = () => {
     usa_controle_caixa: false,
     porcentagem_garcom: false,
     permitir_acompanhar_status: true, // novo campo
+    juros_titulos: '', // novo campo para juros de títulos
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState(null);
@@ -125,7 +126,10 @@ const ConfiguracoesPage = () => {
           usa_controle_caixa: !!empresa.usa_controle_caixa,
           porcentagem_garcom: !!empresa.porcentagem_garcom,
           permitir_acompanhar_status: empresa.permitir_acompanhar_status !== undefined ? !!empresa.permitir_acompanhar_status : true,
+          juros_titulos: empresa.juros_titulos || '',
         });
+        console.log('ConfiguracoesPage: Dados carregados da empresa:', empresa);
+        console.log('ConfiguracoesPage: juros_titulos carregado:', empresa.juros_titulos);
         setPreviewLogoUrl(null);
         toast.success("Configurações carregadas com sucesso!");
       }
@@ -199,7 +203,11 @@ const ConfiguracoesPage = () => {
         usa_controle_caixa: formData.usa_controle_caixa ? 1 : 0,
         porcentagem_garcom: formData.porcentagem_garcom ? 1 : 0,
         permitir_acompanhar_status: formData.permitir_acompanhar_status ? 1 : 0,
+        juros_titulos: parseFloat(formData.juros_titulos) || 0.00,
       };
+
+      console.log('ConfiguracoesPage: Enviando dados:', dataToSend);
+      console.log('ConfiguracoesPage: juros_titulos valor:', formData.juros_titulos, 'convertido:', parseFloat(formData.juros_titulos) || 0.00);
 
       await api.put(`/gerencial/${empresa.slug}/config`, dataToSend, {
         headers: { Authorization: `Bearer ${token}` }
@@ -239,7 +247,10 @@ const ConfiguracoesPage = () => {
       setLoadingConfig(false);
       setFormData(prev => ({ ...prev, logo_file: null }));
       setPreviewLogoUrl(null);
-      document.getElementById('logo_file').value = '';
+      const logoFileInput = document.getElementById('logo_file');
+      if (logoFileInput) {
+        logoFileInput.value = '';
+      }
     }
   };
 
@@ -269,10 +280,11 @@ const ConfiguracoesPage = () => {
 
       {/* Adicionado o componente Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex flex-col sm:grid sm:grid-cols-3 w-full">
-          <TabsTrigger value="detalhes" className="w-full text-xs sm:text-sm">Detalhes da Empresa</TabsTrigger>
-          <TabsTrigger value="pedidosCardapio" className="w-full text-xs sm:text-sm">Pedidos e Cardápio</TabsTrigger>
-          <TabsTrigger value="caixa" className="w-full text-xs sm:text-sm">Caixa</TabsTrigger>
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full gap-1">
+          <TabsTrigger value="detalhes" className="text-xs sm:text-sm">Detalhes</TabsTrigger>
+          <TabsTrigger value="pedidosCardapio" className="text-xs sm:text-sm">Pedidos</TabsTrigger>
+          <TabsTrigger value="caixa" className="text-xs sm:text-sm">Caixa</TabsTrigger>
+          <TabsTrigger value="titulos" className="text-xs sm:text-sm">Títulos</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSaveConfig} className="mt-3 sm:mt-4">
@@ -631,11 +643,48 @@ const ConfiguracoesPage = () => {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="porcentagem_garcom"
-                  checked={formData.porcentagem_garcom}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, porcentagem_garcom: checked }))}
-                  disabled={!canManage}
+                  checked={false}
+                  disabled={true}
                 />
-                <Label htmlFor="porcentagem_garcom" className="text-sm">Cobrar 10% (Garçom) em pedidos Mesa</Label>
+                <Label htmlFor="porcentagem_garcom" className="text-sm text-gray-400">Cobrar 10% (Garçom) em pedidos Mesa - Desabilitado</Label>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ABA 4: TÍTULOS */}
+          <TabsContent value="titulos" className="p-3 sm:p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Configurações de Títulos</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-end">
+              <div>
+                <Label htmlFor="juros_titulos" className="text-sm">Percentual de Juros (% ao mês)</Label>
+                <Input
+                  id="juros_titulos"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="Ex: 2.50 para 2,5% ao mês"
+                  value={formData.juros_titulos}
+                  onChange={handleFormChange}
+                  disabled={!canManage}
+                  className="h-9 sm:h-10 text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Juros aplicados automaticamente em títulos vencidos. Deixe em branco para não aplicar juros.
+                </p>
+              </div>
+
+              <div className="col-span-full">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-800 mb-2">ℹ️ Como funcionam os juros:</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Juros são calculados apenas para títulos vencidos</li>
+                    <li>• O cálculo é feito por mês (30 dias)</li>
+                    <li>• Exemplo: 2,5% ao mês = 0,083% por dia</li>
+                    <li>• Juros aparecem nos relatórios e comprovantes</li>
+                    <li>• Não afeta títulos já pagos</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </TabsContent>

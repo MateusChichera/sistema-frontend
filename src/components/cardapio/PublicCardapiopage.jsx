@@ -157,6 +157,11 @@ const PublicCardapioPage = ({ user: userProp }) => {
 
   const [lojaFechadaParaPedidosOnline, setLojaFechadaParaPedidosOnline] = useState(false);
 
+  // Estados para modal de avisos
+  const [showAvisoModal, setShowAvisoModal] = useState(false);
+  const [avisosParaMostrar, setAvisosParaMostrar] = useState([]);
+  const [avisoAtualIndex, setAvisoAtualIndex] = useState(0);
+
   const canMakeOnlineOrder = empresa?.permitir_pedido_online === 1;
   // Obter status de aberto/fechado igual ao layout
   const getRestaurantStatus = () => {
@@ -270,6 +275,51 @@ const PublicCardapioPage = ({ user: userProp }) => {
     );
   }
 
+
+  // Função para mostrar avisos como modal
+  const mostrarAvisosComoModal = () => {
+    console.log("PublicCardapio: mostrarAvisosComoModal - avisos_dia_atual:", empresa?.avisos_dia_atual);
+    
+    if (!empresa?.avisos_dia_atual || empresa.avisos_dia_atual.length === 0) {
+      console.log("PublicCardapio: Nenhum aviso para mostrar");
+      return;
+    }
+
+    console.log(`PublicCardapio: Mostrando ${empresa.avisos_dia_atual.length} avisos como modal`);
+    
+    setAvisosParaMostrar(empresa.avisos_dia_atual);
+    setAvisoAtualIndex(0);
+    setShowAvisoModal(true);
+  };
+
+  // Funções para navegar entre avisos
+  const proximoAviso = () => {
+    if (avisoAtualIndex < avisosParaMostrar.length - 1) {
+      setAvisoAtualIndex(avisoAtualIndex + 1);
+    } else {
+      setShowAvisoModal(false);
+    }
+  };
+
+  const avisoAnterior = () => {
+    if (avisoAtualIndex > 0) {
+      setAvisoAtualIndex(avisoAtualIndex - 1);
+    }
+  };
+
+  const fecharAvisos = () => {
+    setShowAvisoModal(false);
+    setAvisosParaMostrar([]);
+    setAvisoAtualIndex(0);
+  };
+
+  // useEffect para mostrar avisos como modal quando carregados
+  useEffect(() => {
+    if (empresa?.avisos_dia_atual && empresa.avisos_dia_atual.length > 0) {
+      mostrarAvisosComoModal();
+    }
+  }, [empresa?.avisos_dia_atual]);
+
   useEffect(() => {
     const fetchCardapioData = async () => {
       if (!isReady) {
@@ -347,7 +397,6 @@ const PublicCardapioPage = ({ user: userProp }) => {
         setProdutos(finalProdutos);
         setFilteredProdutos(finalProdutos); // Sempre mostrar todos os produtos
         setSelectedCategoryId('all');
-        toast.success("Cardápio carregado!");
       } catch (err) {
         setError(err.response?.data?.message || 'Erro ao carregar o cardápio.');
         console.error("Erro ao carregar cardápio:", err);
@@ -1030,6 +1079,52 @@ const PublicCardapioPage = ({ user: userProp }) => {
                 </Button>
               </DialogFooter>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Avisos */}
+        <Dialog open={showAvisoModal} onOpenChange={setShowAvisoModal}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {avisosParaMostrar[avisoAtualIndex]?.tipo === 'info' && 'ℹ️'}
+                {avisosParaMostrar[avisoAtualIndex]?.tipo === 'aviso' && '⚠️'}
+                {avisosParaMostrar[avisoAtualIndex]?.tipo === 'promocao' && '🎉'}
+                {avisosParaMostrar[avisoAtualIndex]?.tipo === 'manutencao' && '🔧'}
+                {avisosParaMostrar[avisoAtualIndex]?.titulo || 'Aviso'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-700 text-lg leading-relaxed">
+                {avisosParaMostrar[avisoAtualIndex]?.mensagem}
+              </p>
+            </div>
+            <DialogFooter className="flex justify-between">
+              <div className="flex gap-2">
+                {avisoAtualIndex > 0 && (
+                  <Button variant="outline" onClick={avisoAnterior}>
+                    Anterior
+                  </Button>
+                )}
+                <Button variant="outline" onClick={fecharAvisos}>
+                  Fechar
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">
+                  {avisoAtualIndex + 1} de {avisosParaMostrar.length}
+                </span>
+                {avisoAtualIndex < avisosParaMostrar.length - 1 ? (
+                  <Button onClick={proximoAviso}>
+                    Próximo
+                  </Button>
+                ) : (
+                  <Button onClick={fecharAvisos}>
+                    Finalizar
+                  </Button>
+                )}
+              </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </LayoutCardapio>

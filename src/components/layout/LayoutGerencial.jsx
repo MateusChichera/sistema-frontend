@@ -26,7 +26,9 @@ import {
   DollarSign,
   QrCode,
   Box,
-  Home
+  Home,
+  MapPin,
+  Bell
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import api from '../../services/api';
@@ -87,6 +89,7 @@ const LayoutGerencial = ({ children }) => {
   const menuItems = [
     { name: 'Início', icon: Home, path: `/gerencial/${currentSlug}/inicio`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Caixa', icon: DollarSign, path: `/gerencial/${currentSlug}/caixa`, roles: ['Proprietario', 'Gerente', 'Caixa'] },
+    { name: 'Recebimento de Contas', icon: CreditCard, path: `/gerencial/${currentSlug}/recebimento-contas`, roles: ['Proprietario', 'Gerente', 'Caixa'] },
     { name: 'Mesas', icon: NotebookPen, path: `/gerencial/${currentSlug}/mesas`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Delivery', icon: Bike, path: `/gerencial/${currentSlug}/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Cozinha', icon: ChefHat, path: `/gerencial/${currentSlug}/cozinha`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
@@ -110,6 +113,9 @@ const LayoutGerencial = ({ children }) => {
         { name: 'Produtos', icon: Package, path: `/gerencial/${currentSlug}/cadastros/produtos`, roles: ['Proprietario', 'Gerente'] },
         { name: 'Adicionais', icon: Utensils, path: `/gerencial/${currentSlug}/cadastros/adicionais`, roles: ['Proprietario', 'Gerente'] },
         { name: 'Formas de Pagamento', icon: Wallet, path: `/gerencial/${currentSlug}/cadastros/formas-pagamento`, roles: ['Proprietario', 'Gerente'] },
+        { name: 'Clientes', icon: Users, path: `/gerencial/${currentSlug}/cadastros/clientes`, roles: ['Proprietario', 'Gerente', 'Caixa'] },
+        { name: 'Endereços', icon: MapPin, path: `/gerencial/${currentSlug}/cadastros/enderecos`, roles: ['Proprietario', 'Gerente'] },
+        { name: 'Avisos', icon: Bell, path: `/gerencial/${currentSlug}/cadastros/avisos`, roles: ['Proprietario', 'Gerente'] },
         { name: 'Funcionários', icon: UserCog, path: `/gerencial/${currentSlug}/cadastros/funcionarios`, roles: ['Proprietario'] },
         { name: 'Mesas', icon: Table, path: `/gerencial/${currentSlug}/cadastros/mesas`, roles: ['Proprietario', 'Gerente'] },
       ]

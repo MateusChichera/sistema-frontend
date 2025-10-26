@@ -1,358 +1,514 @@
-// frontend/src/components/gerencial/FormasPagamentoPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useEmpresa } from '../../contexts/EmpresaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
-import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
-import { useErrorDialog } from '../../hooks/use-error-dialog';
-import { notifyGlobalError } from '../../lib/errorHandler';
+import { Textarea } from '../ui/textarea';
+import { Loader2, Plus, Edit, Trash2, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { useErrorDialog } from '../../hooks/use-error-dialog';
 
 const FormasPagamentoPage = () => {
   const { empresa, loading: empresaLoading } = useEmpresa();
-  const { user } = useAuth(); // Para verificar a role do usuário logado
+  const { user, token } = useAuth();
   
   const [formasPagamento, setFormasPagamento] = useState([]);
-  const [loadingFormas, setLoadingFormas] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { showError, ErrorDialogElement } = useErrorDialog();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingForma, setEditingForma] = useState(null);
+  const [formData, setFormData] = useState({
+    descricao: '',
+    porcentagem_desconto_geral: '',
+    ativo: true,
+    ordem: ''
+  });
 
-  // Estados para o formulário de adicionar/editar
-  const [novaDescricao, setNovaDescricao] = useState('');
-  const [novoDesconto, setNovoDesconto] = useState(0.00);
-  const [novoAtivo, setNovoAtivo] = useState(true);
+  const canManage = user?.role === 'Proprietario' || user?.role === 'Gerente';
 
-  const [editandoForma, setEditandoForma] = useState(null); // Objeto da forma sendo editada
-  const [editDescricao, setEditDescricao] = useState('');
-  const [editDesconto, setEditDesconto] = useState(0.00);
-  const [editAtivo, setEditAtivo] = useState(true);
-
-  // Função para carregar as formas de pagamento
   const fetchFormasPagamento = async () => {
-    // Espera a empresa carregar e o usuário estar autenticado
     if (empresaLoading || !empresa || !empresa.slug || !user) {
-      setLoadingFormas(true);
-      return;
-    }
-    
-    // Checagem de permissão: Todos os funcionários podem visualizar as formas
-    const allowedRoles = ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'];
-    if (!allowedRoles.includes(user.role)) {
-      setError('Você não tem permissão para visualizar formas de pagamento.');
-      setLoadingFormas(false);
-      setFormasPagamento([]);
+      setLoading(true);
       return;
     }
 
-    setLoadingFormas(true);
+    if (!canManage) {
+      setError('Você não tem permissão para gerenciar formas de pagamento.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     setError(null);
     try {
-      const response = await api.get(`/gerencial/${empresa.slug}/formas-pagamento`);
-      setFormasPagamento(response.data);
-      toast.success("Formas de pagamento carregadas com sucesso!");
-
+      const response = await api.get(`/gerencial/${empresa.slug}/formas-pagamento`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFormasPagamento(response.data || []);
     } catch (err) {
       const msg = err.response?.data?.message || 'Erro ao carregar formas de pagamento.';
       toast.error(msg);
       showError(msg);
-      setError(null);
       console.error("Erro ao carregar formas de pagamento:", err);
+      setError(null);
     } finally {
-      setLoadingFormas(false);
+      setLoading(false);
     }
   };
 
-  // useEffect para carregar as formas de pagamento
   useEffect(() => {
     fetchFormasPagamento();
   }, [empresa, empresaLoading, user]);
 
+  const handleFormChange = (e) => {
+    const { id, value, type, checked } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [id]: type === 'checkbox' || type === 'switch' ? checked : value 
+    }));
+  };
 
-  // Função para adicionar nova forma de pagamento
-  const handleAddFormaPagamento = async (e) => {
+  const openModal = (forma = null) => {
+    if (forma) {
+      setEditingForma(forma);
+      setFormData({
+        descricao: forma.descricao || '',
+        porcentagem_desconto_geral: forma.porcentagem_desconto_geral || '',
+        ativo: !!forma.ativo,
+        ordem: forma.ordem || ''
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setEditingForma(null);
+      setFormData({
+        descricao: '',
+        porcentagem_desconto_geral: '',
+        ativo: true,
+        ordem: ''
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingForma(null);
+    setFormData({
+      descricao: '',
+      porcentagem_desconto_geral: '',
+      ativo: true,
+      ordem: ''
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!novaDescricao.trim()) {
-      toast.error('A descrição é obrigatória.');
+    if (!empresa || !empresa.slug) { 
+      toast.error('Dados da empresa não carregados.'); 
+      return; 
+    }
+
+    if (!formData.descricao.trim()) {
+      toast.error('Descrição é obrigatória.');
       return;
     }
-    if (!empresa || !empresa.slug) { toast.error('Dados da empresa não carregados.'); return; }
-    
-    setLoadingFormas(true);
-    setError(null);
-    try {
-        const response = await api.post(`/gerencial/${empresa.slug}/formas-pagamento`, {
-            descricao: novaDescricao,
-            porcentagem_desconto_geral: parseFloat(novoDesconto), // Converte para número
-            ativo: novoAtivo
-        });
-        setFormasPagamento(prev => [...prev, response.data.formaPagamento]);
-        setNovaDescricao(''); setNovoDesconto(0.00); setNovoAtivo(true);
-        toast.success('Forma de pagamento adicionada com sucesso!');
 
-    } catch (err) {
-      const msgAdd = err.response?.data?.message || 'Erro ao adicionar forma de pagamento.';
-      toast.error(msgAdd);
-      notifyGlobalError(msgAdd);
-      console.error("Erro ao adicionar forma de pagamento:", err);
-    } finally {
-      setLoadingFormas(false);
-    }
-  };
-
-  // Função para iniciar a edição
-  const handleEditClick = (forma) => {
-    setEditandoForma(forma);
-    setEditDescricao(forma.descricao);
-    setEditDesconto(parseFloat(forma.porcentagem_desconto_geral)); // Garante que é número
-    setEditAtivo(forma.ativo);
-  };
-
-  // Função para cancelar a edição
-  const handleCancelEdit = () => {
-    setEditandoForma(null);
-    setEditDescricao(''); setEditDesconto(0.00); setEditAtivo(true);
-  };
-
-  // Função para salvar edição
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    if (!editDescricao.trim()) {
-      toast.error('A descrição não pode ser vazia.');
+    if (formData.porcentagem_desconto_geral && (parseFloat(formData.porcentagem_desconto_geral) < 0 || parseFloat(formData.porcentagem_desconto_geral) > 100)) {
+      toast.error('Porcentagem deve ser entre 0 e 100.');
       return;
     }
-    if (!empresa || !empresa.slug) { toast.error('Dados da empresa não carregados.'); return; }
-    
-    setLoadingFormas(true);
-    setError(null);
-    try {
-        await api.put(`/gerencial/${empresa.slug}/formas-pagamento/${editandoForma.id}`, {
-            descricao: editDescricao,
-            porcentagem_desconto_geral: parseFloat(editDesconto),
-            ativo: editAtivo
-        });
 
-        setFormasPagamento(prev => prev.map(fp => 
-            fp.id === editandoForma.id ? { ...fp, descricao: editDescricao, porcentagem_desconto_geral: parseFloat(editDesconto), ativo: editAtivo } : fp
-        ));
-        handleCancelEdit();
+    setLoading(true);
+    try {
+      const dataToSend = {
+        descricao: formData.descricao.trim(),
+        porcentagem_desconto_geral: parseFloat(formData.porcentagem_desconto_geral) || 0,
+        ativo: formData.ativo ? 1 : 0,
+        ordem: formData.ordem ? parseInt(formData.ordem) : null
+      };
+
+      if (editingForma) {
+        await api.put(`/gerencial/${empresa.slug}/formas-pagamento/${editingForma.id}`, dataToSend, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         toast.success('Forma de pagamento atualizada com sucesso!');
+      } else {
+        await api.post(`/gerencial/${empresa.slug}/formas-pagamento`, dataToSend, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Forma de pagamento criada com sucesso!');
+      }
+
+      closeModal();
+      fetchFormasPagamento();
     } catch (err) {
-      const msgUp = err.response?.data?.message || 'Erro ao atualizar forma de pagamento.';
-      toast.error(msgUp);
-      notifyGlobalError(msgUp);
-      console.error("Erro ao atualizar forma de pagamento:", err);
+      const msgSave = err.response?.data?.message || 'Erro ao salvar forma de pagamento.';
+      toast.error(msgSave);
+      showError(msgSave);
+      console.error("Erro ao salvar forma de pagamento:", err);
     } finally {
-      setLoadingFormas(false);
+      setLoading(false);
     }
   };
 
-  // Função para excluir forma de pagamento
-  const handleDeleteFormaPagamento = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta forma de pagamento? Isso pode afetar pedidos vinculados!')) {
-      return;
-    }
-    if (!empresa || !empresa.slug) { toast.error('Dados da empresa não carregados.'); return; }
-    
-    setLoadingFormas(true);
-    setError(null);
+  const handleDelete = async (formaId) => {
+    if (!confirm('Tem certeza que deseja excluir esta forma de pagamento?')) return;
+
+    setLoading(true);
     try {
-        await api.delete(`/gerencial/${empresa.slug}/formas-pagamento/${id}`);
-        setFormasPagamento(prev => prev.filter(fp => fp.id !== id));
-        toast.success('Forma de pagamento excluída com sucesso!');
+      await api.delete(`/gerencial/${empresa.slug}/formas-pagamento/${formaId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Forma de pagamento excluída com sucesso!');
+      fetchFormasPagamento();
     } catch (err) {
       const msgDel = err.response?.data?.message || 'Erro ao excluir forma de pagamento.';
       toast.error(msgDel);
-      notifyGlobalError(msgDel);
+      showError(msgDel);
       console.error("Erro ao excluir forma de pagamento:", err);
     } finally {
-      setLoadingFormas(false);
+      setLoading(false);
     }
   };
 
-  // Verificação de permissão para o Proprietário/Gerente (para adicionar/editar/excluir)
-  const canManage = user?.role === 'Proprietario' || user?.role === 'Gerente';
+  const handleMoverOrdem = async (formaId, direcao) => {
+    setLoading(true);
+    try {
+      const forma = formasPagamento.find(f => f.id === formaId);
+      if (!forma) return;
 
-  if (empresaLoading) {
+      const formasOrdenadas = [...formasPagamento].sort((a, b) => a.ordem - b.ordem);
+      const indexAtual = formasOrdenadas.findIndex(f => f.id === formaId);
+      
+      if (direcao === 'up' && indexAtual > 0) {
+        const formaAnterior = formasOrdenadas[indexAtual - 1];
+        await api.post(`/gerencial/${empresa.slug}/formas-pagamento/trocar-ordem`, {
+          forma_pagamento_id_1: formaId,
+          forma_pagamento_id_2: formaAnterior.id
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else if (direcao === 'down' && indexAtual < formasOrdenadas.length - 1) {
+        const formaProxima = formasOrdenadas[indexAtual + 1];
+        await api.post(`/gerencial/${empresa.slug}/formas-pagamento/trocar-ordem`, {
+          forma_pagamento_id_1: formaId,
+          forma_pagamento_id_2: formaProxima.id
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      toast.success('Ordem alterada com sucesso!');
+      fetchFormasPagamento();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao alterar ordem.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao alterar ordem:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReordenarTodas = async () => {
+    if (!confirm('Deseja reordenar todas as formas de pagamento sequencialmente (1, 2, 3...)?')) return;
+    
+    setLoading(true);
+    try {
+      await api.post(`/gerencial/${empresa.slug}/formas-pagamento/reordenar`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Todas as formas foram reordenadas!');
+      fetchFormasPagamento();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao reordenar formas.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao reordenar todas:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAtivarTodos = async () => {
+    if (!confirm('Deseja ativar todas as formas de pagamento?')) return;
+    
+    setLoading(true);
+    try {
+      const promises = formasPagamento.map(forma => 
+        api.put(`/gerencial/${empresa.slug}/formas-pagamento/${forma.id}`, 
+          { ...forma, ativo: 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+      await Promise.all(promises);
+      toast.success('Todas as formas foram ativadas!');
+      fetchFormasPagamento();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao ativar formas.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao ativar todos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDesativarTodos = async () => {
+    if (!confirm('Deseja desativar todas as formas de pagamento?')) return;
+    
+    setLoading(true);
+    try {
+      const promises = formasPagamento.map(forma => 
+        api.put(`/gerencial/${empresa.slug}/formas-pagamento/${forma.id}`, 
+          { ...forma, ativo: 0 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+      await Promise.all(promises);
+      toast.success('Todas as formas foram desativadas!');
+      fetchFormasPagamento();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erro ao desativar formas.';
+      toast.error(msg);
+      showError(msg);
+      console.error("Erro ao desativar todos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (empresaLoading || !empresa) {
     return <div className="p-4 text-center text-gray-600">Carregando dados da empresa...</div>;
   }
-
-  if (!empresa) {
-    return <div className="p-4 text-red-600 text-center">Nenhuma empresa carregada para exibir formas de pagamento.</div>;
-  }
   
-  // Acesso negado para visualização, se não for uma role permitida
-  const allowedViewRoles = ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'];
-  if (!allowedViewRoles.includes(user?.role)) {
+  if (!canManage) {
     return <div className="p-4 text-red-600 text-center">Você não tem permissão para acessar esta página.</div>;
   }
 
-  if (loadingFormas) {
+  if (loading && formasPagamento.length === 0) {
     return <div className="p-4 text-center text-gray-600">Carregando formas de pagamento...</div>;
   }
 
   if (error) {
     return <div className="p-4 text-red-600 text-center">{error}</div>;
   }
-  
+
+  const formasOrdenadas = [...formasPagamento].sort((a, b) => a.ordem - b.ordem);
+
   return (
     <div className="p-2 sm:p-4 md:p-6 bg-white rounded-lg shadow-md">
       {ErrorDialogElement}
-                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-title">Gerenciar Formas de Pagamento - {empresa.nome_fantasia}</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-title">Gerenciar Formas de Pagamento - {empresa.nome_fantasia}</h2>
+        <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
+          <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          Nova Forma
+        </Button>
+      </div>
 
-      {/* Formulário para Adicionar/Editar Forma de Pagamento - Visível apenas para quem pode gerenciar */}
-      {canManage && (
-        <form onSubmit={editandoForma ? handleSaveEdit : handleAddFormaPagamento} className="mb-6 sm:mb-8 p-3 sm:p-4 border rounded-lg bg-gray-50">
-          <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">
-            {editandoForma ? `Editar Forma: ${editandoForma.descricao}` : 'Adicionar Nova Forma de Pagamento'}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 items-end">
-            <div>
-              <Label htmlFor="descricao" className="text-sm">Descrição</Label>
-              <Input
-                id="descricao"
-                type="text"
-                placeholder="Ex: Dinheiro, Cartão de Crédito, PIX"
-                value={editandoForma ? editDescricao : novaDescricao}
-                onChange={(e) => editandoForma ? setEditDescricao(e.target.value) : setNovaDescricao(e.target.value)}
-                required
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            <div>
-              <Label htmlFor="desconto" className="text-sm">Desconto (%)</Label>
-              <Input
-                id="desconto"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="Ex: 5.00"
-                value={editandoForma ? editDesconto : novoDesconto}
-                onChange={(e) => editandoForma ? setEditDesconto(e.target.value) : setNovoDesconto(e.target.value)}
-                required
-                className="h-9 sm:h-10 text-sm"
-              />
-            </div>
-            {editandoForma && (
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="ativo"
-                  checked={editAtivo}
-                  onCheckedChange={setEditAtivo}
-                />
-                <Label htmlFor="ativo" className="text-sm">Ativa</Label>
-              </div>
-            )}
-            <div className="flex flex-col sm:flex-row gap-2 col-span-1 md:col-span-3">
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
-                {editandoForma ? 'Salvar Edição' : 'Adicionar Forma'}
-              </Button>
-              {editandoForma && (
-                <Button type="button" onClick={handleCancelEdit} variant="outline" className="text-xs sm:text-sm h-8 sm:h-9">
-                  Cancelar
-                </Button>
-              )}
-            </div>
-          </div>
-        </form>
-      )}
-
-      {/* Lista de Formas de Pagamento */}
-      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Formas de Pagamento Existentes</h3>
       {formasPagamento.length === 0 ? (
-        <p className="text-gray-600 text-sm sm:text-base">{canManage ? 'Nenhuma forma de pagamento cadastrada ainda. Use o formulário acima para adicionar.' : 'Nenhuma forma de pagamento cadastrada para esta empresa.'}</p>
+        <Card>
+          <CardContent className="p-4 sm:p-8 text-center">
+            <p className="text-gray-600 mb-4 text-sm sm:text-base">Nenhuma forma de pagamento cadastrada.</p>
+            <Button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9">
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Criar Primeira Forma
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-2 sm:space-y-0 sm:overflow-x-auto">
+        <div className="space-y-3 sm:space-y-4">
+          {/* Botões de Ação em Massa */}
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button
+              onClick={handleReordenarTodas}
+              variant="outline"
+              size="sm"
+              disabled={loading || formasPagamento.length === 0}
+              className="text-xs sm:text-sm h-8 sm:h-9 bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Reordenar Todas
+            </Button>
+            <Button
+              onClick={handleAtivarTodos}
+              variant="outline"
+              size="sm"
+              disabled={loading || formasPagamento.length === 0}
+              className="text-xs sm:text-sm h-8 sm:h-9 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+            >
+              ✓ Ativar Todas
+            </Button>
+            <Button
+              onClick={handleDesativarTodos}
+              variant="outline"
+              size="sm"
+              disabled={loading || formasPagamento.length === 0}
+              className="text-xs sm:text-sm h-8 sm:h-9 bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+            >
+              ✗ Desativar Todas
+            </Button>
+          </div>
+
           {/* Versão mobile/tablet - Cards */}
           <div className="sm:hidden space-y-2">
-            {formasPagamento.map((forma) => (
+            {formasOrdenadas.map((forma, index) => (
               <div key={forma.id} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h4 className="text-sm font-medium text-gray-800">{forma.descricao}</h4>
-                    <p className="text-sm font-semibold text-blue-600 mt-1">
-                      Desconto: {parseFloat(forma.porcentagem_desconto_geral).toFixed(2)}%
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                        #{forma.ordem}
+                      </span>
+                      <h4 className="text-sm font-medium text-gray-800">{forma.descricao}</h4>
+                    </div>
+                    {forma.porcentagem_desconto_geral > 0 && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Desconto: {forma.porcentagem_desconto_geral}%
+                      </p>
+                    )}
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      forma.ativo 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {forma.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    forma.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {forma.ativo ? 'Ativa' : 'Inativa'}
-                  </span>
                 </div>
-                {canManage && (
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => handleEditClick(forma)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1 text-xs h-8"
-                    >
-                      Editar
-                    </Button>
-                    <Button 
-                      onClick={() => handleDeleteFormaPagamento(forma.id)} 
-                      variant="destructive" 
-                      size="sm"
-                      className="flex-1 text-xs h-8"
-                    >
-                      Excluir
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleMoverOrdem(forma.id, 'up')}
+                    size="sm"
+                    variant="outline"
+                    disabled={index === 0 || loading}
+                    className="flex-1 text-xs h-8"
+                  >
+                    <ArrowUp className="h-3 w-3 mr-1" />
+                    Subir
+                  </Button>
+                  <Button
+                    onClick={() => handleMoverOrdem(forma.id, 'down')}
+                    size="sm"
+                    variant="outline"
+                    disabled={index === formasOrdenadas.length - 1 || loading}
+                    className="flex-1 text-xs h-8"
+                  >
+                    <ArrowDown className="h-3 w-3 mr-1" />
+                    Descer
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => openModal(forma)}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs h-8"
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    onClick={() => handleDelete(forma.id)}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs h-8 text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Excluir
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
 
           {/* Versão desktop - Tabela */}
           <div className="hidden sm:block overflow-x-auto">
-            <Table className="min-w-full bg-white border border-gray-200 rounded-lg">
-              <TableHeader className="bg-gray-100">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Descrição</TableHead>
-                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Desconto (%)</TableHead>
-                  <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</TableHead>
-                  {canManage && <TableHead className="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Ações</TableHead>}
+                  <TableHead className="text-sm">Ordem</TableHead>
+                  <TableHead className="text-sm">Descrição</TableHead>
+                  <TableHead className="text-sm">Desconto</TableHead>
+                  <TableHead className="text-sm">Status</TableHead>
+                  <TableHead className="text-sm">Ações</TableHead>
+                  <TableHead className="text-right text-sm">Gerenciar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {formasPagamento.map((forma) => (
-                  <TableRow key={forma.id} className="hover:bg-gray-50">
-                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{forma.descricao}</TableCell>
-                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">{parseFloat(forma.porcentagem_desconto_geral).toFixed(2)}%</TableCell>
-                    <TableCell className="py-2 px-4 border-b text-sm text-gray-800">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        forma.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {forma.ativo ? 'Ativa' : 'Inativa'}
+                {formasOrdenadas.map((forma, index) => (
+                  <TableRow key={forma.id}>
+                    <TableCell className="font-medium text-sm">
+                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                        #{forma.ordem}
                       </span>
                     </TableCell>
-                    {canManage && (
-                      <TableCell className="py-2 px-4 border-b text-sm">
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => handleEditClick(forma)} 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-xs h-8 px-2"
-                          >
-                            Editar
-                          </Button>
-                          <Button 
-                            onClick={() => handleDeleteFormaPagamento(forma.id)} 
-                            variant="destructive" 
-                            size="sm"
-                            className="text-xs h-8 px-2"
-                          >
-                            Excluir
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell className="font-medium text-sm">{forma.descricao}</TableCell>
+                    <TableCell className="text-sm">
+                      {forma.porcentagem_desconto_geral > 0 ? `${forma.porcentagem_desconto_geral}%` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        forma.ativo 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {forma.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          onClick={() => handleMoverOrdem(forma.id, 'up')}
+                          size="sm"
+                          variant="outline"
+                          disabled={index === 0 || loading}
+                          className="text-xs h-7 px-2"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          onClick={() => handleMoverOrdem(forma.id, 'down')}
+                          size="sm"
+                          variant="outline"
+                          disabled={index === formasOrdenadas.length - 1 || loading}
+                          className="text-xs h-7 px-2"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          onClick={() => openModal(forma)}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center text-xs h-8 px-2"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(forma.id)}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center text-red-600 hover:text-red-700 text-xs h-8 px-2"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -360,6 +516,85 @@ const FormasPagamentoPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Criação/Edição */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">
+              {editingForma ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {editingForma ? 'Edite as informações da forma de pagamento.' : 'Preencha as informações da nova forma de pagamento.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+            <div>
+              <Label htmlFor="descricao" className="text-sm">Descrição *</Label>
+              <Input
+                id="descricao"
+                type="text"
+                value={formData.descricao}
+                onChange={handleFormChange}
+                placeholder="Ex: Dinheiro, PIX, Cartão de Crédito"
+                required
+                className="h-9 sm:h-10 text-sm"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="porcentagem_desconto_geral" className="text-sm">Desconto (%)</Label>
+              <Input
+                id="porcentagem_desconto_geral"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.porcentagem_desconto_geral}
+                onChange={handleFormChange}
+                placeholder="Ex: 5.00"
+                className="h-9 sm:h-10 text-sm"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="ordem" className="text-sm">Ordem (opcional)</Label>
+              <Input
+                id="ordem"
+                type="number"
+                min="1"
+                value={formData.ordem}
+                onChange={handleFormChange}
+                placeholder="Ex: 1 (primeira posição)"
+                className="h-9 sm:h-10 text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Deixe vazio para adicionar ao final da lista
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="ativo"
+                checked={formData.ativo}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: checked }))}
+              />
+              <Label htmlFor="ativo" className="text-sm">Ativo</Label>
+            </div>
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={closeModal} className="text-xs sm:text-sm h-8 sm:h-9">
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading} className="text-xs sm:text-sm h-8 sm:h-9">
+                {loading && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />}
+                {editingForma ? 'Atualizar' : 'Criar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -14,13 +14,14 @@ import { Loader2, Printer, CheckCircle, XCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'; // talvez já usado em outros lugares
-import { PlusCircle, MinusCircle, DollarSign, HelpCircle } from 'lucide-react';
+import { PlusCircle, MinusCircle, DollarSign, HelpCircle, Plus as PlusIcon } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
 import socket from '../../services/socket.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { useErrorDialog } from '../../hooks/use-error-dialog';
+import CadastroClienteModal from './CadastroClienteModal';
 
 
 
@@ -88,6 +89,20 @@ const CaixaPage = () => {
     // Estados para confirmação de impressão de cupom
     const [isPrintCupomModalOpen, setIsPrintCupomModalOpen] = useState(false);
     const [pedidoParaImprimir, setPedidoParaImprimir] = useState(null);
+
+    // Estados para contas a prazo
+    const [showClienteModal, setShowClienteModal] = useState(false);
+    const [clientesContasPrazo, setClientesContasPrazo] = useState([]);
+    const [selectedClienteId, setSelectedClienteId] = useState('');
+    // Data de vencimento padrão: 30 dias à frente
+    const getDefaultVencimento = () => {
+        const date = new Date();
+        date.setDate(date.getDate() + 30);
+        return date.toISOString().split('T')[0];
+    };
+    const [dataVencimento, setDataVencimento] = useState(getDefaultVencimento());
+    const [loadingClientes, setLoadingClientes] = useState(false);
+    const [searchClienteTerm, setSearchClienteTerm] = useState('');
 
     const printContentRef = useRef(null);
 
@@ -370,12 +385,79 @@ const CaixaPage = () => {
         }
     };
 
+    // Função para buscar clientes de contas a prazo
+    const fetchClientesContasPrazo = async (searchTerm = '') => {
+        if (!empresa?.slug || !token) return;
+        
+        setLoadingClientes(true);
+        try {
+            const queryParams = new URLSearchParams();
+            if (searchTerm) {
+                queryParams.append('search', searchTerm);
+            }
+            
+            const response = await api.get(`/gerencial/${empresa.slug}/contas-prazo/clientes/buscar?${queryParams.toString()}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            setClientesContasPrazo(response.data || []);
+        } catch (err) {
+            console.error("Erro ao buscar clientes:", err);
+            toast.error(err.response?.data?.message || 'Erro ao buscar clientes.');
+        } finally {
+            setLoadingClientes(false);
+        }
+    };
+
+    // Função para cadastrar cliente rapidamente
+    const handleClienteCadastrado = (cliente) => {
+        if (cliente && cliente.id) {
+            setSelectedClienteId(cliente.id.toString());
+            setClientesContasPrazo(prev => [cliente, ...prev]);
+            setShowClienteModal(false);
+            toast.success('Cliente cadastrado com sucesso!');
+        } else {
+            console.error('Cliente retornado sem ID:', cliente);
+            toast.error('Erro ao cadastrar cliente');
+        }
+    };
+
 
     useEffect(() => {
         // fetchPedidos agora depende de debouncedSearchTerm e filterDate
         fetchPedidos();
         fetchFormasPagamento();
     }, [empresa, empresaLoading, user, filterStatus, filterTipoEntrega, debouncedSearchTerm, filterDate]);
+
+    // useEffect para buscar clientes quando forma de pagamento "A Prazo" for selecionada
+    useEffect(() => {
+        const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
+        const isPagamentoAPrazo = formaPagamento?.descricao.toLowerCase() === 'a prazo';
+        
+        if (isPagamentoAPrazo) {
+            fetchClientesContasPrazo(searchClienteTerm);
+        } else {
+            // Limpa os dados quando não for "A Prazo"
+            setClientesContasPrazo([]);
+            setSelectedClienteId('');
+            setDataVencimento(getDefaultVencimento());
+            setSearchClienteTerm('');
+        }
+    }, [selectedFormaPagamentoId, formasPagamento]);
+
+    // Buscar clientes quando o termo de busca mudar
+    useEffect(() => {
+        const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
+        const isPagamentoAPrazo = formaPagamento?.descricao.toLowerCase() === 'a prazo';
+        
+        if (isPagamentoAPrazo && searchClienteTerm.length >= 2) {
+            const timeoutId = setTimeout(() => {
+                fetchClientesContasPrazo(searchClienteTerm);
+            }, 300); // Debounce de 300ms
+            
+            return () => clearTimeout(timeoutId);
+        }
+    }, [searchClienteTerm]);
 
 
     // Efeito para debounce do termo de busca
@@ -664,6 +746,7 @@ const CaixaPage = () => {
         // Verifica se há troco apenas para pagamentos em dinheiro
         const formaPagamento = formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId);
         const isPagamentoDinheiro = formaPagamento?.descricao.toLowerCase() === 'dinheiro';
+        const isPagamentoAPrazo = formaPagamento?.descricao.toLowerCase() === 'a prazo';
         
         // Validação: Para formas de pagamento que não são dinheiro, não permite receber valor maior que o total
        if (!isPagamentoDinheiro && formattedValorRecebido > formattedValorRestanteTotal) {
@@ -674,6 +757,23 @@ const CaixaPage = () => {
 
 
         console.log("Todas as validações iniciais passaram.");
+
+        // Verifica se é pagamento a prazo
+        if (isPagamentoAPrazo) {
+            // Validações específicas para contas a prazo
+            if (!selectedClienteId) {
+                toast.error('Selecione um cliente para contas a prazo.');
+                return;
+            }
+            if (!dataVencimento) {
+                toast.error('Informe a data de vencimento para contas a prazo.');
+                return;
+            }
+            
+            // Finaliza com pagamento a prazo
+            await finalizarPagamentoAPrazo(valorRecebido, selectedFormaPagamentoId, dividirContaAtivo ? parseInt(numPessoasDividir) || 1 : null, observacoesPagamento);
+            return;
+        }
 
         if (isPagamentoDinheiro) {
             const valorTroco = Math.max(0, formattedValorRecebido - formattedValorRestanteTotal);
@@ -775,6 +875,69 @@ const CaixaPage = () => {
             setLoadingFinalizacao(false);
             console.log("Finalizando handleFinalizarPagamento.");
             console.log("-----------------------------------------");
+        }
+    };
+
+    // Função para finalizar pagamento a prazo
+    const finalizarPagamentoAPrazo = async (valorRecebido, formaPagamentoId, dividirConta, observacoes) => {
+        setLoadingFinalizacao(true);
+        try {
+            // Realiza a chamada API para finalizar o pagamento a prazo
+            // IMPORTANTE: valor_pago = 0 para "A Prazo" - apenas criar o título
+            // O backend deve criar título com status "Pendente" (não "Pago")
+            const dadosEnvio = {
+                valor_pago: 0, // ✅ CORRETO: Sempre 0 para "A Prazo"
+                forma_pagamento_id: parseInt(formaPagamentoId),
+                cliente_id: parseInt(selectedClienteId),
+                data_vencimento: dataVencimento,
+                itens_cobrados_ids: selectedPedido.itens.map(item => item.id),
+                dividir_conta_qtd_pessoas: dividirConta,
+                observacoes_pagamento: observacoes,
+                cobrar_porcentagem_garcom: cobrarPorcentagemGarcom
+            };
+
+            console.log("Dados sendo enviados para finalizar a prazo:", dadosEnvio);
+            console.log("URL da requisição:", `/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}/finalizar-a-prazo`);
+
+            const response = await api.post(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}/finalizar-a-prazo`, dadosEnvio, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const mensagemBase = `Título a prazo criado para o Pedido #${selectedPedido.numero_pedido}!`;
+            const mensagemGarcom = cobrarPorcentagemGarcom ? ' (Incluindo 10% do garçom)' : '';
+            toast.success(mensagemBase + mensagemGarcom);
+            
+            // Re-busca o pedido atualizado
+            const updatedPedidoData = await api.get(`/gerencial/${empresa.slug}/pedidos/${selectedPedido.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const pedidoAtualizado = processPedidoData(updatedPedidoData.data);
+            setSelectedPedido(pedidoAtualizado);
+
+            // Limpa os campos de contas a prazo
+            setSelectedClienteId('');
+            setDataVencimento('');
+            setClientesContasPrazo([]);
+
+            // Fecha o modal
+            closePedidoDetailModal();
+            
+            // Re-busca a lista de pedidos
+            fetchPedidos();
+        } catch (err) {
+            console.error("Erro ao finalizar pagamento a prazo:", err);
+            console.error("Erro completo:", err.response?.data);
+            console.error("Status do erro:", err.response?.status);
+            console.error("Headers do erro:", err.response?.headers);
+            
+            const mensagemErro = err.response?.data?.message || 
+                                err.response?.data?.error || 
+                                err.message || 
+                                'Erro ao finalizar pagamento a prazo.';
+            
+            toast.error(`Erro: ${mensagemErro}`);
+        } finally {
+            setLoadingFinalizacao(false);
         }
     };
 
@@ -1724,7 +1887,7 @@ const CaixaPage = () => {
                                                         <SelectValue placeholder="Selecione a forma" />
                                                     </SelectTrigger>
                                             <SelectContent>
-                                                {formasPagamento.length === 0 && <SelectItem disabled value="">Nenhuma forma disponível</SelectItem>}
+                                                {formasPagamento.length === 0 && <SelectItem disabled value="none">Nenhuma forma disponível</SelectItem>}
                                                 {formasPagamento.map(fp => (
                                                             <SelectItem key={fp.id} value={fp.id.toString()} className="text-xs sm:text-sm">
                                                                 {fp.descricao} {fp.porcentagem_desconto_geral > 0 && `(${parseFloat(fp.porcentagem_desconto_geral).toFixed(0)}% desc)`}
@@ -1801,6 +1964,82 @@ const CaixaPage = () => {
                                     {selectedFormaPagamentoId && formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId)?.descricao.toLowerCase() === 'dinheiro' && (
                                                 <div className="rounded bg-green-50 border border-green-100 p-2 text-xs">
                                                     Troco: <span className="text-blue-600 font-bold">R$ {troco.toFixed(2).replace('.', ',')}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Campos para Contas a Prazo */}
+                                    {selectedFormaPagamentoId && formasPagamento.find(fp => fp.id.toString() === selectedFormaPagamentoId)?.descricao.toLowerCase() === 'a prazo' && (
+                                        <div className="space-y-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <div>
+                                                <Label htmlFor="clienteContasPrazo" className="text-xs">Cliente</Label>
+                                                <div className="space-y-2">
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            id="clienteContasPrazo"
+                                                            placeholder="Digite o nome do cliente..."
+                                                            value={searchClienteTerm}
+                                                            onChange={(e) => setSearchClienteTerm(e.target.value)}
+                                                            className="h-9 sm:h-10 text-xs sm:text-sm"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setShowClienteModal(true)}
+                                                            className="h-9 sm:h-10 px-2"
+                                                        >
+                                                            <PlusIcon className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    
+                                                    {/* Dropdown de resultados */}
+                                                    {searchClienteTerm && (
+                                                        <div className="border rounded-md bg-white shadow-sm max-h-40 overflow-y-auto">
+                                                            {loadingClientes ? (
+                                                                <div className="p-2 text-xs text-gray-500">Carregando...</div>
+                                                            ) : clientesContasPrazo.length === 0 ? (
+                                                                <div className="p-2 text-xs text-gray-500">Nenhum cliente encontrado</div>
+                                                            ) : (
+                                                                clientesContasPrazo.map(cliente => (
+                                                                    <div
+                                                                        key={cliente.id}
+                                                                        className="p-2 hover:bg-gray-50 cursor-pointer text-xs"
+                                                                        onClick={() => {
+                                                                            setSelectedClienteId(cliente.id.toString());
+                                                                            setSearchClienteTerm(cliente.nome);
+                                                                        }}
+                                                                    >
+                                                                        <div className="font-medium">{cliente.nome}</div>
+                                                                        {cliente.telefone && (
+                                                                            <div className="text-gray-500">{cliente.telefone}</div>
+                                                                        )}
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Cliente selecionado */}
+                                                    {selectedClienteId && (
+                                                        <div className="p-2 bg-green-50 border border-green-200 rounded-md">
+                                                            <div className="text-xs text-green-700">
+                                                                Cliente selecionado: {clientesContasPrazo.find(c => c.id.toString() === selectedClienteId)?.nome}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="dataVencimento" className="text-xs">Data de Vencimento</Label>
+                                                <Input
+                                                    id="dataVencimento"
+                                                    type="date"
+                                                    value={dataVencimento}
+                                                    onChange={(e) => setDataVencimento(e.target.value)}
+                                                    className="h-9 sm:h-10 text-xs sm:text-sm"
+                                                    min={new Date().toISOString().split('T')[0]}
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                             <div className="flex items-center gap-2">
@@ -2257,6 +2496,13 @@ const CaixaPage = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Modal de Cadastro de Cliente */}
+            <CadastroClienteModal
+                isOpen={showClienteModal}
+                onClose={() => setShowClienteModal(false)}
+                onClienteCadastrado={handleClienteCadastrado}
+            />
         </div>
     );
 };

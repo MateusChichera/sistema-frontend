@@ -38,6 +38,15 @@ const RelatoriosPage = () => {
             path: `/gerencial/${empresa?.slug}/relatorios/estoque`,
             color: 'bg-purple-500',
             features: ['Controle de Estoque', 'Classificação ABC', 'Custos e Valores', 'Análise de Vendas']
+        },
+        {
+            id: 'contas-prazo',
+            title: 'Relatório de Contas a Prazo',
+            description: 'Análise completa de títulos a prazo com filtros por período, status e cliente. Inclui cálculo de juros, histórico de pagamentos, resumo estatístico e exportação de dados.',
+            icon: TrendingUp,
+            path: `/gerencial/${empresa?.slug}/relatorios/contas-prazo`,
+            color: 'bg-orange-500',
+            features: ['Filtros Avançados', 'Cálculo de Juros', 'Histórico de Pagamentos', 'Resumo Estatístico']
         }
     ];
 
@@ -54,23 +63,24 @@ const RelatoriosPage = () => {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
-                <p className="text-muted-foreground">
-                    Selecione um relatório para visualizar e analisar os dados da empresa {empresa?.nome_fantasia}
-                </p>
-            </div>
+        <div className="min-h-screen bg-blue-50 p-4 sm:p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-800">Relatórios</h1>
+                    <p className="text-gray-600">
+                        Selecione um relatório para visualizar e analisar os dados da empresa {empresa?.nome_fantasia}
+                    </p>
+                </div>
 
             {/* Campo de Busca */}
-            <Card>
+            <Card className="bg-white shadow-md">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-gray-800">
                         <Search className="h-5 w-5" />
                         Buscar Relatórios
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-gray-600">
                         Digite para filtrar relatórios por título, descrição ou funcionalidades
                     </CardDescription>
                 </CardHeader>
@@ -94,7 +104,7 @@ const RelatoriosPage = () => {
                     return (
                         <Card 
                             key={relatorio.id}
-                            className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                            className="bg-white shadow-md cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
                             onClick={() => handleRelatorioClick(relatorio.path)}
                         >
                             <CardHeader>
@@ -103,22 +113,22 @@ const RelatoriosPage = () => {
                                         <Icon className="h-6 w-6" />
                                     </div>
                                     <div>
-                                        <CardTitle className="text-lg">{relatorio.title}</CardTitle>
+                                        <CardTitle className="text-lg text-gray-800">{relatorio.title}</CardTitle>
                                     </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <CardDescription className="text-sm leading-relaxed">
+                                <CardDescription className="text-sm leading-relaxed text-gray-600">
                                     {relatorio.description}
                                 </CardDescription>
                                 
                                 <div className="space-y-2">
-                                    <h4 className="text-sm font-medium text-muted-foreground">Funcionalidades:</h4>
+                                    <h4 className="text-sm font-medium text-gray-700">Funcionalidades:</h4>
                                     <div className="flex flex-wrap gap-1">
                                         {relatorio.features.map((feature, index) => (
                                             <span
                                                 key={index}
-                                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground"
+                                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
                                             >
                                                 {feature}
                                             </span>
@@ -140,14 +150,14 @@ const RelatoriosPage = () => {
 
             {/* Mensagem quando não há resultados */}
             {filteredRelatorios.length === 0 && searchTerm && (
-                <Card>
+                <Card className="bg-white shadow-md">
                     <CardContent className="pt-6">
                         <div className="text-center">
-                            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                            <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-600 mb-2">
                                 Nenhum relatório encontrado
                             </h3>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-gray-500">
                                 Tente ajustar os termos de busca para encontrar o relatório desejado.
                             </p>
                         </div>
@@ -156,9 +166,9 @@ const RelatoriosPage = () => {
             )}
 
             {/* Informações Adicionais */}
-            <Card className="bg-muted/50">
+            <Card className="bg-white shadow-md">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-gray-800">
                         <FileText className="h-5 w-5" />
                         Sobre os Relatórios
                     </CardTitle>
@@ -166,32 +176,33 @@ const RelatoriosPage = () => {
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                            <h4 className="font-medium mb-2">Exportação de Dados</h4>
-                            <p className="text-muted-foreground">
+                            <h4 className="font-medium mb-2 text-gray-800">Exportação de Dados</h4>
+                            <p className="text-gray-600">
                                 Todos os relatórios podem ser exportados em Excel (CSV), PDF e impressos diretamente.
                             </p>
                         </div>
                         <div>
-                            <h4 className="font-medium mb-2">Filtros Avançados</h4>
-                            <p className="text-muted-foreground">
+                            <h4 className="font-medium mb-2 text-gray-800">Filtros Avançados</h4>
+                            <p className="text-gray-600">
                                 Utilize filtros por período, status e categorias para obter dados mais específicos.
                             </p>
                         </div>
                         <div>
-                            <h4 className="font-medium mb-2">Análise Detalhada</h4>
-                            <p className="text-muted-foreground">
+                            <h4 className="font-medium mb-2 text-gray-800">Análise Detalhada</h4>
+                            <p className="text-gray-600">
                                 Acesse detalhes completos de cada registro através dos modais de informações.
                             </p>
                         </div>
                         <div>
-                            <h4 className="font-medium mb-2">Totais e Resumos</h4>
-                            <p className="text-muted-foreground">
+                            <h4 className="font-medium mb-2 text-gray-800">Totais e Resumos</h4>
+                            <p className="text-gray-600">
                                 Visualize totais calculados automaticamente e resumos organizados por período.
                             </p>
                         </div>
                     </div>
                 </CardContent>
             </Card>
+            </div>
         </div>
     );
 };

@@ -248,51 +248,6 @@ const CardapioPage = () => {
   };
 
 
-  // Lógica para adicionar/atualizar quantidade direto no card do produto (botões + e -)
-  const handleQuantityChangeOnCard = (product, newQuantity) => {
-    // Busca um item existente para saber qual observação atualizar.
-    // Se há múltiplos com o mesmo produto, a lógica aqui é mais simples:
-    // Altera a quantidade do primeiro item do produto que encontrar (com qualquer observação).
-    const itemInCart = itens.find(item => item.id_produto === product.id); 
-    
-    if (itemInCart) { 
-        if (newQuantity <= 0) {
-            removerItem(product.id, itemInCart.observacoes);
-        } else {
-            // Atualiza a quantidade do item existente, mantendo sua observação original.
-            atualizarQuantidadeItem(product.id, newQuantity, itemInCart.observacoes); 
-        }
-    } else if (newQuantity > 0) { // Se o item não está no carrinho e o usuário digitou uma quantidade > 0
-        adicionarItem(product, newQuantity, ''); // Adiciona sem observação
-    }
-  };
-
-  const handleIncrementOnCard = (product) => {
-    // Busca o item no carrinho para saber qual observação atualizar, se já existir.
-    const itemInCart = itens.find(item => {
-      const mesmaObservacao = item.id_produto === product.id && (item.observacoes === undefined || item.observacoes === '');
-      const semAdicionais = !item.adicionais || item.adicionais.length === 0;
-      return mesmaObservacao && semAdicionais;
-    });
-    if (itemInCart) { // Se já está no carrinho, só incrementa
-        atualizarQuantidadeItem(product.id, itemInCart.quantidade + 1, itemInCart.observacoes, itemInCart.adicionais);
-    } else { // Se não está no carrinho, adiciona 1 unidade, sem observação
-        adicionarItem({ ...product, observacoes: '' }, 1);
-    }
-  };
-
-  const handleDecrementOnCard = (product) => {
-    const itemInCart = itens.find(item => {
-      const mesmaObservacao = item.id_produto === product.id && (item.observacoes === undefined || item.observacoes === '');
-      const semAdicionais = !item.adicionais || item.adicionais.length === 0;
-      return mesmaObservacao && semAdicionais;
-    });
-    if (itemInCart && itemInCart.quantidade > 1) {
-        atualizarQuantidadeItem(product.id, itemInCart.quantidade - 1, itemInCart.observacoes, itemInCart.adicionais);
-    } else if (itemInCart && itemInCart.quantidade === 1) {
-        removerItem(product.id, true, itemInCart.observacoes, itemInCart.adicionais);
-    }
-  };
 
 
   // Lógica para finalizar ou adicionar ao pedido de mesa
@@ -692,42 +647,25 @@ const CardapioPage = () => {
                                         ? 'flex flex-col items-center mt-2' 
                                         : 'flex flex-col items-end ml-4 flex-shrink-0'
                                 }`}>
-                                    <div className="flex items-center space-x-2">
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
-                                            onClick={(e) => { e.stopPropagation(); handleDecrementOnCard(prod); }}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <Minus className="h-4 w-4" />
-                                        </Button>
-                                        <Input 
-                                            type="number" 
-                                            value={totalQuantityInCart}
-                                            onChange={(e) => { e.stopPropagation(); handleQuantityChangeOnCard(prod, parseInt(e.target.value) || 0); }} 
-                                            className="w-16 text-center h-8" 
-                                            min="0" 
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
-                                            onClick={(e) => { e.stopPropagation(); handleIncrementOnCard(prod); }}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
-                                    </div>
                                     {totalQuantityInCart > 0 && (
-                                        <span className={`font-semibold ${
+                                        <div className={`font-semibold text-center ${
                                             empresa?.layout_cardapio === 'grid' 
                                                 ? 'text-center' 
                                                 : 'text-right'
                                         }`}>
-                                            Subtotal: R$ {(totalQuantityInCart * finalPrice).toFixed(2).replace('.', ',')}
-                                        </span>
+                                            <div className="text-sm text-gray-600">No carrinho:</div>
+                                            <div className="text-lg text-blue-600">{totalQuantityInCart}x</div>
+                                            <div className="text-sm">Subtotal: R$ {(totalQuantityInCart * finalPrice).toFixed(2).replace('.', ',')}</div>
+                                        </div>
+                                    )}
+                                    {totalQuantityInCart === 0 && (
+                                        <div className={`text-sm text-gray-500 ${
+                                            empresa?.layout_cardapio === 'grid' 
+                                                ? 'text-center' 
+                                                : 'text-right'
+                                        }`}>
+                                            Clique para adicionar
+                                        </div>
                                     )}
                                 </div>
                             </Card>

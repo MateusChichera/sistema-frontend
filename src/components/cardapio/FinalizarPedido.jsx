@@ -144,7 +144,7 @@ const FinalizarPedido = ({ pedidoType, onClose, empresa, limparCarrinho, total, 
                 }
 
                 const response = await api.get(`/${empresa.slug}/formas-pagamento`, { headers });
-                const formasOnline = response.data.filter(fp => fp.ativo);
+                const formasOnline = response.data.filter(fp => fp.ativo && fp.descricao.toLowerCase() !== 'a prazo');
                 setFormasPagamento(formasOnline);
 
                 if (formasOnline.length > 0 && !selectedFormaPagamento) {

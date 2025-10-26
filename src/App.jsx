@@ -15,6 +15,12 @@ import WelcomePage from './components/gerencial/WelcomePage';
 import Dashboard from './components/gerencial/Dashboard';
 import PedidosPage from './components/gerencial/PedidosPage';
 import CaixaPage from './components/gerencial/CaixaPage';
+import RecebimentoContasPage from './components/gerencial/RecebimentoContasPage';
+import RelatorioContasPrazoPage from './components/gerencial/RelatorioContasPrazoPage';
+import CadastrosClientesPage from './components/gerencial/CadastrosClientesPage';
+import FormasPagamentoPage from './components/gerencial/FormasPagamentoPage';
+import EnderecosPage from './components/gerencial/EnderecosPage';
+import AvisosPageGerencial from './components/gerencial/AvisosPage';
 import OrderStatusPage from './components/cardapio/OrderStatusPage';
 import OrderStatusPagePublic from './components/cardapio/OrderStatusPagePublic';
 
@@ -38,7 +44,6 @@ import './App.css';
 // IMPORTAR AS PÁGINAS DE CADASTRO
 import CadastrosCategoriasPage from './components/gerencial/CadastrosPage';
 import CadastrosProdutosPage from './components/gerencial/ProdutosPage';
-import CadastrosFormasPagamentoPage from './components/gerencial/FormasPagamentoPage';
 import CadastrosFuncionariosPage from './components/gerencial/FuncionariosPage';
 import CadastrosMesasPage from './components/gerencial/MesasPage';
 import CadastrosAdicionaisPage from './components/gerencial/AdicionaisPage';
@@ -52,10 +57,10 @@ import SessionExpiredHandler from './components/SessionExpiredHandler';
 
 function App() {
   return (
-    <AuthProvider>
-      <EmpresaProvider>
-        <CarrinhoProvider>
-          <Router>
+    <Router>
+      <AuthProvider>
+        <EmpresaProvider>
+          <CarrinhoProvider>
             <SessionExpiredHandler />
             <Routes>
               {/* Rota inicial - redireciona para uma empresa de exemplo */}
@@ -142,6 +147,16 @@ function App() {
                   <CaixaPage />
                 </LayoutGerencial>
               } />
+              <Route path="/gerencial/:slug/recebimento-contas" element={
+                <LayoutGerencial>
+                  <RecebimentoContasPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/relatorios/contas-prazo" element={
+                <LayoutGerencial>
+                  <RelatorioContasPrazoPage />
+                </LayoutGerencial>
+              } />
               
               {/* ROTAS PARA OS SUB-MENUS DE CADASTROS */}
               <Route path="/gerencial/:slug/cadastros/categorias" element={
@@ -152,11 +167,6 @@ function App() {
               <Route path="/gerencial/:slug/cadastros/produtos" element={
                 <LayoutGerencial>
                   <CadastrosProdutosPage />
-                </LayoutGerencial>
-              } />
-              <Route path="/gerencial/:slug/cadastros/formas-pagamento" element={
-                <LayoutGerencial>
-                  <CadastrosFormasPagamentoPage />
                 </LayoutGerencial>
               } />
               <Route path="/gerencial/:slug/cadastros/funcionarios" element={
@@ -172,6 +182,26 @@ function App() {
               <Route path="/gerencial/:slug/cadastros/adicionais" element={
                 <LayoutGerencial>
                   <CadastrosAdicionaisPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/clientes" element={
+                <LayoutGerencial>
+                  <CadastrosClientesPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/enderecos" element={
+                <LayoutGerencial>
+                  <EnderecosPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/avisos" element={
+                <LayoutGerencial>
+                  <AvisosPageGerencial />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/cadastros/formas-pagamento" element={
+                <LayoutGerencial>
+                  <FormasPagamentoPage />
                 </LayoutGerencial>
               } />
               
@@ -220,10 +250,10 @@ function App() {
               <Route path="*" element={<div className="text-center p-8 text-red-500">Página Não Encontrada (404 Global)</div>} />
 
             </Routes>
-          </Router>
-        </CarrinhoProvider>
-      </EmpresaProvider>
-    </AuthProvider>
+          </CarrinhoProvider>
+        </EmpresaProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

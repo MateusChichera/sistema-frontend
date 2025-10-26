@@ -1,7 +1,8 @@
 // frontend/src/components/layout/LayoutCardapio.jsx
 import React, { useMemo } from 'react';
 import { useEmpresa } from '../../contexts/EmpresaContext';
-import { Link } from 'react-router-dom'; 
+import { Link } from 'react-router-dom';
+import { Toaster } from 'sonner'; 
 
 // Mapa de cores Tailwind para seus valores hexadecimais (para uso em style inline)
 const tailwindColorMap = {
@@ -149,9 +150,26 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
                     {/* Informações da Empresa */}
                     <div className="text-sm sm:text-base text-gray-600 space-y-0.5 animate-fade-in-up">
                         {empresa.razao_social && <p>{empresa.razao_social}</p>}
-                        {empresa.endereco && <p>{empresa.endereco}</p>}
-                        {empresa.telefone_contato && <p>Tel: {empresa.telefone_contato}</p>}
-                        {empresa.horario_funcionamento && <p>Horário: {empresa.horario_funcionamento}</p>}
+                        {empresa.endereco_dia_atual && !empresa.endereco_dia_atual.message ? (
+                            <>
+                                <p><strong>{empresa.endereco_dia_atual.endereco_nome}</strong></p>
+                                <p>{empresa.endereco_dia_atual.endereco_completo}</p>
+                                <p>{empresa.endereco_dia_atual.cidade} - {empresa.endereco_dia_atual.estado}</p>
+                                {empresa.endereco_dia_atual.telefone && <p>Tel: {empresa.endereco_dia_atual.telefone}</p>}
+                                {empresa.endereco_dia_atual.horario_inicio && empresa.endereco_dia_atual.horario_fim && (
+                                    <p>Horário: {empresa.endereco_dia_atual.horario_inicio} - {empresa.endereco_dia_atual.horario_fim}</p>
+                                )}
+                                {empresa.endereco_dia_atual.observacoes && (
+                                    <p className="text-xs text-gray-500">{empresa.endereco_dia_atual.observacoes}</p>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                {empresa.endereco && <p>{empresa.endereco}</p>}
+                                {empresa.telefone_contato && <p>Tel: {empresa.telefone_contato}</p>}
+                                {empresa.horario_funcionamento && <p>Horário: {empresa.horario_funcionamento}</p>}
+                            </>
+                        )}
                     </div>
                 </div>
             </header>
@@ -161,6 +179,7 @@ const LayoutCardapio = ({ children, userActions }) => { // Recebe userActions co
             <footer className="text-white p-4 text-center" style={{ background: 'linear-gradient(90deg,' + primaryColorCss + ',#222 90%)' }}>
                 <p className="text-base font-medium">&copy; {new Date().getFullYear()} {empresa.nome_fantasia || 'Seu Sistema'}. Todos os direitos reservados.</p>
             </footer>
+            <Toaster position="top-right" richColors />
         </div>
     );
 };
