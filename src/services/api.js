@@ -8,7 +8,10 @@ import { notifyGlobalError } from '../lib/errorHandler';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '212.85.23.251'
     ? 'http://localhost:3001/api/v1' 
-    : '/api/v1');
+    // Se estiver na rede local (192.168.x.x), usar o IP da máquina para o backend
+    : window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.') || window.location.hostname.startsWith('172.')
+      ? `http://${window.location.hostname}:3001/api/v1`
+      : '/api/v1');
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -23,6 +23,7 @@ import EnderecosPage from './components/gerencial/EnderecosPage';
 import AvisosPageGerencial from './components/gerencial/AvisosPage';
 import OrderStatusPage from './components/cardapio/OrderStatusPage';
 import OrderStatusPagePublic from './components/cardapio/OrderStatusPagePublic';
+import RastreamentoPublicoPage from './components/cardapio/RastreamentoPublicoPage';
 
 // Componentes de Layout
 import LayoutGerencial from './components/layout/LayoutGerencial';
@@ -48,6 +49,8 @@ import CadastrosFuncionariosPage from './components/gerencial/FuncionariosPage';
 import CadastrosMesasPage from './components/gerencial/MesasPage';
 import CadastrosAdicionaisPage from './components/gerencial/AdicionaisPage';
 import ConfiguracoesPage from './components/gerencial/ConfiguracoesPage';
+import PedidosMotoboyPage from './components/gerencial/PedidosMotoboyPage';
+import RastreamentoPedidoPage from './components/gerencial/RastreamentoPedidoPage';
 
 // IMPORTAR A PÁGINA DO ADMIN MASTER
 import AdminDashboardPage from './components/admin/AdminDashboardPage';
@@ -67,16 +70,20 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               
               {/* Rotas do Cardápio Digital (PÚBLICAS) */}
+              {/* Rotas específicas ANTES da rota genérica :slug */}
+              <Route path="/:slug/acompanhar/:id" element={<OrderStatusPagePublic />} />
+              <Route path="/:slug/rastrear/:id" element={<RastreamentoPublicoPage />} />
+              
               {/* Cada rota define seu layout e página */}
-              <Route path="/:slug" element={
-                
-                  <PublicCardapioPage />
-                
-              }/>
               <Route path="/:slug/comanda" element={
                 <LayoutCardapio>
                   <CardapioPage />
                 </LayoutCardapio>
+              }/>
+              <Route path="/:slug" element={
+                
+                  <PublicCardapioPage />
+                
               }/>
               
               {/* Finalizar Pedido é um modal dentro de CardapioPage, não uma rota separada */}
@@ -212,6 +219,18 @@ function App() {
                 </LayoutGerencial>
               } />
 
+              {/* Rotas do Motoboy */}
+              <Route path="/gerencial/:slug/motoboy/pedidos" element={
+                <LayoutGerencial>
+                  <PedidosMotoboyPage />
+                </LayoutGerencial>
+              } />
+              <Route path="/gerencial/:slug/motoboy/pedido/:id" element={
+                <LayoutGerencial>
+                  <RastreamentoPedidoPage />
+                </LayoutGerencial>
+              } />
+
               {/* Rota pai 'cadastros' - redireciona para categorias por padrão */}
               <Route path="/gerencial/:slug/cadastros" element={<Navigate to="categorias" replace />} />
 
@@ -240,8 +259,6 @@ function App() {
                 </LayoutAdmin>
               } />
 
-              {/* Rota para acompanhar pedido público */}
-              <Route path=":slug/acompanhar/:id" element={<OrderStatusPagePublic />} />
 
               {/* Rota para lojas */}
               <Route path="/lojas" element={<VitrineEmpresas />} />

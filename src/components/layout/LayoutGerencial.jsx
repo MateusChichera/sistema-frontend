@@ -28,7 +28,8 @@ import {
   Box,
   Home,
   MapPin,
-  Bell
+  Bell,
+  Navigation
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import api from '../../services/api';
@@ -37,6 +38,7 @@ import { toast } from 'sonner';
 import QRCodeGerador from '../gerencial/QRCodeGerador';
 import AvisosModal from '../gerencial/AvisosModal';
 import AvisosToast from '../gerencial/AvisosToast';
+import WhatsAppModal from '../gerencial/WhatsAppModal';
 
 
 const LayoutGerencial = ({ children }) => {
@@ -93,6 +95,7 @@ const LayoutGerencial = ({ children }) => {
     { name: 'Mesas', icon: NotebookPen, path: `/gerencial/${currentSlug}/mesas`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Delivery', icon: Bike, path: `/gerencial/${currentSlug}/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     { name: 'Cozinha', icon: ChefHat, path: `/gerencial/${currentSlug}/cozinha`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
+    { name: 'Motoboy', icon: Navigation, path: `/gerencial/${currentSlug}/motoboy/pedidos`, roles: ['Proprietario', 'Gerente', 'Funcionario', 'Caixa'] },
     {
       name: 'Cardápio Digital',
       icon: UtensilsCrossed,
@@ -293,6 +296,7 @@ const LayoutGerencial = ({ children }) => {
             </div>
             <div className="flex items-center gap-2">
               <AvisosModal />
+              <WhatsAppModal />
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
                 <LogOut className="h-4 w-4" />
               </Button>

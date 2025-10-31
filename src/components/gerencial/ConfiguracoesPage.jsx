@@ -73,6 +73,10 @@ const ConfiguracoesPage = () => {
     porcentagem_garcom: false,
     permitir_acompanhar_status: true, // novo campo
     juros_titulos: '', // novo campo para juros de títulos
+    whatsapp_enviar_novo_pedido: false,
+    whatsapp_enviar_status_pedido: false,
+    whatsapp_enviar_saiu_entrega: false,
+    whatsapp_rastreamento_pedido: false,
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState(null);
@@ -127,6 +131,10 @@ const ConfiguracoesPage = () => {
           porcentagem_garcom: !!empresa.porcentagem_garcom,
           permitir_acompanhar_status: empresa.permitir_acompanhar_status !== undefined ? !!empresa.permitir_acompanhar_status : true,
           juros_titulos: empresa.juros_titulos || '',
+          whatsapp_enviar_novo_pedido: empresa.whatsapp_enviar_novo_pedido !== undefined ? !!empresa.whatsapp_enviar_novo_pedido : false,
+          whatsapp_enviar_status_pedido: empresa.whatsapp_enviar_status_pedido !== undefined ? !!empresa.whatsapp_enviar_status_pedido : false,
+          whatsapp_enviar_saiu_entrega: empresa.whatsapp_enviar_saiu_entrega !== undefined ? !!empresa.whatsapp_enviar_saiu_entrega : false,
+          whatsapp_rastreamento_pedido: empresa.whatsapp_rastreamento_pedido !== undefined ? !!empresa.whatsapp_rastreamento_pedido : false,
         });
         console.log('ConfiguracoesPage: Dados carregados da empresa:', empresa);
         console.log('ConfiguracoesPage: juros_titulos carregado:', empresa.juros_titulos);
@@ -204,6 +212,10 @@ const ConfiguracoesPage = () => {
         porcentagem_garcom: formData.porcentagem_garcom ? 1 : 0,
         permitir_acompanhar_status: formData.permitir_acompanhar_status ? 1 : 0,
         juros_titulos: parseFloat(formData.juros_titulos) || 0.00,
+        whatsapp_enviar_novo_pedido: formData.whatsapp_enviar_novo_pedido ? 1 : 0,
+        whatsapp_enviar_status_pedido: formData.whatsapp_enviar_status_pedido ? 1 : 0,
+        whatsapp_enviar_saiu_entrega: formData.whatsapp_enviar_saiu_entrega ? 1 : 0,
+        whatsapp_rastreamento_pedido: formData.whatsapp_rastreamento_pedido ? 1 : 0,
       };
 
       console.log('ConfiguracoesPage: Enviando dados:', dataToSend);
@@ -280,11 +292,12 @@ const ConfiguracoesPage = () => {
 
       {/* Adicionado o componente Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full gap-1">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full gap-1">
           <TabsTrigger value="detalhes" className="text-xs sm:text-sm">Detalhes</TabsTrigger>
           <TabsTrigger value="pedidosCardapio" className="text-xs sm:text-sm">Pedidos</TabsTrigger>
           <TabsTrigger value="caixa" className="text-xs sm:text-sm">Caixa</TabsTrigger>
           <TabsTrigger value="titulos" className="text-xs sm:text-sm">Títulos</TabsTrigger>
+          <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">WhatsApp</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSaveConfig} className="mt-3 sm:mt-4">
@@ -685,6 +698,77 @@ const ConfiguracoesPage = () => {
                     <li>• Não afeta títulos já pagos</li>
                   </ul>
                 </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ABA 5: WHATSAPP */}
+          <TabsContent value="whatsapp" className="p-3 sm:p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">Configurações de WhatsApp</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <div className="col-span-full">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-blue-800 mb-2">ℹ️ Sobre as notificações WhatsApp:</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Configure quais mensagens automáticas deseja enviar aos clientes</li>
+                    <li>• As mensagens são enviadas apenas se o WhatsApp estiver conectado</li>
+                    <li>• Você pode conectar/desconectar o WhatsApp através do ícone na sidebar</li>
+                  </ul>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Importante sobre Status do Pedido:</h4>
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• Quando o status do pedido mudar para <strong>"Pronto"</strong>, o comportamento depende da configuração <strong>"Permitir rastreamento de entrega"</strong></li>
+                    <li>• Se rastreamento estiver <strong>ATIVADO</strong>: Não envia WhatsApp quando muda para "Pronto". Só envia quando motoboy iniciar entrega.</li>
+                    <li>• Se rastreamento estiver <strong>DESATIVADO</strong>: Envia WhatsApp normalmente quando muda para "Pronto".</li>
+                    <li>• Para outros status (Pendente, Em Preparação, Entregue, Cancelado), use a configuração <strong>"Enviar mensagem quando status do pedido mudar"</strong></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 col-span-full">
+                <Switch
+                  id="whatsapp_rastreamento_pedido"
+                  checked={formData.whatsapp_rastreamento_pedido}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, whatsapp_rastreamento_pedido: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="whatsapp_rastreamento_pedido" className="text-sm">
+                  Permitir rastreamento de entrega
+                  <span className="block text-xs text-gray-500 mt-1">
+                    Quando ativado, o WhatsApp de "Saiu para Entrega" só é enviado quando o motoboy iniciar a entrega, não quando o status mudar para "Pronto".
+                  </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2 col-span-full">
+                <Switch
+                  id="whatsapp_enviar_novo_pedido"
+                  checked={formData.whatsapp_enviar_novo_pedido}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, whatsapp_enviar_novo_pedido: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="whatsapp_enviar_novo_pedido" className="text-sm">Enviar mensagem quando receber novo pedido</Label>
+              </div>
+
+              <div className="flex items-center space-x-2 col-span-full">
+                <Switch
+                  id="whatsapp_enviar_status_pedido"
+                  checked={formData.whatsapp_enviar_status_pedido}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, whatsapp_enviar_status_pedido: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="whatsapp_enviar_status_pedido" className="text-sm">Enviar mensagem quando status do pedido mudar (exceto quando for "Pronto")</Label>
+              </div>
+
+              <div className="flex items-center space-x-2 col-span-full">
+                <Switch
+                  id="whatsapp_enviar_saiu_entrega"
+                  checked={formData.whatsapp_enviar_saiu_entrega}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, whatsapp_enviar_saiu_entrega: checked }))}
+                  disabled={!canManage}
+                />
+                <Label htmlFor="whatsapp_enviar_saiu_entrega" className="text-sm">Enviar mensagem quando pedido sair para entrega</Label>
               </div>
             </div>
           </TabsContent>
