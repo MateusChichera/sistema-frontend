@@ -365,97 +365,17 @@ const RastreamentoPublicoPage = () => {
             window.mapRef = map;
             console.log('Referências armazenadas globalmente');
             
-            // Armazenar referência da rota para atualização do marcador
-            window.routeCoordinates = null;
-            window.routePolyline = null;
-            window.routeProgress = 0; // Progresso na rota (0 a 1)
-            
-            // Traçar rota usando OSRM (Open Source Routing Machine) - gratuito
-            fetch('https://router.project-osrm.org/route/v1/driving/' + motoboyLng + ',' + motoboyLat + ';' + destinoLng + ',' + destinoLat + '?overview=full&geometries=geojson')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                        const route = data.routes[0];
-                        window.routeCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]); // OSRM retorna [lng, lat], Leaflet precisa [lat, lng]
-                        
-                        console.log('Rota calculada com', window.routeCoordinates.length, 'pontos');
-                        
-                        // Desenhar rota no mapa
-                        window.routePolyline = L.polyline(window.routeCoordinates, {
-                            color: '#3b82f6',
-                            weight: 4,
-                            opacity: 0.7,
-                            dashArray: '10, 5'
-                        }).addTo(map);
-                        
-                        // IMPORTANTE: Sempre projetar o motoboy na rota quando a rota for traçada
-                        // Usar as coordenadas atuais do marcador (que podem ter sido atualizadas)
-                        const currentMotoboyPos = motoboyMarker.getLatLng();
-                        console.log('Projetando motoboy inicial na rota. Coordenadas atuais:', currentMotoboyPos.lat, currentMotoboyPos.lng);
-                        updateMotoboyPositionOnRoute(currentMotoboyPos.lat, currentMotoboyPos.lng);
-                        
-                        // Ajustar zoom apenas uma vez para mostrar toda a rota E ambos os marcadores
-                        if (!window.mapBoundsSet) {
-                            // Criar bounds que incluem a rota, o motoboy e o destino
-                            const bounds = L.latLngBounds(window.routeCoordinates);
-                            bounds.extend([currentMotoboyPos.lat, currentMotoboyPos.lng]);
-                            bounds.extend([destinoLat, destinoLng]);
-                            map.fitBounds(bounds, { padding: [50, 50] });
-                            window.mapBoundsSet = true; // Marcar que já ajustou o zoom
-                            console.log('Mapa ajustado para mostrar rota completa e marcadores');
-                        }
-                        
-                        // Se as coordenadas do rastreamento mudarem depois que a rota foi traçada,
-                        // garantir que o motoboy seja reprojetado na rota
-                        console.log('Rota traçada! Motoboy deve estar projetado na rota.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro ao traçar rota:', error);
-                    // Se falhar, apenas ajustar zoom uma vez para mostrar ambos os marcadores
-                    if (!window.mapBoundsSet) {
-                        const bounds = L.latLngBounds([[motoboyLat, motoboyLng], [destinoLat, destinoLng]]);
-                        map.fitBounds(bounds, { padding: [50, 50] });
-                        window.mapBoundsSet = true;
-                    }
-                });
-            
-            // Função para calcular distância entre dois pontos (Haversine simplificado para distâncias curtas)
-            function getDistance(lat1, lng1, lat2, lng2) {
-                const R = 6371000; // Raio da Terra em metros
-                const dLat = (lat2 - lat1) * Math.PI / 180;
-                const dLng = (lng2 - lng1) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                return R * c; // Distância em metros
+            // NÃO traçar rota - o motoboy segue o GPS real (estilo Uber/99/iFood)
+            // Ajustar zoom inicialmente para mostrar ambos os marcadores
+            if (!window.mapBoundsSet) {
+                const bounds = L.latLngBounds([[motoboyLat, motoboyLng], [destinoLat, destinoLng]]);
+                map.fitBounds(bounds, { padding: [50, 50] });
+                window.mapBoundsSet = true;
+                console.log('Mapa ajustado para mostrar motoboy e destino');
             }
             
-            // Função para projetar ponto em um segmento de linha (projeção perpendicular)
-            function projectPointOnSegment(pointLat, pointLng, segStartLat, segStartLng, segEndLat, segEndLng) {
-                const dx = segEndLng - segStartLng;
-                const dy = segEndLat - segStartLat;
-                const lengthSq = dx * dx + dy * dy;
-                
-                if (lengthSq === 0) {
-                    return [segStartLat, segStartLng]; // Segmento é um ponto
-                }
-                
-                // Projeção do ponto no segmento
-                const t = Math.max(0, Math.min(1, 
-                    ((pointLng - segStartLng) * dx + (pointLat - segStartLat) * dy) / lengthSq
-                ));
-                
-                // Ponto projetado no segmento
-                return [
-                    segStartLat + t * dy,
-                    segStartLng + t * dx
-                ];
-            }
-            
-            // Função para atualizar posição do motoboy na rota (projeta na rota mais próxima)
-            function updateMotoboyPositionOnRoute(currentLat, currentLng) {
+            // Função simples para atualizar posição do motoboy (seguindo GPS real - estilo Uber/99/iFood)
+            function updateMotoboyPosition(currentLat, currentLng) {
                 // Validar coordenadas de entrada
                 if (isNaN(currentLat) || isNaN(currentLng) || 
                     currentLat < -90 || currentLat > 90 || 
@@ -469,79 +389,13 @@ const RastreamentoPublicoPage = () => {
                     return;
                 }
                 
-                // Se não tiver rota, apenas mover para a posição atual (validada)
-                if (!window.routeCoordinates || !window.routeCoordinates.length) {
-                    console.log('Rota não disponível ainda, movendo diretamente para posição GPS');
-                    motoboyMarker.setLatLng([currentLat, currentLng]);
-                    // Garantir que o marcador esteja visível
-                    if (!map.getBounds().contains(motoboyMarker.getLatLng())) {
-                        map.setView([currentLat, currentLng], map.getZoom());
-                    }
-                    return;
-                }
+                console.log('Movendo motoboy para posição GPS real:', currentLat, currentLng);
                 
-                // Encontrar o segmento da rota mais próximo e projetar o ponto nele
-                let closestPoint = window.routeCoordinates[0];
-                let minDistance = Infinity;
-                let closestSegmentIndex = 0;
-                
-                // Verificar cada segmento da rota
-                for (let i = 0; i < window.routeCoordinates.length - 1; i++) {
-                    const segStart = window.routeCoordinates[i];
-                    const segEnd = window.routeCoordinates[i + 1];
-                    
-                    // Validar coordenadas do segmento
-                    if (!segStart || !segEnd || 
-                        isNaN(segStart[0]) || isNaN(segStart[1]) ||
-                        isNaN(segEnd[0]) || isNaN(segEnd[1])) {
-                        continue;
-                    }
-                    
-                    // Projetar ponto atual no segmento
-                    const projectedPoint = projectPointOnSegment(
-                        currentLat, currentLng,
-                        segStart[0], segStart[1],
-                        segEnd[0], segEnd[1]
-                    );
-                    
-                    // Validar ponto projetado
-                    if (!projectedPoint || 
-                        isNaN(projectedPoint[0]) || isNaN(projectedPoint[1]) ||
-                        projectedPoint[0] < -90 || projectedPoint[0] > 90 ||
-                        projectedPoint[1] < -180 || projectedPoint[1] > 180) {
-                        continue;
-                    }
-                    
-                    // Calcular distância até o ponto projetado
-                    const distance = getDistance(currentLat, currentLng, projectedPoint[0], projectedPoint[1]);
-                    
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestPoint = projectedPoint;
-                        closestSegmentIndex = i;
-                    }
-                }
-                
-                // Validar ponto mais próximo antes de usar
-                if (!closestPoint || 
-                    isNaN(closestPoint[0]) || isNaN(closestPoint[1]) ||
-                    closestPoint[0] < -90 || closestPoint[0] > 90 ||
-                    closestPoint[1] < -180 || closestPoint[1] > 180) {
-                    console.error('Ponto projetado inválido! Usando posição GPS original');
-                    closestPoint = [currentLat, currentLng];
-                }
-                
-                // Atualizar progresso na rota (baseado no segmento encontrado)
-                window.routeProgress = closestSegmentIndex / (window.routeCoordinates.length - 1);
-                
-                // Mover marcador para o ponto projetado na rota (estilo Uber/99/iFood)
-                console.log('Movendo marcador para:', closestPoint[0], closestPoint[1]);
-                
-                // Usar setLatLng do Leaflet (método confiável)
-                motoboyMarker.setLatLng(closestPoint);
+                // Mover marcador para a posição GPS real (SEM projeção na rota)
+                motoboyMarker.setLatLng([currentLat, currentLng]);
                 
                 // Centralizar mapa no motoboy (estilo Uber/99/iFood - sempre foca no entregador)
-                map.setView(closestPoint, map.getZoom(), {
+                map.setView([currentLat, currentLng], map.getZoom(), {
                     animate: true,
                     duration: 0.5
                 });
@@ -558,11 +412,11 @@ const RastreamentoPublicoPage = () => {
                     motoboyMarker._icon.style.zIndex = '1000';
                 }
                 
-                console.log('Motoboy projetado na rota. Segmento:', closestSegmentIndex, 'de', window.routeCoordinates.length - 2, 'Distância:', minDistance.toFixed(2), 'm');
+                console.log('Motoboy atualizado com sucesso para posição GPS');
             }
             
             // Expor função globalmente para uso via postMessage
-            window.updateMotoboyPositionOnRoute = updateMotoboyPositionOnRoute;
+            window.updateMotoboyPosition = updateMotoboyPosition;
             
             // Verificar se o marcador está realmente visível após um pequeno delay
             setTimeout(() => {
@@ -595,35 +449,15 @@ const RastreamentoPublicoPage = () => {
                 console.log('=== ATUALIZAÇÃO DE POSIÇÃO DO MOTOBOY ===');
                 console.log('Nova posição GPS:', lat, lng);
                 
-                if (window.motoboyMarkerRef) {
-                    // SEMPRE usar a função de projeção na rota se estiver disponível
-                    if (window.updateMotoboyPositionOnRoute && window.routeCoordinates && window.routeCoordinates.length > 0) {
-                        console.log('Projetando motoboy na rota usando novas coordenadas GPS');
-                        window.updateMotoboyPositionOnRoute(lat, lng);
-                        console.log('Motoboy projetado na rota com sucesso');
-                    } else {
-                        console.warn('Rota ainda não foi traçada ou função não disponível. Movendo diretamente.');
-                        // Se a rota ainda não foi traçada, mover diretamente
-                        window.motoboyMarkerRef.setLatLng([lat, lng]);
-                    }
-                    
-                    // Garantir que o ícone continue visível após atualização
-                    if (window.motoboyMarkerRef._icon) {
-                        window.motoboyMarkerRef._icon.style.display = 'flex';
-                        window.motoboyMarkerRef._icon.style.visibility = 'visible';
-                        window.motoboyMarkerRef._icon.style.opacity = '1';
-                        // Forçar renderização do emoji
-                        const innerDiv = window.motoboyMarkerRef._icon.querySelector('.motoboy-icon-inner');
-                        if (innerDiv) {
-                            innerDiv.style.display = 'flex';
-                            innerDiv.style.alignItems = 'center';
-                            innerDiv.style.justifyContent = 'center';
-                            innerDiv.style.fontSize = '24px';
-                            innerDiv.textContent = '🛵';
-                        }
-                    }
+                // Usar função de atualização direta (SEM projeção na rota)
+                if (window.updateMotoboyPosition) {
+                    window.updateMotoboyPosition(lat, lng);
+                } else if (window.motoboyMarkerRef) {
+                    // Fallback: mover diretamente se a função não estiver disponível
+                    window.motoboyMarkerRef.setLatLng([lat, lng]);
+                    map.setView([lat, lng], map.getZoom(), { animate: true, duration: 0.5 });
                 } else {
-                    console.error('window.motoboyMarkerRef não existe!');
+                    console.error('Função de atualização não disponível!');
                 }
             }
         });
@@ -685,12 +519,53 @@ const RastreamentoPublicoPage = () => {
         fetchRastreamento();
     }, [fetchRastreamento]);
 
-    // Polling separado para quando estiver em entrega
+    // Polling separado para quando estiver em entrega (melhorado para funcionar em background)
     useEffect(() => {
         if (rastreamento?.status === 'em_entrega') {
-            pollingIntervalRef.current = setInterval(() => {
-                fetchRastreamento();
-            }, 5000); // A cada 5 segundos
+            // Função para fazer polling (verifica se a página está visível)
+            const doPolling = () => {
+                // Se a página estiver visível, fazer polling normal
+                // Se estiver em background, fazer polling mais lento
+                const interval = document.hidden ? 10000 : 3000; // 10s em background, 3s quando visível
+                
+                if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                }
+                
+                pollingIntervalRef.current = setInterval(() => {
+                    fetchRastreamento();
+                }, interval);
+            };
+            
+            // Fazer polling inicial
+            doPolling();
+            
+            // Ajustar polling quando a visibilidade mudar
+            const handleVisibilityChange = () => {
+                if (rastreamento?.status === 'em_entrega') {
+                    doPolling();
+                }
+            };
+            
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            
+            // Quando a página voltar ao foco, atualizar imediatamente
+            const handleFocus = () => {
+                if (rastreamento?.status === 'em_entrega' && !document.hidden) {
+                    fetchRastreamento();
+                }
+            };
+            
+            window.addEventListener('focus', handleFocus);
+            
+            return () => {
+                if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = null;
+                }
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                window.removeEventListener('focus', handleFocus);
+            };
         } else {
             // Limpar intervalo se não estiver em entrega
             if (pollingIntervalRef.current) {
