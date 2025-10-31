@@ -9,6 +9,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from '../ui/drawer';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ShoppingCart, Home, Bike, CheckCircle, Utensils, Plus, Minus } from 'lucide-react';
@@ -879,15 +880,15 @@ const PublicCardapioPage = ({ user: userProp }) => {
     </Button>
   </div>
 )}
-        <Dialog open={!!selectedProduct} onOpenChange={closeProductModal}>
-          <DialogContent className="w-full max-w-lg rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up max-h-[95vh] flex flex-col overflow-hidden">
+        <Drawer open={!!selectedProduct} onOpenChange={(open) => !open && closeProductModal()} direction="bottom">
+          <DrawerContent className="!h-screen !max-h-screen !mt-0 flex flex-col overflow-hidden rounded-t-3xl min-w-0" style={{ paddingBottom: `max(1rem, env(safe-area-inset-bottom))`, height: '100vh', maxHeight: '100vh', marginTop: '0' }}>
             {/* Header fixo */}
             <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
-              <DialogHeader>
-                <DialogTitle className="text-xl sm:text-2xl font-extrabold text-gray-800 mb-1 text-center">{selectedProduct?.nome}</DialogTitle>
-                <DialogDescription className="text-sm sm:text-base text-gray-600 text-center mb-2">
+              <DrawerHeader>
+                <DrawerTitle className="text-xl sm:text-2xl font-extrabold text-gray-800 mb-1 text-center">{selectedProduct?.nome}</DrawerTitle>
+                <DrawerDescription className="text-sm sm:text-base text-gray-600 text-center mb-2">
                   {selectedProduct?.descricao}
-                </DialogDescription>
+                </DrawerDescription>
                 {selectedProduct?.promo_ativa && selectedProduct?.promocao ? (
                   <div className="flex justify-center items-center gap-2 mb-2">
                     <span className="line-through text-gray-400 text-base sm:text-lg">R$ {parseFloat(selectedProduct.preco).toFixed(2).replace('.', ',')}</span>
@@ -898,7 +899,7 @@ const PublicCardapioPage = ({ user: userProp }) => {
                     <span className="text-gray-800 font-bold text-xl sm:text-2xl">R$ {parseFloat(selectedProduct?.preco || 0).toFixed(2).replace('.', ',')}</span>
                   </div>
                 )}
-              </DialogHeader>
+              </DrawerHeader>
             </div>
             
             {/* Área scrollável */}
@@ -1013,39 +1014,37 @@ const PublicCardapioPage = ({ user: userProp }) => {
                   })()}
                 </p>
               </div>
-              <DialogFooter className="flex justify-center">
+              <DrawerFooter className="flex justify-center" style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
                 <Button 
                   onClick={handleAddToCart} 
                   disabled={
                     !isCurrentlyOpenForOrders || 
                     (empresa?.permitir_pedidos_estoque_zerado !== 1 && selectedProduct?.estoque !== undefined && selectedProduct?.estoque <= 0)
                   } 
-                  className="rounded-full px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all w-full sm:w-auto"
+                  className="rounded-full px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-bold bg-primary text-white shadow-lg hover:bg-primary/90 transition-all w-full"
                 >
                   {empresa?.permitir_pedidos_estoque_zerado !== 1 && selectedProduct?.estoque !== undefined && selectedProduct?.estoque <= 0
                     ? 'Fora de Estoque'
                     : 'Adicionar ao Carrinho'
                   }
                 </Button>
-              </DialogFooter>
+              </DrawerFooter>
             </div>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={isFinalizarPedidoModalOpen} onOpenChange={setIsFinalizarPedidoModalOpen}>
-          <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[95vh] rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up overflow-hidden">
-            <FinalizarPedido
-              pedidoType={selectedPedidoType}
-              onClose={handleCloseFinalizarPedidoModal}
-              empresa={empresa}
-              limparCarrinho={limparCarrinho}
-              total={total}
-              itens={itens}
-              onAddMoreItems={handleAddMoreItems}
-              setIsMinimoDeliveryModalOpen={setIsMinimoDeliveryModalOpen}
-              setValorFaltanteDelivery={setValorFaltanteDelivery}
-            />
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
+        {isFinalizarPedidoModalOpen && (
+          <FinalizarPedido
+            pedidoType={selectedPedidoType}
+            onClose={handleCloseFinalizarPedidoModal}
+            empresa={empresa}
+            limparCarrinho={limparCarrinho}
+            total={total}
+            itens={itens}
+            onAddMoreItems={handleAddMoreItems}
+            setIsMinimoDeliveryModalOpen={setIsMinimoDeliveryModalOpen}
+            setValorFaltanteDelivery={setValorFaltanteDelivery}
+          />
+        )}
         <Dialog open={isPedidoTypeSelectionModalOpen} onOpenChange={setIsPedidoTypeSelectionModalOpen}>
           <DialogContent className="w-full max-w-md rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-lg p-0 animate-fade-in-up">
             <PedidoTypeSelectionModal
