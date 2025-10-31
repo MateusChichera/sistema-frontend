@@ -141,6 +141,9 @@ const RastreamentoPublicoPage = () => {
             
             // Validar coordenadas
             if (!isNaN(latMotoboy) && !isNaN(lngMotoboy) && !isNaN(enderecoLat) && !isNaN(enderecoLng)) {
+                console.log('=== CRIANDO MAPA - RASTREAMENTO PÚBLICO ===');
+                console.log('Coordenadas do motoboy:', latMotoboy, lngMotoboy);
+                console.log('Coordenadas do destino:', enderecoLat, enderecoLng);
                 
                 // Calcular distância e tempo estimado
                 const distancia = calcularDistancia(latMotoboy, lngMotoboy, enderecoLat, enderecoLng);
@@ -161,21 +164,55 @@ const RastreamentoPublicoPage = () => {
         body { margin: 0; padding: 0; }
         #map { width: 100%; height: 100vh; }
         .motoboy-icon {
-            background-color: #22c55e;
-            width: 32px;
-            height: 32px;
+            background-color: #22c55e !important;
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            border: 4px solid white !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 24px !important;
+            animation: pulse 2s infinite, bounce 1s infinite !important;
+            position: relative !important;
+            z-index: 1000 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            line-height: 1 !important;
+            text-align: center !important;
+        }
+        .motoboy-icon::before {
+            content: '';
+            position: absolute;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            animation: pulse 2s infinite;
+            background-color: #22c55e;
+            opacity: 0.3;
+            animation: ripple 2s infinite;
+            z-index: -1;
+        }
+        .motoboy-icon-inner {
+            width: 100% !important;
+            height: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 24px !important;
+            line-height: 1 !important;
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            50% { transform: scale(1.15); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 0.3; }
+            100% { transform: scale(2); opacity: 0; }
         }
     </style>
 </head>
@@ -193,74 +230,278 @@ const RastreamentoPublicoPage = () => {
         const centerLng = (motoboyLng + destinoLng) / 2;
         const map = L.map('map').setView([centerLat, centerLng], 13);
         
+        // Variáveis globais para os marcadores
+        let motoboyMarker = null;
+        let destinoMarker = null;
+        
         // Adicionar camada do OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(map);
         
-        // Criar ícone customizado para o motoboy (verde, animado)
-        const motoboyIcon = L.divIcon({
-            className: 'motoboy-icon',
-            html: '🛵',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-        });
-        
-        // Marcador do motoboy (verde, animado)
-        const motoboyMarker = L.marker([motoboyLat, motoboyLng], { icon: motoboyIcon })
-            .addTo(map)
-            .bindPopup('Entregador');
-        
-        // Marcador do destino (vermelho)
-        const destinoMarker = L.marker([destinoLat, destinoLng])
-            .addTo(map)
-            .bindPopup('Seu endereço');
-        
-        // Traçar rota usando OSRM (Open Source Routing Machine) - gratuito
-        fetch('https://router.project-osrm.org/route/v1/driving/' + motoboyLng + ',' + motoboyLat + ';' + destinoLng + ',' + destinoLat + '?overview=full&geometries=geojson')
-            .then(response => response.json())
-            .then(data => {
-                if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                    const route = data.routes[0];
-                    const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]); // OSRM retorna [lng, lat], Leaflet precisa [lat, lng]
-                    
-                    // Desenhar rota no mapa
-                    L.polyline(coordinates, {
-                        color: '#3b82f6',
-                        weight: 4,
-                        opacity: 0.7,
-                        dashArray: '10, 5'
-                    }).addTo(map);
-                    
-                    // Ajustar zoom apenas uma vez para mostrar toda a rota
+        // Aguardar mapa carregar completamente antes de adicionar marcadores
+        map.whenReady(function() {
+            console.log('=== MAPA PRONTO - ADICIONANDO MARCADORES ===');
+            console.log('Coordenadas do motoboy:', motoboyLat, motoboyLng);
+            
+            // Criar ícone SVG customizado para o motoboy (verde, animado, maior)
+            const motoboyIconHtml = '<div class="motoboy-icon-inner">🛵</div>';
+            const motoboyIcon = L.divIcon({
+                className: 'motoboy-icon',
+                html: motoboyIconHtml,
+                iconSize: [48, 48],
+                iconAnchor: [24, 24],
+                popupAnchor: [0, -24]
+            });
+            console.log('Ícone criado:', motoboyIcon);
+            
+            // Marcador do motoboy (verde, animado)
+            motoboyMarker = L.marker([motoboyLat, motoboyLng], { 
+                icon: motoboyIcon,
+                zIndexOffset: 1000
+            }).addTo(map).bindPopup('🛵 Entregador');
+            
+            console.log('Marcador adicionado ao mapa:', motoboyMarker);
+            console.log('Marcador visível?', motoboyMarker._icon ? 'SIM' : 'NÃO');
+            if (motoboyMarker._icon) {
+                console.log('Elemento HTML do ícone:', motoboyMarker._icon);
+                console.log('Classe do ícone:', motoboyMarker._icon.className);
+                // Forçar visibilidade
+                motoboyMarker._icon.style.display = 'flex';
+                motoboyMarker._icon.style.visibility = 'visible';
+                motoboyMarker._icon.style.opacity = '1';
+                motoboyMarker._icon.style.zIndex = '1000';
+                
+                // Forçar renderização do emoji após um pequeno delay
+                setTimeout(() => {
+                    const innerDiv = motoboyMarker._icon.querySelector('.motoboy-icon-inner');
+                    if (innerDiv) {
+                        innerDiv.style.display = 'flex';
+                        innerDiv.style.alignItems = 'center';
+                        innerDiv.style.justifyContent = 'center';
+                        innerDiv.style.fontSize = '24px';
+                        innerDiv.style.width = '100%';
+                        innerDiv.style.height = '100%';
+                        innerDiv.textContent = '🛵';
+                        console.log('Emoji forçado a renderizar');
+                    }
+                }, 100);
+            }
+            
+            // Marcador do destino (vermelho, maior para contraste)
+            const destinoIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+            destinoMarker = L.marker([destinoLat, destinoLng], { icon: destinoIcon })
+                .addTo(map)
+                .bindPopup('📍 Seu endereço');
+            
+            console.log('Marcador de destino adicionado:', destinoMarker);
+            
+            // Armazenar referências globalmente
+            window.motoboyMarkerRef = motoboyMarker;
+            window.destinoMarkerRef = destinoMarker;
+            window.mapRef = map;
+            console.log('Referências armazenadas globalmente');
+            
+            // Armazenar referência da rota para atualização do marcador
+            window.routeCoordinates = null;
+            window.routePolyline = null;
+            window.routeProgress = 0; // Progresso na rota (0 a 1)
+            
+            // Traçar rota usando OSRM (Open Source Routing Machine) - gratuito
+            fetch('https://router.project-osrm.org/route/v1/driving/' + motoboyLng + ',' + motoboyLat + ';' + destinoLng + ',' + destinoLat + '?overview=full&geometries=geojson')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                        const route = data.routes[0];
+                        window.routeCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]); // OSRM retorna [lng, lat], Leaflet precisa [lat, lng]
+                        
+                        console.log('Rota calculada com', window.routeCoordinates.length, 'pontos');
+                        
+                        // Desenhar rota no mapa
+                        window.routePolyline = L.polyline(window.routeCoordinates, {
+                            color: '#3b82f6',
+                            weight: 4,
+                            opacity: 0.7,
+                            dashArray: '10, 5'
+                        }).addTo(map);
+                        
+                        // Ajustar zoom apenas uma vez para mostrar toda a rota
+                        if (!window.mapBoundsSet) {
+                            const bounds = L.latLngBounds(window.routeCoordinates);
+                            map.fitBounds(bounds, { padding: [50, 50] });
+                            window.mapBoundsSet = true; // Marcar que já ajustou o zoom
+                        }
+                        
+                        // IMPORTANTE: Sempre projetar o motoboy na rota quando a rota for traçada
+                        // Usar as coordenadas atuais do marcador (que podem ter sido atualizadas)
+                        const currentMotoboyPos = motoboyMarker.getLatLng();
+                        console.log('Projetando motoboy inicial na rota. Coordenadas atuais:', currentMotoboyPos.lat, currentMotoboyPos.lng);
+                        updateMotoboyPositionOnRoute(currentMotoboyPos.lat, currentMotoboyPos.lng);
+                        
+                        // Se as coordenadas do rastreamento mudarem depois que a rota foi traçada,
+                        // garantir que o motoboy seja reprojetado na rota
+                        console.log('Rota traçada! Motoboy deve estar projetado na rota.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao traçar rota:', error);
+                    // Se falhar, apenas ajustar zoom uma vez para mostrar ambos os marcadores
                     if (!window.mapBoundsSet) {
-                        const bounds = L.latLngBounds(coordinates);
+                        const bounds = L.latLngBounds([[motoboyLat, motoboyLng], [destinoLat, destinoLng]]);
                         map.fitBounds(bounds, { padding: [50, 50] });
-                        window.mapBoundsSet = true; // Marcar que já ajustou o zoom
+                        window.mapBoundsSet = true;
+                    }
+                });
+            
+            // Função para calcular distância entre dois pontos (Haversine simplificado para distâncias curtas)
+            function getDistance(lat1, lng1, lat2, lng2) {
+                const R = 6371000; // Raio da Terra em metros
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLng = (lng2 - lng1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c; // Distância em metros
+            }
+            
+            // Função para projetar ponto em um segmento de linha (projeção perpendicular)
+            function projectPointOnSegment(pointLat, pointLng, segStartLat, segStartLng, segEndLat, segEndLng) {
+                const dx = segEndLng - segStartLng;
+                const dy = segEndLat - segStartLat;
+                const lengthSq = dx * dx + dy * dy;
+                
+                if (lengthSq === 0) {
+                    return [segStartLat, segStartLng]; // Segmento é um ponto
+                }
+                
+                // Projeção do ponto no segmento
+                const t = Math.max(0, Math.min(1, 
+                    ((pointLng - segStartLng) * dx + (pointLat - segStartLat) * dy) / lengthSq
+                ));
+                
+                // Ponto projetado no segmento
+                return [
+                    segStartLat + t * dy,
+                    segStartLng + t * dx
+                ];
+            }
+            
+            // Função para atualizar posição do motoboy na rota (projeta na rota mais próxima)
+            function updateMotoboyPositionOnRoute(currentLat, currentLng) {
+                if (!window.routeCoordinates || !window.routeCoordinates.length || !motoboyMarker) {
+                    // Se não tiver rota, apenas mover para a posição atual
+                    motoboyMarker.setLatLng([currentLat, currentLng]);
+                    return;
+                }
+                
+                // Encontrar o segmento da rota mais próximo e projetar o ponto nele
+                let closestPoint = window.routeCoordinates[0];
+                let minDistance = Infinity;
+                let closestSegmentIndex = 0;
+                
+                // Verificar cada segmento da rota
+                for (let i = 0; i < window.routeCoordinates.length - 1; i++) {
+                    const segStart = window.routeCoordinates[i];
+                    const segEnd = window.routeCoordinates[i + 1];
+                    
+                    // Projetar ponto atual no segmento
+                    const projectedPoint = projectPointOnSegment(
+                        currentLat, currentLng,
+                        segStart[0], segStart[1],
+                        segEnd[0], segEnd[1]
+                    );
+                    
+                    // Calcular distância até o ponto projetado
+                    const distance = getDistance(currentLat, currentLng, projectedPoint[0], projectedPoint[1]);
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestPoint = projectedPoint;
+                        closestSegmentIndex = i;
                     }
                 }
-            })
-            .catch(error => {
-                // Se falhar, apenas ajustar zoom uma vez para mostrar ambos os marcadores
-                if (!window.mapBoundsSet) {
-                    const bounds = L.latLngBounds([[motoboyLat, motoboyLng], [destinoLat, destinoLng]]);
-                    map.fitBounds(bounds, { padding: [50, 50] });
-                    window.mapBoundsSet = true;
+                
+                // Atualizar progresso na rota (baseado no segmento encontrado)
+                window.routeProgress = closestSegmentIndex / (window.routeCoordinates.length - 1);
+                
+                // Mover marcador para o ponto projetado na rota
+                motoboyMarker.setLatLng(closestPoint);
+                
+                console.log('Motoboy projetado na rota. Segmento:', closestSegmentIndex, 'de', window.routeCoordinates.length - 2, 'Distância:', minDistance.toFixed(2), 'm');
+            }
+            
+            // Expor função globalmente para uso via postMessage
+            window.updateMotoboyPositionOnRoute = updateMotoboyPositionOnRoute;
+            
+            // Verificar se o marcador está realmente visível após um pequeno delay
+            setTimeout(() => {
+                console.log('=== VERIFICAÇÃO APÓS DELAY ===');
+                console.log('Mapa criado:', map);
+                console.log('Marcador motoboy:', motoboyMarker);
+                console.log('Marcador está no mapa?', map.hasLayer(motoboyMarker));
+                console.log('Elemento HTML do marcador:', motoboyMarker._icon);
+                if (motoboyMarker._icon) {
+                    const style = window.getComputedStyle(motoboyMarker._icon);
+                    console.log('Estilo computado - display:', style.display);
+                    console.log('Estilo computado - visibility:', style.visibility);
+                    console.log('Estilo computado - opacity:', style.opacity);
+                    console.log('Estilo computado - z-index:', style.zIndex);
+                    console.log('Elemento visível?', motoboyMarker._icon.offsetParent !== null);
+                    console.log('Posição do elemento:', {
+                        top: motoboyMarker._icon.offsetTop,
+                        left: motoboyMarker._icon.offsetLeft,
+                        width: motoboyMarker._icon.offsetWidth,
+                        height: motoboyMarker._icon.offsetHeight
+                    });
                 }
-            });
-        
-        // Armazenar referências globalmente para atualização via postMessage
-        window.motoboyMarkerRef = motoboyMarker;
-        window.mapRef = map;
+            }, 1500);
+        });
         
         // Atualizar posição do motoboy quando coordenadas mudarem (será chamado via postMessage)
         window.addEventListener('message', function(event) {
             if (event.data && event.data.type === 'updateMotoboyPosition') {
                 const { lat, lng } = event.data;
+                console.log('=== ATUALIZAÇÃO DE POSIÇÃO DO MOTOBOY ===');
+                console.log('Nova posição GPS:', lat, lng);
+                
                 if (window.motoboyMarkerRef) {
-                    window.motoboyMarkerRef.setLatLng([lat, lng]);
-                    // Não ajustar zoom automaticamente, apenas mover o marcador
+                    // SEMPRE usar a função de projeção na rota se estiver disponível
+                    if (window.updateMotoboyPositionOnRoute && window.routeCoordinates && window.routeCoordinates.length > 0) {
+                        console.log('Projetando motoboy na rota usando novas coordenadas GPS');
+                        window.updateMotoboyPositionOnRoute(lat, lng);
+                        console.log('Motoboy projetado na rota com sucesso');
+                    } else {
+                        console.warn('Rota ainda não foi traçada ou função não disponível. Movendo diretamente.');
+                        // Se a rota ainda não foi traçada, mover diretamente
+                        window.motoboyMarkerRef.setLatLng([lat, lng]);
+                    }
+                    
+                    // Garantir que o ícone continue visível após atualização
+                    if (window.motoboyMarkerRef._icon) {
+                        window.motoboyMarkerRef._icon.style.display = 'flex';
+                        window.motoboyMarkerRef._icon.style.visibility = 'visible';
+                        window.motoboyMarkerRef._icon.style.opacity = '1';
+                        // Forçar renderização do emoji
+                        const innerDiv = window.motoboyMarkerRef._icon.querySelector('.motoboy-icon-inner');
+                        if (innerDiv) {
+                            innerDiv.style.display = 'flex';
+                            innerDiv.style.alignItems = 'center';
+                            innerDiv.style.justifyContent = 'center';
+                            innerDiv.style.fontSize = '24px';
+                            innerDiv.textContent = '🛵';
+                        }
+                    }
+                } else {
+                    console.error('window.motoboyMarkerRef não existe!');
                 }
             }
         });
@@ -354,11 +595,16 @@ const RastreamentoPublicoPage = () => {
             const lng = parseFloat(rastreamento.longitude);
             
             if (!isNaN(lat) && !isNaN(lng)) {
-                // Aguardar iframe carregar antes de enviar mensagem
+                console.log('=== ATUALIZANDO POSIÇÃO DO MOTOBOY (REACT) ===');
+                console.log('Coordenadas do rastreamento:', lat, lng);
+                
+                // Aguardar iframe carregar e rota ser traçada antes de enviar mensagem
                 setTimeout(() => {
                     const iframe = document.getElementById('mapa-iframe');
                     if (iframe && iframe.contentWindow) {
+                        console.log('Enviando atualização via postMessage para o iframe');
                         // Atualizar posição do motoboy no mapa via postMessage
+                        // A função updateMotoboyPositionOnRoute dentro do iframe vai projetar na rota
                         iframe.contentWindow.postMessage({
                             type: 'updateMotoboyPosition',
                             lat: lat,
@@ -371,8 +617,10 @@ const RastreamentoPublicoPage = () => {
                             const tempo = calcularTempoEstimado(distancia);
                             setTempoEstimado(tempo);
                         }
+                    } else {
+                        console.warn('Iframe ainda não está pronto');
                     }
-                }, 500); // Aguardar iframe carregar
+                }, 1000); // Aguardar iframe carregar e rota ser traçada (aumentado para 1s)
             }
         }
     }, [rastreamento?.latitude, rastreamento?.longitude, rastreamento?.status, mapaUrl, enderecoCoordenadas]);
@@ -550,38 +798,6 @@ const RastreamentoPublicoPage = () => {
                     </CardContent>
                 </Card>
 
-                {/* Informações Adicionais */}
-                {rastreamento.historico && rastreamento.historico.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Histórico de Localização</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                {rastreamento.historico.slice(-5).reverse().map((item, idx) => {
-                                    // Converter para número e garantir que sejam válidos
-                                    const lat = parseFloat(item.latitude);
-                                    const lng = parseFloat(item.longitude);
-                                    
-                                    // Verificar se são números válidos antes de usar toFixed
-                                    if (isNaN(lat) || isNaN(lng)) {
-                                        return null; // Não renderizar se valores inválidos
-                                    }
-                                    
-                                    return (
-                                        <div key={idx} className="flex items-center gap-2 text-sm text-gray-600">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                            <span>
-                                                {item.timestamp ? new Date(item.timestamp).toLocaleTimeString('pt-BR') : 'N/A'} - 
-                                                Lat: {lat.toFixed(6)}, Lng: {lng.toFixed(6)}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         </div>
     );
