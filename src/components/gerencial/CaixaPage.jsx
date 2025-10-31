@@ -400,7 +400,9 @@ const CaixaPage = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            setClientesContasPrazo(response.data || []);
+            // Filtrar apenas clientes ativos (ativo === 1)
+            const clientesAtivos = (response.data || []).filter(cliente => cliente.ativo === 1);
+            setClientesContasPrazo(clientesAtivos);
         } catch (err) {
             console.error("Erro ao buscar clientes:", err);
             toast.error(err.response?.data?.message || 'Erro ao buscar clientes.');

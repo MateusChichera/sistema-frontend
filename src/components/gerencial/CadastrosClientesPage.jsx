@@ -8,6 +8,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { Switch } from '../ui/switch';
 import { Loader2, Search as SearchIcon, Plus as PlusIcon, Edit as EditIcon, Trash2 as TrashIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
@@ -34,7 +35,7 @@ const CadastrosClientesPage = () => {
         observacoes: ''
     });
 
-    const fetchClientes = useCallback(async () => {
+    const fetchClientes = useCallback(async (termo = '') => {
         if (!isReady || empresaLoading || !empresa?.slug || !user) {
             setLoading(true);
             return;
@@ -44,8 +45,8 @@ const CadastrosClientesPage = () => {
         setError(null);
         try {
             const queryParams = new URLSearchParams();
-            if (searchTerm) {
-                queryParams.append('search', searchTerm);
+            if (termo) {
+                queryParams.append('search', termo);
             }
 
             const response = await api.get(`/gerencial/${empresa.slug}/contas-prazo/clientes/buscar?${queryParams.toString()}`, {
@@ -59,11 +60,11 @@ const CadastrosClientesPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [empresa, empresaLoading, isReady, user, token, searchTerm]);
+    }, [empresa, empresaLoading, isReady, user, token]);
 
     const handleSearch = useCallback(() => {
-        fetchClientes();
-    }, [fetchClientes]);
+        fetchClientes(searchTerm);
+    }, [fetchClientes, searchTerm]);
 
     const handleOpenModal = (cliente = null) => {
         if (cliente) {
@@ -144,9 +145,44 @@ const CadastrosClientesPage = () => {
         }
     };
 
+    const handleToggleAtivo = async (cliente) => {
+        const novoStatus = cliente.ativo === 1 ? 0 : 1;
+        
+        try {
+            await api.put(`/gerencial/${empresa.slug}/contas-prazo/clientes/${cliente.id}`, {
+                ...cliente,
+                ativo: novoStatus
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            toast.success(`Cliente ${novoStatus === 1 ? 'ativado' : 'desativado'} com sucesso!`);
+            fetchClientes();
+        } catch (err) {
+            console.error("Erro ao atualizar status do cliente:", err);
+            toast.error(err.response?.data?.message || 'Erro ao atualizar status do cliente.');
+        }
+    };
+
+    // Carregar todos os clientes inicialmente
     useEffect(() => {
-        fetchClientes();
-    }, [fetchClientes]);
+        if (isReady && !empresaLoading && empresa?.slug && user) {
+            fetchClientes('');
+        }
+    }, [isReady, empresaLoading, empresa?.slug, user, fetchClientes]);
+
+    // Debounce para busca de clientes
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (searchTerm) {
+                fetchClientes(searchTerm);
+            } else {
+                fetchClientes('');
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchTerm, fetchClientes]);
 
     if (empresaLoading || loading || !isReady) {
         return (
@@ -199,7 +235,12 @@ const CadastrosClientesPage = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {clientes.map(cliente => (
-                        <Card key={cliente.id} className="relative overflow-hidden bg-white shadow-md">
+                        <Card 
+                            key={cliente.id} 
+                            className={`relative overflow-hidden bg-white shadow-md ${
+                                cliente.ativo === 0 ? 'border-2 border-red-500' : ''
+                            }`}
+                        >
                             <CardHeader className="pb-2 px-3 sm:px-4 py-3">
                                 <CardTitle className="text-base sm:text-lg">
                                     {cliente.nome}
@@ -210,6 +251,18 @@ const CadastrosClientesPage = () => {
                             </CardHeader>
                             <CardContent className="space-y-2 text-xs sm:text-sm pt-2 px-3 sm:px-4">
                                 <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <span><strong>Status:</strong></span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-600">
+                                                {cliente.ativo === 1 ? 'Ativo' : 'Inativo'}
+                                            </span>
+                                            <Switch
+                                                checked={cliente.ativo === 1}
+                                                onCheckedChange={() => handleToggleAtivo(cliente)}
+                                            />
+                                        </div>
+                                    </div>
                                     {cliente.email && (
                                         <div><strong>Email:</strong> {cliente.email}</div>
                                     )}
